@@ -44,6 +44,7 @@ model User {
   modulePerms   UserModulePermission[]
   resetTokens   PasswordResetToken[]
   pricingCalculations PricingCalculation[]
+  expenseTransactions ExpenseTransaction[] @relation("ExpenseCreatedBy")
 }
 
 model PasswordResetToken {
@@ -234,6 +235,138 @@ model PricingSettings {
   id        Int      @id @default(1)
   config    String // JSON of PricingConfig
   updatedAt DateTime @updatedAt
+}
+
+// ─── Expenses module (Operations cash + sales reconciliation) ─────────────────
+
+model ExpenseCategory {
+  id        Int       @id @default(autoincrement())
+  name      String
+  type      String // "EXPENSE" | "TRANSFER"
+  enabled   Boolean   @default(true)
+  sortOrder Int       @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  transactions ExpenseTransaction[]
+}
+
+model ExpenseTransaction {
+  id                   Int              @id @default(autoincrement())
+  amount               Float
+  categoryId           Int?
+  category             ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  categoryNameSnapshot String
+  categoryTypeSnapshot String // "EXPENSE" | "TRANSFER"
+  note                 String?
+  createdById          Int
+  createdBy            User             @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  createdAt            DateTime         @default(now())
+  updatedById          Int?
+  updatedAt            DateTime         @updatedAt
+
+  attachments ExpenseAttachment[]
+
+  @@index([categoryTypeSnapshot])
+  @@index([createdAt])
+  @@index([createdById])
+}
+
+// Links an expense transaction to an uploaded Asset (reuses the shared upload primitive).
+model ExpenseAttachment {
+  id            Int                @id @default(autoincrement())
+  transactionId Int
+  transaction   ExpenseTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  assetId       String
+  uploadedById  Int?
+  uploadedAt    DateTime           @default(now())
+
+  @@index([transactionId])
+}
+
+model ExpenseAccount {
+  id        Int       @id @default(autoincrement())
+  name      String
+  enabled   Boolean   @default(true)
+  sortOrder Int       @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  collectionLines MonthlyBankCollectionLine[]
+}
+
+model MonthlySalesReport {
+  id                          Int      @id @default(autoincrement())
+  year                        Int
+  month                       Int
+  totalSales                  Float
+  cashToStaff                 Float    @default(0)
+  cashToAramex                Float    @default(0)
+  cashToSmsa                  Float    @default(0)
+  bankTransferAndMobileWallet Float    @default(0)
+  creditCard                  Float    @default(0)
+  note                        String?
+  createdById                 Int
+  createdAt                   DateTime @default(now())
+  updatedById                 Int?
+  updatedAt                   DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+model MonthlyBankCollectionReport {
+  id          Int      @id @default(autoincrement())
+  year        Int
+  month       Int
+  note        String?
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedById Int?
+  updatedAt   DateTime @updatedAt
+
+  lines MonthlyBankCollectionLine[]
+
+  @@unique([year, month])
+}
+
+model MonthlyBankCollectionLine {
+  id                  Int                         @id @default(autoincrement())
+  reportId            Int
+  report              MonthlyBankCollectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  accountId           Int?
+  account             ExpenseAccount?             @relation(fields: [accountId], references: [id])
+  accountNameSnapshot String
+  amount              Float
+}
+
+model MonthlyReconciliationNote {
+  id          Int      @id @default(autoincrement())
+  year        Int
+  month       Int
+  note        String?
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedById Int?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+// ─── Audit log (cross-module activity trail) ──────────────────────────────────
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int? // plain id (resolved by name on display)
+  action     String
+  entityType String
+  entityId   String
+  meta       String? // JSON
+  createdAt  DateTime @default(now())
+
+  @@index([entityType])
+  @@index([createdAt])
 }
 
 // ─── UID counter (human-readable codes: <PREFIX><YY><MM><seq3>) ────────────────

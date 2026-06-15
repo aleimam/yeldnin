@@ -61,6 +61,43 @@ async function main() {
     });
   }
 
+  // Expense categories + accounts (idempotent by name)
+  const EXPENSE_CATEGORIES: { name: string; type: string }[] = [
+    { name: "Charity", type: "EXPENSE" },
+    { name: "Delivery Costs", type: "EXPENSE" },
+    { name: "Transportation", type: "EXPENSE" },
+    { name: "Communications", type: "EXPENSE" },
+    { name: "Packing Costs", type: "EXPENSE" },
+    { name: "Tips", type: "EXPENSE" },
+    { name: "Tagamoa Office", type: "EXPENSE" },
+    { name: "Alf Maskan Office", type: "EXPENSE" },
+    { name: "Quarterly Meeting", type: "EXPENSE" },
+    { name: "Money Handover", type: "TRANSFER" },
+    { name: "Gifts", type: "EXPENSE" },
+    { name: "Other", type: "EXPENSE" },
+  ];
+  for (let i = 0; i < EXPENSE_CATEGORIES.length; i++) {
+    const c = EXPENSE_CATEGORIES[i];
+    const found = await prisma.expenseCategory.findFirst({ where: { name: c.name } });
+    if (!found) {
+      await prisma.expenseCategory.create({ data: { name: c.name, type: c.type, sortOrder: i } });
+    }
+  }
+
+  const EXPENSE_ACCOUNTS = [
+    "Alex Bank",
+    "Banque Misr",
+    "CIB Personal Account",
+    "CIB Business Account",
+    "Mobile Wallet",
+    "Other Accounts",
+  ];
+  for (let i = 0; i < EXPENSE_ACCOUNTS.length; i++) {
+    const name = EXPENSE_ACCOUNTS[i];
+    const found = await prisma.expenseAccount.findFirst({ where: { name } });
+    if (!found) await prisma.expenseAccount.create({ data: { name, sortOrder: i } });
+  }
+
   // Default super-admin (only if there are no users at all)
   const userCount = await prisma.user.count();
   if (userCount === 0) {

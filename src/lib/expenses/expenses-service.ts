@@ -1,0 +1,318 @@
+import "server-only";
+import { prisma } from "@/lib/db";
+import { writeAudit } from "@/lib/audit";
+import type { Access, SessionUser } from "@/lib/auth/access";
+import {
+  canEditExpense,
+  canDeleteExpense,
+  computeReconciliation,
+  reconciliationStatus,
+  type ReconciliationResult,
+} from "./expenses-logic";
+
+type AuthedAccess = Access & { user: SessionUser };
+
+// A "manager" (MANAGE on expenses; admins inherit it) can edit/delete anytime.
+export function isExpensesManager(access: AuthedAccess): boolean {
+  return access.canModule("expenses", "MANAGE");
+}
+function canEdit(access: AuthedAccess): boolean {
+  return access.canModule("expenses", "OPERATE");
+}
+
+export function monthRange(year: number, month: number): { gte: Date; lt: Date } {
+  return { gte: new Date(year, month - 1, 1), lt: new Date(year, month, 1) };
+}
+
+export async function userNameMap(
+  ids: (number | null | undefined)[],
+): Promise<Map<number, string>> {
+  const clean = [...new Set(ids.filter((x): x is number => typeof x === "number"))];
+  if (!clean.length) return new Map();
+  const users = await prisma.user.findMany({
+    where: { id: { in: clean } },
+    select: { id: true, name: true },
+  });
+  return new Map(users.map((u) => [u.id, u.name]));
+}
+
+async function categorySnapshot(categoryId: number): Promise<{ name: string; type: string }> {
+  const c = await prisma.expenseCategory.findUnique({ where: { id: categoryId } });
+  if (!c) throw new Error("Category not found");
+  return { name: c.name, type: c.type };
+}
+
+// ---------------- Transactions ----------------
+
+export async function createExpenseTransaction(
+  input: { amount: number; categoryId: number; note?: string | null; attachmentAssetIds?: string[] },
+  access: AuthedAccess,
+) {
+  const snap = await categorySnapshot(input.categoryId);
+  const tx = await prisma.expenseTransaction.create({
+    data: {
+      amount: input.amount,
+      categoryId: input.categoryId,
+      categoryNameSnapshot: snap.name,
+      categoryTypeSnapshot: snap.type,
+      note: input.note || null,
+      createdById: access.user.id,
+      attachments: input.attachmentAssetIds?.length
+        ? { create: input.attachmentAssetIds.map((assetId) => ({ assetId, uploadedById: access.user.id })) }
+        : undefined,
+    },
+  });
+  await writeAudit(access.user.id, "expense.tx.create", "expenseTransaction", tx.id, {
+    amount: tx.amount,
+    category: snap.name,
+    type: snap.type,
+  });
+  return tx;
+}
+
+export async function updateExpenseTransaction(
+  id: number,
+  input: { amount: number; categoryId: number; note?: string | null },
+  access: AuthedAccess,
+) {
+  const tx = await prisma.expenseTransaction.findUnique({ where: { id } });
+  if (!tx) throw new Error("Transaction not found");
+  if (
+    !canEditExpense({
+      isManager: isExpensesManager(access),
+      isOwner: tx.createdById === access.user.id,
+      hasEditPermission: canEdit(access),
+      createdAt: tx.createdAt,
+      now: new Date(),
+    })
+  ) {
+    throw new Error("Not allowed to edit this transaction");
+  }
+
+  const snap = await categorySnapshot(input.categoryId);
+  const changes: { field: string; old: unknown; new: unknown }[] = [];
+  if (tx.amount !== input.amount) changes.push({ field: "amount", old: tx.amount, new: input.amount });
+  if (tx.categoryNameSnapshot !== snap.name) changes.push({ field: "category", old: tx.categoryNameSnapshot, new: snap.name });
+  if ((tx.note || "") !== (input.note || "")) changes.push({ field: "note", old: tx.note, new: input.note });
+
+  const updated = await prisma.expenseTransaction.update({
+    where: { id },
+    data: {
+      amount: input.amount,
+      categoryId: input.categoryId,
+      categoryNameSnapshot: snap.name,
+      categoryTypeSnapshot: snap.type,
+      note: input.note || null,
+      updatedById: access.user.id,
+    },
+  });
+  await writeAudit(access.user.id, "expense.tx.update", "expenseTransaction", id, { changes });
+  return updated;
+}
+
+export async function deleteExpenseTransaction(id: number, access: AuthedAccess) {
+  const tx = await prisma.expenseTransaction.findUnique({ where: { id }, include: { attachments: true } });
+  if (!tx) return [];
+  const allowed =
+    canDeleteExpense({ isManager: isExpensesManager(access), hasDeletePermission: isExpensesManager(access) }) ||
+    canEditExpense({
+      isManager: isExpensesManager(access),
+      isOwner: tx.createdById === access.user.id,
+      hasEditPermission: canEdit(access),
+      createdAt: tx.createdAt,
+      now: new Date(),
+    });
+  if (!allowed) throw new Error("Not allowed to delete this transaction");
+  await writeAudit(access.user.id, "expense.tx.delete", "expenseTransaction", id, {
+    amount: tx.amount,
+    category: tx.categoryNameSnapshot,
+  });
+  await prisma.expenseTransaction.delete({ where: { id } });
+  return tx.attachments.map((a) => a.assetId);
+}
+
+export function getTransaction(id: number) {
+  return prisma.expenseTransaction.findUnique({
+    where: { id },
+    include: { createdBy: { select: { name: true } }, attachments: true },
+  });
+}
+
+export async function listTransactions(opts: {
+  type?: "EXPENSE" | "TRANSFER";
+  search?: string;
+  take?: number;
+  skip?: number;
+}) {
+  return prisma.expenseTransaction.findMany({
+    where: {
+      ...(opts.type ? { categoryTypeSnapshot: opts.type } : {}),
+      ...(opts.search ? { note: { contains: opts.search } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    include: { createdBy: { select: { name: true } }, attachments: true },
+    take: opts.take ?? 100,
+    skip: opts.skip ?? 0,
+  });
+}
+
+// ---------------- Categories & accounts ----------------
+
+export function listCategories(includeDisabled = false) {
+  return prisma.expenseCategory.findMany({
+    where: { deletedAt: null, ...(includeDisabled ? {} : { enabled: true }) },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+}
+
+export function listAccounts(includeDisabled = false) {
+  return prisma.expenseAccount.findMany({
+    where: { deletedAt: null, ...(includeDisabled ? {} : { enabled: true }) },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+}
+
+// ---------------- Dashboard ----------------
+
+export interface DashboardData {
+  monthExpensesTotal: number;
+  monthTransfersTotal: number;
+  topCategories: { name: string; total: number }[];
+  recentExpenses: { id: number; amount: number; categoryNameSnapshot: string; createdAt: Date; createdBy: string }[];
+  recentDeliveries: { id: number; amount: number; categoryNameSnapshot: string; createdAt: Date; createdBy: string }[];
+  byMonth: { label: string; expenses: number; transfers: number }[];
+  latestReconciliation: { year: number; month: number; result: ReconciliationResult } | null;
+}
+
+export async function getExpensesDashboard(): Promise<DashboardData> {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const { gte, lt } = monthRange(y, m);
+
+  const [monthExp, monthTr, topCats, recentExp, recentDel] = await Promise.all([
+    prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte, lt } } }),
+    prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "TRANSFER", createdAt: { gte, lt } } }),
+    prisma.expenseTransaction.groupBy({
+      by: ["categoryNameSnapshot"],
+      where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte, lt } },
+      _sum: { amount: true },
+      orderBy: { _sum: { amount: "desc" } },
+      take: 5,
+    }),
+    prisma.expenseTransaction.findMany({ where: { categoryTypeSnapshot: "EXPENSE" }, orderBy: { createdAt: "desc" }, take: 5, include: { createdBy: { select: { name: true } } } }),
+    prisma.expenseTransaction.findMany({ where: { categoryTypeSnapshot: "TRANSFER" }, orderBy: { createdAt: "desc" }, take: 5, include: { createdBy: { select: { name: true } } } }),
+  ]);
+
+  const byMonth: DashboardData["byMonth"] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(y, m - 1 - i, 1);
+    const yy = d.getFullYear();
+    const mm = d.getMonth() + 1;
+    const range = monthRange(yy, mm);
+    const [e, t] = await Promise.all([
+      prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte: range.gte, lt: range.lt } } }),
+      prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "TRANSFER", createdAt: { gte: range.gte, lt: range.lt } } }),
+    ]);
+    byMonth.push({ label: `${yy}-${String(mm).padStart(2, "0")}`, expenses: e._sum.amount ?? 0, transfers: t._sum.amount ?? 0 });
+  }
+
+  const latestSales = await prisma.monthlySalesReport.findFirst({ orderBy: [{ year: "desc" }, { month: "desc" }] });
+  let latestReconciliation: DashboardData["latestReconciliation"] = null;
+  if (latestSales) {
+    latestReconciliation = { year: latestSales.year, month: latestSales.month, result: await calculateMonthlyReconciliation(latestSales.year, latestSales.month) };
+  }
+
+  return {
+    monthExpensesTotal: monthExp._sum.amount ?? 0,
+    monthTransfersTotal: monthTr._sum.amount ?? 0,
+    topCategories: topCats.map((c) => ({ name: c.categoryNameSnapshot, total: c._sum.amount ?? 0 })),
+    recentExpenses: recentExp.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: r.createdBy.name })),
+    recentDeliveries: recentDel.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: r.createdBy.name })),
+    byMonth,
+    latestReconciliation,
+  };
+}
+
+// ---------------- Reports ----------------
+
+export async function getExpenseReports() {
+  const [byCategory, byUserRaw, byMonthRows] = await Promise.all([
+    prisma.expenseTransaction.groupBy({ by: ["categoryNameSnapshot", "categoryTypeSnapshot"], _sum: { amount: true }, _count: true, orderBy: { _sum: { amount: "desc" } } }),
+    prisma.expenseTransaction.groupBy({ by: ["createdById"], where: { categoryTypeSnapshot: "EXPENSE" }, _sum: { amount: true }, _count: true }),
+    prisma.expenseTransaction.findMany({ select: { amount: true, categoryTypeSnapshot: true, createdAt: true } }),
+  ]);
+  const names = await userNameMap(byUserRaw.map((u) => u.createdById));
+  const byUser = byUserRaw
+    .map((u) => ({ user: names.get(u.createdById) ?? `#${u.createdById}`, total: u._sum.amount ?? 0, count: u._count }))
+    .sort((a, b) => b.total - a.total);
+
+  const monthMap = new Map<string, { expenses: number; transfers: number }>();
+  for (const r of byMonthRows) {
+    const key = `${r.createdAt.getFullYear()}-${String(r.createdAt.getMonth() + 1).padStart(2, "0")}`;
+    const mm = monthMap.get(key) ?? { expenses: 0, transfers: 0 };
+    if (r.categoryTypeSnapshot === "TRANSFER") mm.transfers += r.amount;
+    else mm.expenses += r.amount;
+    monthMap.set(key, mm);
+  }
+  const byMonth = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([label, v]) => ({ label, ...v }));
+
+  return {
+    byCategory: byCategory.map((c) => ({ name: c.categoryNameSnapshot, type: c.categoryTypeSnapshot, total: c._sum.amount ?? 0, count: c._count })),
+    byUser,
+    byMonth,
+  };
+}
+
+// ---------------- Monthly reports + reconciliation ----------------
+
+export async function createOrUpdateMonthlySalesReport(
+  data: { year: number; month: number; totalSales: number; cashToStaff: number; cashToAramex: number; cashToSmsa: number; bankTransferAndMobileWallet: number; creditCard: number; note?: string | null },
+  access: AuthedAccess,
+) {
+  const existing = await prisma.monthlySalesReport.findUnique({ where: { year_month: { year: data.year, month: data.month } } });
+  const saved = await prisma.monthlySalesReport.upsert({
+    where: { year_month: { year: data.year, month: data.month } },
+    create: { ...data, note: data.note || null, createdById: access.user.id },
+    update: { ...data, note: data.note || null, updatedById: access.user.id },
+  });
+  await writeAudit(access.user.id, existing ? "expense.monthlySales.update" : "expense.monthlySales.create", "monthlySalesReport", `${data.year}-${data.month}`, { totalSales: data.totalSales });
+  return saved;
+}
+
+export async function createOrUpdateMonthlyBankCollectionReport(
+  data: { year: number; month: number; note?: string | null; lines: { accountId: number | null; accountNameSnapshot: string; amount: number }[] },
+  access: AuthedAccess,
+) {
+  const existing = await prisma.monthlyBankCollectionReport.findUnique({ where: { year_month: { year: data.year, month: data.month } } });
+  const report = await prisma.monthlyBankCollectionReport.upsert({
+    where: { year_month: { year: data.year, month: data.month } },
+    create: { year: data.year, month: data.month, note: data.note || null, createdById: access.user.id },
+    update: { note: data.note || null, updatedById: access.user.id },
+  });
+  await prisma.monthlyBankCollectionLine.deleteMany({ where: { reportId: report.id } });
+  for (const l of data.lines) {
+    if (!Number.isFinite(l.amount)) continue;
+    await prisma.monthlyBankCollectionLine.create({ data: { reportId: report.id, accountId: l.accountId, accountNameSnapshot: l.accountNameSnapshot, amount: l.amount } });
+  }
+  await writeAudit(access.user.id, existing ? "expense.bankCollection.update" : "expense.bankCollection.create", "monthlyBankCollectionReport", `${data.year}-${data.month}`, { lines: data.lines.length });
+  return report;
+}
+
+export async function calculateMonthlyReconciliation(year: number, month: number): Promise<ReconciliationResult> {
+  const { gte, lt } = monthRange(year, month);
+  const [sales, bank, exp, tr] = await Promise.all([
+    prisma.monthlySalesReport.findUnique({ where: { year_month: { year, month } } }),
+    prisma.monthlyBankCollectionLine.aggregate({ _sum: { amount: true }, where: { report: { year, month } } }),
+    prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte, lt } } }),
+    prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "TRANSFER", createdAt: { gte, lt } } }),
+  ]);
+  return computeReconciliation({
+    totalSales: sales?.totalSales ?? 0,
+    bankCollectionsTotal: bank._sum.amount ?? 0,
+    expensesTotal: exp._sum.amount ?? 0,
+    transfersTotal: tr._sum.amount ?? 0,
+  });
+}
+
+export { reconciliationStatus };
