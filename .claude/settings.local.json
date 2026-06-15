@@ -50,7 +50,8 @@
       "Bash(ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new root@204.168.129.186 \"echo CONNECTED; hostname; node -v 2>/dev/null; node-24 -v 2>/dev/null; which pm2\")",
       "Bash(git -c core.autocrlf=false commit -q -m 'Deploy: run node:sqlite under --experimental-sqlite on Node 22 *)",
       "Bash(git -c core.autocrlf=false commit -q -m 'docs\\(deploy\\): note nginx listen-IP requirement on the multi-vhost box *)",
-      "Bash(git -c core.autocrlf=false commit -q -m 'Sidebar navigation: collapsible per-module sidebar + real module switcher *)"
+      "Bash(git -c core.autocrlf=false commit -q -m 'Sidebar navigation: collapsible per-module sidebar + real module switcher *)",
+      "Bash(git -c core.autocrlf=false commit -q -m 'Batch 1: move Sign out into a gear account menu *)"
     ]
   }
 }

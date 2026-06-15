@@ -8,6 +8,7 @@ import { MODULES } from "@/lib/modules";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { MobileMenuButton } from "./MobileMenuButton";
+import { AccountMenu } from "./AccountMenu";
 
 const TIER_LABEL: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -93,12 +94,7 @@ export async function TopBar({
             <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
           </div>
           <button aria-label={t("common.notifications")} className="text-muted hover:text-ink">🔔</button>
-          {showSettings && (
-            <Link href="/settings" aria-label={t("common.settings")} className="text-muted hover:text-ink">⚙️</Link>
-          )}
-          <form method="POST" action="/api/logout">
-            <button type="submit" className="text-sm text-muted hover:text-ink" title={t("common.signOut")}>⎋</button>
-          </form>
+          <AccountMenu name={user.name} email={user.email} tier={user.tier} showSettings={showSettings} />
         </div>
       </div>
     </header>
