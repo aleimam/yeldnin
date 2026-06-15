@@ -5,8 +5,19 @@ import { cookies } from "next/headers";
 const COOKIE = "yeldnin_session";
 const MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
+const DEV_SECRET = "dev-only-change-me-in-env-local";
+
 function secret(): string {
-  return process.env.SESSION_SECRET || "dev-only-change-me-in-env-local";
+  const s = process.env.SESSION_SECRET;
+  if (!s || s === DEV_SECRET) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "SESSION_SECRET must be set to a strong random value in production.",
+      );
+    }
+    return DEV_SECRET;
+  }
+  return s;
 }
 
 function b64url(input: Buffer | string): string {
@@ -35,7 +46,12 @@ export function readToken(token: string | undefined): number | null {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   try {
     const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
-    return typeof parsed.uid === "number" ? parsed.uid : null;
+    if (typeof parsed.uid !== "number") return null;
+    // Reject tokens older than MAX_AGE (server-side expiry, not just cookie life).
+    if (typeof parsed.iat === "number" && Date.now() - parsed.iat > MAX_AGE * 1000) {
+      return null;
+    }
+    return parsed.uid;
   } catch {
     return null;
   }

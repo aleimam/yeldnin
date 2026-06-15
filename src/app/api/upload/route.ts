@@ -6,6 +6,13 @@ import { saveUpload, assetUrl } from "@/lib/assets/assets-service";
 export async function POST(req: Request) {
   const access = await getAccess();
   if (!access.user) return new NextResponse("Unauthorized", { status: 401 });
+  // Only users who can actually attach files anywhere may upload.
+  const allowed =
+    access.isAdmin ||
+    access.canModule("egv_pricer", "OPERATE") ||
+    access.canModule("expenses", "OPERATE") ||
+    access.canModule("settings", "MANAGE");
+  if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 
   const form = await req.formData();
   const file = form.get("file");

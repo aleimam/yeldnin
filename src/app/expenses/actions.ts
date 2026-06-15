@@ -11,6 +11,7 @@ import {
   isExpensesManager,
 } from "@/lib/expenses/expenses-service";
 import { canEditExpense } from "@/lib/expenses/expenses-logic";
+import { deleteAsset } from "@/lib/assets/assets-service";
 
 export type TxResult = { ok: true; id: number } | { ok: false; error: string };
 
@@ -65,11 +66,13 @@ export async function updateTransactionAction(id: number, p: TxPayload): Promise
 export async function deleteTransactionAction(formData: FormData): Promise<void> {
   const access = await requireModule("expenses", "VIEW");
   const id = Number(formData.get("id"));
+  let assetIds: string[] = [];
   try {
-    await deleteExpenseTransaction(id, access);
+    assetIds = (await deleteExpenseTransaction(id, access)) ?? [];
   } catch {
     redirect(`/expenses/transactions/${id}`);
   }
+  for (const a of assetIds) await deleteAsset(a);
   revalidatePath("/expenses/transactions");
   redirect("/expenses/transactions");
 }
@@ -90,6 +93,7 @@ export async function deleteAttachmentAction(formData: FormData): Promise<void> 
   });
   if (!allowed) return;
   await prisma.expenseAttachment.delete({ where: { id: attId } });
+  await deleteAsset(att.assetId);
   await writeAudit(access.user.id, "expense.attachment.remove", "expenseTransaction", tx.id, { attachmentId: attId });
   revalidatePath(`/expenses/transactions/${tx.id}`);
 }

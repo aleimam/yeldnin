@@ -33,6 +33,17 @@ export function listTeams() {
   return prisma.team.findMany({ orderBy: { name: "asc" } });
 }
 
+export function activeSuperAdminCount(): Promise<number> {
+  return prisma.user.count({
+    where: { tier: "SUPER_ADMIN", active: true, archivedAt: null },
+  });
+}
+
+export async function getUserTier(id: number): Promise<string | null> {
+  const u = await prisma.user.findUnique({ where: { id }, select: { tier: true } });
+  return u?.tier ?? null;
+}
+
 export async function createUser(input: {
   name: string;
   email: string;

@@ -10,11 +10,12 @@ const EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/webp": "webp",
   "image/gif": "gif",
-  "image/svg+xml": "svg",
   "image/x-icon": "ico",
   "image/vnd.microsoft.icon": "ico",
   "application/pdf": "pdf",
 };
+// NOTE: SVG is intentionally excluded — inline SVG can carry executable script
+// (stored-XSS) when served from our origin.
 
 export const MAX_UPLOAD_BYTES = 32 * 1024 * 1024; // 32 MB
 export const ALLOWED_MIME = new Set(Object.keys(EXT));
@@ -38,6 +39,20 @@ export async function saveUpload(file: File): Promise<string> {
   await fs.writeFile(path.join(UPLOAD_DIR, filename), buf);
   await prisma.asset.update({ where: { id: asset.id }, data: { filename } });
   return asset.id;
+}
+
+/** Delete an asset's DB row and its file on disk (best-effort). */
+export async function deleteAsset(id: string): Promise<void> {
+  const asset = await prisma.asset.findUnique({ where: { id } });
+  if (!asset) return;
+  if (asset.filename && asset.filename !== "pending") {
+    try {
+      await fs.unlink(path.join(UPLOAD_DIR, asset.filename));
+    } catch {
+      // file already gone — ignore
+    }
+  }
+  await prisma.asset.delete({ where: { id } }).catch(() => {});
 }
 
 export async function readAsset(
