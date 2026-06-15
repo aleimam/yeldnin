@@ -43,6 +43,7 @@ model User {
   teamMembers   TeamMember[]
   modulePerms   UserModulePermission[]
   resetTokens   PasswordResetToken[]
+  pricingCalculations PricingCalculation[]
 }
 
 model PasswordResetToken {
@@ -180,6 +181,59 @@ model Asset {
   mimeType  String
   size      Int
   createdAt DateTime @default(now())
+}
+
+// ─── Pricing module ───────────────────────────────────────────────────────────
+
+model Supplier {
+  id           Int       @id @default(autoincrement())
+  name         String
+  availableUSA Boolean   @default(false)
+  availableUK  Boolean   @default(false)
+  availableEU  Boolean   @default(false)
+  contact      String?
+  active       Boolean   @default(true)
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model PricingCalculation {
+  id           Int       @id @default(autoincrement())
+  section      String // SUPPLEMENT | DEVICE
+  productName  String?
+  importedFrom String
+  supplierId   Int?
+  supplierName String?
+  price        Float
+  inputJson    String // JSON snapshot of inputs
+  configJson   String // JSON snapshot of the config used (so history is reproducible)
+  notes        String?
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id])
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime? // soft delete: hidden from the owner, visible to admin
+  deletedById  Int?
+  photos       PricingPhoto[]
+
+  @@index([section])
+  @@index([userId])
+}
+
+model PricingPhoto {
+  id            Int                @id @default(autoincrement())
+  calculationId Int
+  assetId       String
+  calculation   PricingCalculation @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+  createdAt     DateTime           @default(now())
+
+  @@index([calculationId])
+}
+
+model PricingSettings {
+  id        Int      @id @default(1)
+  config    String // JSON of PricingConfig
+  updatedAt DateTime @updatedAt
 }
 
 // ─── UID counter (human-readable codes: <PREFIX><YY><MM><seq3>) ────────────────
