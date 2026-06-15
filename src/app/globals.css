@@ -25,6 +25,45 @@
     --line: 51 65 85;
   }
 
+  /* Appearance themes — override the brand color only; neutrals come from
+     light/.dark above. Keep keys in sync with src/lib/theme.ts. */
+  [data-theme="default"] {
+    --brand: 37 99 235;
+  }
+  [data-theme="default"].dark {
+    --brand: 59 130 246;
+  }
+  [data-theme="emerald"] {
+    --brand: 5 150 105;
+  }
+  [data-theme="emerald"].dark {
+    --brand: 16 185 129;
+  }
+  [data-theme="violet"] {
+    --brand: 124 58 237;
+  }
+  [data-theme="violet"].dark {
+    --brand: 139 92 246;
+  }
+  [data-theme="rose"] {
+    --brand: 225 29 72;
+  }
+  [data-theme="rose"].dark {
+    --brand: 244 63 94;
+  }
+  [data-theme="amber"] {
+    --brand: 217 119 6;
+  }
+  [data-theme="amber"].dark {
+    --brand: 245 158 11;
+  }
+  [data-theme="slate"] {
+    --brand: 71 85 105;
+  }
+  [data-theme="slate"].dark {
+    --brand: 100 116 139;
+  }
+
   html {
     color-scheme: light dark;
   }

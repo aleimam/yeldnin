@@ -31,6 +31,8 @@ model User {
   passwordHash String
   tier         String   @default("MEMBER") // UserTier as string for SQLite portability
   locale       String   @default("en")
+  themeKey     String?  // personal theme override (null = use app default)
+  colorMode    String   @default("system") // light | dark | system
   active       Boolean  @default(true)
   avatarUrl    String?
   createdAt    DateTime @default(now())
@@ -160,12 +162,24 @@ model Module {
 // ─── Platform settings (single row) ───────────────────────────────────────────
 
 model PlatformSettings {
-  id         Int      @id @default(1)
-  appName    String   @default("YeldnIN")
-  brandColor String   @default("37 99 235") // rgb triplet for --brand
-  logoUrl    String?
-  version    String   @default("0.1.0")
-  updatedAt  DateTime @updatedAt
+  id          Int      @id @default(1)
+  appName     String   @default("YeldnIN")
+  brandColor  String   @default("37 99 235") // legacy/unused (theme drives --brand)
+  themeKey    String   @default("default") // app-wide default theme
+  logoUrl     String?  // light-mode logo (asset key)
+  darkLogoUrl String?  // dark-mode logo (asset key)
+  faviconUrl  String?  // favicon (asset key)
+  version     String   @default("0.1.0")
+  updatedAt   DateTime @updatedAt
+}
+
+// Uploaded files (branding, and later Pricing photos). Served via /api/asset/[id].
+model Asset {
+  id        String   @id @default(cuid())
+  filename  String // stored filename on disk under /uploads
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
 }
 
 // ─── UID counter (human-readable codes: <PREFIX><YY><MM><seq3>) ────────────────

@@ -20,6 +20,22 @@
   "common.notifications": "الإشعارات",
   "common.settings": "الإعدادات",
 
+  "pref.appearance": "المظهر",
+  "pref.language": "اللغة",
+  "pref.theme": "السمة",
+  "pref.mode": "الوضع",
+  "mode.light": "فاتح",
+  "mode.dark": "داكن",
+  "mode.system": "النظام",
+
+  "settings.appearance.title": "المظهر",
+  "settings.appearance.appName": "اسم التطبيق",
+  "settings.appearance.defaultTheme": "السمة الافتراضية",
+  "settings.appearance.logo": "الشعار",
+  "settings.appearance.darkLogo": "شعار الوضع الداكن",
+  "settings.appearance.favicon": "أيقونة الموقع",
+  "settings.appearance.saved": "تم حفظ المظهر.",
+
   "dashboard.welcome": "مرحبًا بك في يلدن",
   "dashboard.choose": "اختر وحدة للعمل بها.",
 

@@ -20,6 +20,22 @@
   "common.notifications": "Notifications",
   "common.settings": "Settings",
 
+  "pref.appearance": "Appearance",
+  "pref.language": "Language",
+  "pref.theme": "Theme",
+  "pref.mode": "Mode",
+  "mode.light": "Light",
+  "mode.dark": "Dark",
+  "mode.system": "System",
+
+  "settings.appearance.title": "Appearance",
+  "settings.appearance.appName": "Application name",
+  "settings.appearance.defaultTheme": "Default theme",
+  "settings.appearance.logo": "Logo",
+  "settings.appearance.darkLogo": "Dark-mode logo",
+  "settings.appearance.favicon": "Favicon",
+  "settings.appearance.saved": "Appearance saved.",
+
   "dashboard.welcome": "Welcome in Yeldn",
   "dashboard.choose": "Choose a module to work in.",
 
