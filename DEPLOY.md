@@ -3,15 +3,17 @@
 Target: `in.yeldn.com` on a CWP + nginx server, Node app behind an nginx reverse
 proxy on internal port **3200**, managed by **PM2**. SQLite file DB.
 
-## ⚠ Node version requirement
+## ⚠ Node / node:sqlite
 
-The runtime uses Prisma's engine-free client over **`node:sqlite`** (chosen for
-win32/arm64 dev compatibility — see `CLAUDE.md`). `node:sqlite`'s full API
-(`setReturnArrays`, `setReadBigInts`) is stable in **Node 24+**. Install Node 24
-on the server (it can coexist with other apps' Node versions via `nvm`):
+The runtime uses Prisma's engine-free client over **`node:sqlite`** (see
+`CLAUDE.md`). It is **stable & flag-free in Node 24+**. On **Node 22.x** the same
+API exists but is gated behind `--experimental-sqlite` — the production server
+(Node 22.22) runs fine with that flag, which is baked into:
+- `ecosystem.config.js` → `env.NODE_OPTIONS=--experimental-sqlite` (runtime)
+- the `build` / `db:seed` commands below (prefix `NODE_OPTIONS=--experimental-sqlite`)
 
 ```bash
-node -v   # must be >= 24
+node -v   # 22.x (needs the flag) or 24+ (flag-free)
 ```
 
 ## First deployment
@@ -26,11 +28,11 @@ cp .env.example .env.local
 node -e "console.log('SESSION_SECRET='+require('crypto').randomBytes(48).toString('base64url'))" >> .env.local
 #   then edit .env.local: keep one SESSION_SECRET line, set PORT=3200
 
-# 3. Install + DB + build
+# 3. Install + DB + build  (Node 22 needs the flag; Node 24+ can omit it)
 npm ci
 npx prisma migrate deploy      # applies migrations, creates prisma/dev.db
-npm run db:seed                # modules, teams, expense categories/accounts, default super-admin
-npm run build
+NODE_OPTIONS=--experimental-sqlite npm run db:seed   # modules, teams, categories/accounts, super-admin
+NODE_OPTIONS=--experimental-sqlite npm run build
 
 # 4. Start under PM2
 pm2 start ecosystem.config.js

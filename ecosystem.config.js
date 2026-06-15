@@ -15,6 +15,8 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: "3200",
+        // Node 22 gates node:sqlite behind this flag (stable & flag-free in Node 24+).
+        NODE_OPTIONS: "--experimental-sqlite",
         // SESSION_SECRET / DATABASE_URL come from .env.local (loaded by Next).
       },
     },
