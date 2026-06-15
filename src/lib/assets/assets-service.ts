@@ -13,10 +13,11 @@ const EXT: Record<string, string> = {
   "image/svg+xml": "svg",
   "image/x-icon": "ico",
   "image/vnd.microsoft.icon": "ico",
+  "application/pdf": "pdf",
 };
 
 export const MAX_UPLOAD_BYTES = 32 * 1024 * 1024; // 32 MB
-export const IMAGE_MIME = new Set(Object.keys(EXT));
+export const ALLOWED_MIME = new Set(Object.keys(EXT));
 
 export function assetUrl(id: string | null | undefined): string | null {
   return id ? `/api/asset/${id}` : null;
@@ -24,7 +25,7 @@ export function assetUrl(id: string | null | undefined): string | null {
 
 /** Persist an uploaded File to disk + DB. Returns the Asset id. */
 export async function saveUpload(file: File): Promise<string> {
-  if (!IMAGE_MIME.has(file.type)) throw new Error("Unsupported file type.");
+  if (!ALLOWED_MIME.has(file.type)) throw new Error("Unsupported file type.");
   if (file.size > MAX_UPLOAD_BYTES) throw new Error("File too large (max 32 MB).");
 
   const buf = Buffer.from(await file.arrayBuffer());

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   }
   try {
     const id = await saveUpload(file);
-    return NextResponse.json({ id, url: assetUrl(id) });
+    return NextResponse.json({ id, url: assetUrl(id), mime: file.type });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Upload failed." },

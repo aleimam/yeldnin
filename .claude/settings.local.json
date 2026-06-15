@@ -44,7 +44,8 @@
       "PowerShell(Write-Output \"=== C:\\\\Claude ===\"; Get-ChildItem \"C:\\\\Claude\" -Directory -ErrorAction SilentlyContinue | Select-Object Name; Write-Output \"=== other common dev roots ===\"; foreach\\($p in @\\(\"C:\\\\Users\\\\aleim\\\\Desktop\",\"C:\\\\Users\\\\aleim\\\\Documents\",\"C:\\\\Users\\\\aleim\\\\source\",\"C:\\\\dev\",\"C:\\\\projects\",\"C:\\\\Users\\\\aleim\"\\)\\){ if\\(Test-Path $p\\){ Get-ChildItem $p -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"yeld|veeey|egv|inyeldn\" } | Select-Object FullName } })",
       "Bash(D=\"/c/Users/aleim/OneDrive/Desktop/Pricer\"; echo \"=== expenses app tree ===\"; find \"$D/src/app/\\(platform\\)/expenses\" \"$D/src/app/\\(platform\\)/settings/expenses\" -type f 2>/dev/null | sed \"s#$D/##\"; echo; echo \"=== expenses prisma models ===\"; grep -nE \"model \\(Expense|XoonxExpense|.*Expense.*|MonthClose|FxRate|RevenueEvent|MoneyDelivery|MonthlySales\\)\" \"$D/prisma/schema.prisma\" 2>/dev/null | head -40; echo; echo \"=== line counts of lib files ===\"; wc -l \"$D/src/lib/expenses-logic.ts\" \"$D/src/lib/expenses-service.ts\" \"$D/src/lib/expenses-seed-data.ts\" \"$D/src/components/platform/ExpenseTransactionForm.tsx\" 2>/dev/null)",
       "Bash(D=\"/c/Users/aleim/OneDrive/Desktop/Pricer\"; sed -n '305,395p' \"$D/prisma/schema.prisma\")",
-      "Bash(git -c core.autocrlf=false commit -q -m 'Phase 3 \\(backend\\): Expenses data model + logic + services \\(ported\\) *)"
+      "Bash(git -c core.autocrlf=false commit -q -m 'Phase 3 \\(backend\\): Expenses data model + logic + services \\(ported\\) *)",
+      "Bash(git -c core.autocrlf=false commit -q -m 'Phase 3 \\(UI\\): Expenses module pages \\(ported\\) *)"
     ]
   }
 }

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 export interface UploadedPhoto {
   id: string;
   url: string;
+  mime?: string;
 }
 
 async function uploadFile(file: File): Promise<UploadedPhoto> {
@@ -21,13 +22,20 @@ async function uploadFile(file: File): Promise<UploadedPhoto> {
 export function PhotoUpload({
   photos,
   onChange,
+  accept = "image/*",
+  allowPdf = false,
 }: {
   photos: UploadedPhoto[];
   onChange: (next: UploadedPhoto[]) => void;
+  accept?: string;
+  allowPdf?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const accepts = (f: File) =>
+    f.type.startsWith("image/") || (allowPdf && f.type === "application/pdf");
 
   async function handleFiles(files: FileList | File[]) {
     setError(null);
@@ -35,7 +43,7 @@ export function PhotoUpload({
     try {
       const added: UploadedPhoto[] = [];
       for (const f of Array.from(files)) {
-        if (!f.type.startsWith("image/")) continue;
+        if (!accepts(f)) continue;
         added.push(await uploadFile(f));
       }
       if (added.length) onChange([...photos, ...added]);
@@ -56,10 +64,8 @@ export function PhotoUpload({
           if (e.dataTransfer.files.length) void handleFiles(e.dataTransfer.files);
         }}
         onPaste={(e) => {
-          const imgs = Array.from(e.clipboardData.files).filter((f) =>
-            f.type.startsWith("image/"),
-          );
-          if (imgs.length) void handleFiles(imgs);
+          const ok = Array.from(e.clipboardData.files).filter(accepts);
+          if (ok.length) void handleFiles(ok);
         }}
         className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-line px-4 py-6 text-center text-sm text-muted hover:border-brand/50"
         tabIndex={0}
@@ -69,7 +75,7 @@ export function PhotoUpload({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept={accept}
           multiple
           className="hidden"
           onChange={(e) => e.target.files && handleFiles(e.target.files)}
@@ -81,7 +87,11 @@ export function PhotoUpload({
           {photos.map((p) => (
             <div key={p.id} className="group relative">
               <a href={p.url} target="_blank" rel="noreferrer">
-                <img src={p.url} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" />
+                {p.mime && !p.mime.startsWith("image/") ? (
+                  <span className="grid h-16 w-16 place-items-center rounded-lg border border-line text-2xl">📄</span>
+                ) : (
+                  <img src={p.url} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" />
+                )}
               </a>
               <button
                 type="button"
