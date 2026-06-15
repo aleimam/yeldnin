@@ -2,7 +2,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listHistory } from "@/lib/pricing/pricing-service";
-import { PricerNav } from "../PricerNav";
 import { DeleteButton } from "../DeleteButton";
 
 export default async function HistoryPage() {
@@ -10,12 +9,10 @@ export default async function HistoryPage() {
   const t = await getT();
   const isAdmin = access.canModule("egv_pricer", "MANAGE") || access.isAdmin;
   const rows = await listHistory({ isAdmin });
-
   const canDelete = access.canModule("egv_pricer", "OPERATE");
 
   return (
-    <AppShell user={access.user} title={t("module.egv_pricer.name")} backHref="/">
-      <PricerNav canManage={access.canModule("egv_pricer", "MANAGE")} />
+    <AppShell access={access} moduleKey="egv_pricer" pageTitle={t("pricer.history")}>
       <div className="card overflow-x-auto">
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">
@@ -31,9 +28,7 @@ export default async function HistoryPage() {
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
               <tr key={r.id} className={r.deletedAt ? "opacity-50" : "hover:bg-canvas/60"}>
-                <td className="td whitespace-nowrap text-muted">
-                  {new Date(r.createdAt).toLocaleString()}
-                </td>
+                <td className="td whitespace-nowrap text-muted">{new Date(r.createdAt).toLocaleString()}</td>
                 <td className="td">
                   {r.productName || "—"}
                   {r.deletedAt && (
@@ -41,9 +36,7 @@ export default async function HistoryPage() {
                       {t("pricer.hist.deletedBadge")}
                     </span>
                   )}
-                  {r.photos.length > 0 && (
-                    <span className="ms-2 text-xs text-muted">📎{r.photos.length}</span>
-                  )}
+                  {r.photos.length > 0 && <span className="ms-2 text-xs text-muted">📎{r.photos.length}</span>}
                 </td>
                 <td className="td">
                   {r.section === "SUPPLEMENT" ? t("pricer.supplements") : t("pricer.devices")}
@@ -56,9 +49,7 @@ export default async function HistoryPage() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr>
-                <td className="td text-muted" colSpan={6}>{t("pricer.empty")}</td>
-              </tr>
+              <tr><td className="td text-muted" colSpan={6}>{t("pricer.empty")}</td></tr>
             )}
           </tbody>
         </table>

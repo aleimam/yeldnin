@@ -4,7 +4,10 @@ import { getAccess, type SessionUser } from "@/lib/auth/access";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getEffectiveTheme, getColorMode } from "@/lib/prefs";
+import { MODULES } from "@/lib/modules";
 import { PreferencesMenu } from "./PreferencesMenu";
+import { ModuleSwitcher } from "./ModuleSwitcher";
+import { MobileMenuButton } from "./MobileMenuButton";
 
 const TIER_LABEL: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -12,8 +15,17 @@ const TIER_LABEL: Record<string, string> = {
   MEMBER: "Member",
 };
 
-/** Application top bar — matches the v1.28 layout. */
-export async function TopBar({ user }: { user: SessionUser }) {
+/**
+ * Application top bar. When `activeModuleKey` is set (inside a module, within a
+ * SidebarProvider) it shows the module name + a mobile menu button.
+ */
+export async function TopBar({
+  user,
+  activeModuleKey,
+}: {
+  user: SessionUser;
+  activeModuleKey?: string;
+}) {
   const [t, access, settings, locale, theme, mode] = await Promise.all([
     getT(),
     getAccess(),
@@ -26,9 +38,19 @@ export async function TopBar({ user }: { user: SessionUser }) {
   const logo = assetUrl(settings.logoUrl);
   const darkLogo = assetUrl(settings.darkLogoUrl) ?? logo;
 
+  const switcherModules = MODULES.filter((m) => access.canModule(m.key)).map((m) => ({
+    key: m.key,
+    label: t(`module.${m.key}.name`),
+    icon: m.icon,
+    href: m.route,
+  }));
+  const activeModuleName = activeModuleKey ? t(`module.${activeModuleKey}.name`) : null;
+
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
+        {activeModuleKey && <MobileMenuButton />}
+
         {/* Logo + name + version */}
         <Link href="/" className="flex items-center gap-2">
           {logo ? (
@@ -38,9 +60,7 @@ export async function TopBar({ user }: { user: SessionUser }) {
             </>
           ) : (
             <>
-              <span className="grid h-7 w-7 place-items-center rounded-md bg-brand text-brand-fg">
-                ✦
-              </span>
+              <span className="grid h-7 w-7 place-items-center rounded-md bg-brand text-brand-fg">✦</span>
               <span className="text-lg font-bold text-ink">{settings.appName}</span>
             </>
           )}
@@ -49,18 +69,20 @@ export async function TopBar({ user }: { user: SessionUser }) {
           </span>
         </Link>
 
-        {/* Module switcher (placeholder dropdown) */}
-        <button className="btn-secondary hidden h-8 px-3 text-xs sm:inline-flex">
-          {t("common.allModules")} ▾
-        </button>
+        {/* Active module name */}
+        {activeModuleName && (
+          <span className="hidden items-center gap-2 sm:flex">
+            <span className="text-line">·</span>
+            <span className="font-semibold text-ink">{activeModuleName}</span>
+          </span>
+        )}
+
+        {/* Module switcher */}
+        <ModuleSwitcher modules={switcherModules} activeKey={activeModuleKey} />
 
         {/* Global search */}
         <div className="hidden flex-1 justify-center md:flex">
-          <input
-            className="input max-w-sm"
-            placeholder={t("common.search")}
-            aria-label={t("common.search")}
-          />
+          <input className="input max-w-sm" placeholder={t("common.search")} aria-label={t("common.search")} />
         </div>
 
         {/* Right cluster */}
@@ -70,26 +92,12 @@ export async function TopBar({ user }: { user: SessionUser }) {
             <span className="text-sm font-medium text-ink">{user.name}</span>
             <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
           </div>
-          <button aria-label={t("common.notifications")} className="text-muted hover:text-ink">
-            🔔
-          </button>
+          <button aria-label={t("common.notifications")} className="text-muted hover:text-ink">🔔</button>
           {showSettings && (
-            <Link
-              href="/settings"
-              aria-label={t("common.settings")}
-              className="text-muted hover:text-ink"
-            >
-              ⚙️
-            </Link>
+            <Link href="/settings" aria-label={t("common.settings")} className="text-muted hover:text-ink">⚙️</Link>
           )}
           <form method="POST" action="/api/logout">
-            <button
-              type="submit"
-              className="text-sm text-muted hover:text-ink"
-              title={t("common.signOut")}
-            >
-              ⎋
-            </button>
+            <button type="submit" className="text-sm text-muted hover:text-ink" title={t("common.signOut")}>⎋</button>
           </form>
         </div>
       </div>

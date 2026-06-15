@@ -2,7 +2,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listAccounts } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../../ExpensesNav";
 import { saveBankCollectionAction } from "../actions";
 
 export default async function BankCollectionsPage() {
@@ -11,8 +10,7 @@ export default async function BankCollectionsPage() {
   const now = new Date();
 
   return (
-    <AppShell user={access.user} title={t("exp.bankCollections")} backHref="/expenses/dashboard">
-      <ExpensesNav canManage />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.bankCollections")}>
       <form action={saveBankCollectionAction} className="card max-w-xl space-y-4 p-6">
         <div className="flex gap-3">
           <div><label className="label">{t("exp.year")}</label><input name="year" type="number" defaultValue={now.getFullYear()} className="input w-28" /></div>

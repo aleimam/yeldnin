@@ -2,7 +2,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { calculateMonthlyReconciliation } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../ExpensesNav";
 
 const RECON_COLOR: Record<string, string> = {
   GREEN: "bg-green-100 text-green-700",
@@ -25,8 +24,7 @@ export default async function ReconciliationPage({
   const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
 
   return (
-    <AppShell user={access.user} title={t("module.expenses.name")} backHref="/">
-      <ExpensesNav canManage={access.canModule("expenses", "MANAGE")} />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.reconciliation")}>
 
       <form className="mb-6 flex items-end gap-3">
         <div>

@@ -13,7 +13,7 @@ export default async function LogisticsSettingsPage() {
   const [t, suppliers] = await Promise.all([getT(), listSuppliers()]);
 
   return (
-    <AppShell user={access.user} title={t("suppliers.title")} backHref="/settings">
+    <AppShell access={access} moduleKey="settings" pageTitle={t("suppliers.title")} backHref="/settings">
       {/* New supplier */}
       <form action={createSupplierAction} className="card mb-6 flex flex-wrap items-end gap-3 p-4">
         <div className="flex-1 min-w-[180px]">

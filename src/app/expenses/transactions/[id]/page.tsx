@@ -6,7 +6,6 @@ import { prisma } from "@/lib/db";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getTransaction, listCategories } from "@/lib/expenses/expenses-service";
 import { canEditExpense } from "@/lib/expenses/expenses-logic";
-import { ExpensesNav } from "../../ExpensesNav";
 import { ExpenseForm } from "../../ExpenseForm";
 import { deleteTransactionAction, deleteAttachmentAction } from "../../actions";
 
@@ -36,8 +35,7 @@ export default async function TransactionDetailPage({
   const mimeOf = new Map(assets.map((a) => [a.id, a.mimeType]));
 
   return (
-    <AppShell user={access.user} title={`#${tx.id} · ${tx.categoryNameSnapshot}`} backHref="/expenses/transactions">
-      <ExpensesNav canManage={access.canModule("expenses", "MANAGE")} />
+    <AppShell access={access} moduleKey="expenses" pageTitle={`#${tx.id} · ${tx.categoryNameSnapshot}`} backHref="/expenses/transactions">
 
       <div className="grid gap-6 lg:grid-cols-2">
         {editable ? (

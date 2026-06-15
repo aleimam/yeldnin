@@ -16,9 +16,8 @@ export default async function UsersPage() {
 
   return (
     <AppShell
-      user={access.user}
-      title="Users & Privileges"
-      backHref="/"
+      access={access}
+      moduleKey="user_access"
       actions={
         canManage ? (
           <Link href="/users/new" className="btn-primary">

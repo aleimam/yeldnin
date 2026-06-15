@@ -2,7 +2,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getExpensesDashboard } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../ExpensesNav";
 
 const RECON_COLOR: Record<string, string> = {
   GREEN: "bg-green-100 text-green-700",
@@ -17,8 +16,7 @@ export default async function ExpensesDashboard() {
   const maxBar = Math.max(1, ...d.byMonth.map((m) => Math.max(m.expenses, m.transfers)));
 
   return (
-    <AppShell user={access.user} title={t("module.expenses.name")} backHref="/">
-      <ExpensesNav canManage={access.canModule("expenses", "MANAGE")} />
+    <AppShell access={access} moduleKey="expenses">
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="card p-5">

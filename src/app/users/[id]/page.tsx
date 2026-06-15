@@ -29,7 +29,7 @@ export default async function EditUserPage({
   const isAdminTier = user.tier === "ADMIN" || user.tier === "SUPER_ADMIN";
 
   return (
-    <AppShell user={access.user} title={user.name} backHref="/users">
+    <AppShell access={access} moduleKey="user_access" pageTitle={user.name} backHref="/users">
       <div className="grid gap-6 lg:grid-cols-2">
         <ProfileForm
           user={{

@@ -3,7 +3,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCategories, listTransactions } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../../ExpensesNav";
 import { ExpenseForm } from "../../ExpenseForm";
 
 export default async function NewTransactionPage() {
@@ -15,8 +14,7 @@ export default async function NewTransactionPage() {
   ]);
 
   return (
-    <AppShell user={access.user} title={t("exp.new")} backHref="/expenses/transactions">
-      <ExpensesNav canManage={access.canModule("expenses", "MANAGE")} />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.new")} backHref="/expenses/transactions">
       <div className="grid gap-6 lg:grid-cols-2">
         <ExpenseForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
         <div className="card p-5">

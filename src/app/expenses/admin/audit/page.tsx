@@ -3,7 +3,6 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listAudit } from "@/lib/audit";
 import { userNameMap } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../../ExpensesNav";
 
 export default async function AuditPage() {
   const access = await requireModule("expenses", "MANAGE");
@@ -12,8 +11,7 @@ export default async function AuditPage() {
   const names = await userNameMap(rows.map((r) => r.userId));
 
   return (
-    <AppShell user={access.user} title={t("exp.audit")} backHref="/expenses/dashboard">
-      <ExpensesNav canManage />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.audit")}>
       <div className="card overflow-x-auto">
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">

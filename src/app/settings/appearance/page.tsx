@@ -10,7 +10,7 @@ export default async function AppearanceSettingsPage() {
   const [t, s] = await Promise.all([getT(), getPlatformSettings()]);
 
   return (
-    <AppShell user={access.user} title={t("settings.appearance.title")} backHref="/settings">
+    <AppShell access={access} moduleKey="settings" pageTitle={t("settings.appearance.title")} backHref="/settings">
       <AppearanceForm
         current={{
           appName: s.appName,

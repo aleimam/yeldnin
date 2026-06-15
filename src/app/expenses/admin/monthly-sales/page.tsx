@@ -3,7 +3,6 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { prisma } from "@/lib/db";
 import { checkSalesBreakdown } from "@/lib/expenses/expenses-logic";
-import { ExpensesNav } from "../../ExpensesNav";
 import { saveMonthlySalesAction } from "../actions";
 
 const FIELDS: [key: string, labelKey: string][] = [
@@ -22,8 +21,7 @@ export default async function MonthlySalesPage() {
   const reports = await prisma.monthlySalesReport.findMany({ orderBy: [{ year: "desc" }, { month: "desc" }], take: 12 });
 
   return (
-    <AppShell user={access.user} title={t("exp.monthlySales")} backHref="/expenses/dashboard">
-      <ExpensesNav canManage />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.monthlySales")}>
       <form action={saveMonthlySalesAction} className="card mb-6 grid max-w-2xl gap-4 p-6 sm:grid-cols-2">
         <div><label className="label">{t("exp.year")}</label><input name="year" type="number" defaultValue={now.getFullYear()} className="input" /></div>
         <div><label className="label">{t("exp.month")}</label><input name="month" type="number" min="1" max="12" defaultValue={now.getMonth() + 1} className="input" /></div>

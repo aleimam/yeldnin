@@ -7,7 +7,7 @@ const KEY = "issues";
 export default async function Page() {
   const a = await requireModule(KEY, "VIEW");
   return (
-    <AppShell user={a.user} backHref="/">
+    <AppShell access={a} moduleKey={KEY}>
       <ComingSoon moduleKey={KEY} />
     </AppShell>
   );

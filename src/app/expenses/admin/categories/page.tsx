@@ -2,7 +2,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCategories } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../../ExpensesNav";
 import { createCategoryAction, updateCategoryAction } from "../actions";
 
 export default async function CategoriesPage() {
@@ -10,8 +9,7 @@ export default async function CategoriesPage() {
   const [t, categories] = await Promise.all([getT(), listCategories(true)]);
 
   return (
-    <AppShell user={access.user} title={t("exp.categories")} backHref="/expenses/dashboard">
-      <ExpensesNav canManage />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.categories")}>
       <form action={createCategoryAction} className="card mb-6 flex flex-wrap items-end gap-3 p-4">
         <div className="flex-1 min-w-[180px]"><label className="label">{t("exp.name")}</label><input name="name" className="input" required /></div>
         <div>

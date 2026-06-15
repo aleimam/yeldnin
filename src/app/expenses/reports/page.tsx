@@ -2,7 +2,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getExpenseReports } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../ExpensesNav";
 
 export default async function ExpenseReportsPage() {
   const access = await requireModule("expenses", "VIEW");
@@ -10,8 +9,7 @@ export default async function ExpenseReportsPage() {
   const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
 
   return (
-    <AppShell user={access.user} title={t("module.expenses.name")} backHref="/">
-      <ExpensesNav canManage={access.canModule("expenses", "MANAGE")} />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.reports")}>
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("exp.categories")}</h2>

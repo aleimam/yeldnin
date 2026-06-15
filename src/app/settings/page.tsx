@@ -23,7 +23,7 @@ export default async function SettingsPage() {
   ];
 
   return (
-    <AppShell user={access.user} title={t("module.settings.name")} backHref="/">
+    <AppShell access={access} moduleKey="settings">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sections.map((s) => (
           <Link

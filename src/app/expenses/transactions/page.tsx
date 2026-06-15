@@ -3,7 +3,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listTransactions } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../ExpensesNav";
 
 export default async function TransactionsPage() {
   const access = await requireModule("expenses", "VIEW");
@@ -12,12 +11,10 @@ export default async function TransactionsPage() {
 
   return (
     <AppShell
-      user={access.user}
-      title={t("module.expenses.name")}
-      backHref="/"
+      access={access}
+      moduleKey="expenses"
       actions={canCreate ? <Link href="/expenses/transactions/new" className="btn-primary">+ {t("exp.new")}</Link> : null}
     >
-      <ExpensesNav canManage={access.canModule("expenses", "MANAGE")} />
       <div className="card overflow-x-auto">
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">

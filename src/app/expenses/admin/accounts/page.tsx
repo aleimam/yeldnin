@@ -2,7 +2,6 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listAccounts } from "@/lib/expenses/expenses-service";
-import { ExpensesNav } from "../../ExpensesNav";
 import { createAccountAction, updateAccountAction } from "../actions";
 
 export default async function AccountsPage() {
@@ -10,8 +9,7 @@ export default async function AccountsPage() {
   const [t, accounts] = await Promise.all([getT(), listAccounts(true)]);
 
   return (
-    <AppShell user={access.user} title={t("exp.accounts")} backHref="/expenses/dashboard">
-      <ExpensesNav canManage />
+    <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.accounts")}>
       <form action={createAccountAction} className="card mb-6 flex items-end gap-3 p-4">
         <div className="flex-1"><label className="label">{t("exp.name")}</label><input name="name" className="input" required /></div>
         <button className="btn-primary">{t("exp.add")}</button>

@@ -1,16 +1,13 @@
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
 import { listSuppliers } from "@/lib/suppliers/suppliers-service";
-import { PricerNav } from "../PricerNav";
 import { SupplementCalculator } from "../SupplementCalculator";
 
 export default async function SupplementsPage() {
   const access = await requireModule("egv_pricer", "VIEW");
-  const [t, suppliers] = await Promise.all([getT(), listSuppliers()]);
+  const suppliers = await listSuppliers();
   return (
-    <AppShell user={access.user} title={t("module.egv_pricer.name")} backHref="/">
-      <PricerNav canManage={access.canModule("egv_pricer", "MANAGE")} />
+    <AppShell access={access} moduleKey="egv_pricer">
       <SupplementCalculator
         suppliers={suppliers.map((s) => ({
           id: s.id,
