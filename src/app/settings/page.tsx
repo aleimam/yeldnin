@@ -14,6 +14,12 @@ export default async function SettingsPage() {
       title: t("settings.appearance.title"),
       desc: t("module.settings.desc"),
     },
+    {
+      href: "/settings/logistics",
+      icon: "🚚",
+      title: t("suppliers.title"),
+      desc: t("module.logistics.desc"),
+    },
   ];
 
   return (
