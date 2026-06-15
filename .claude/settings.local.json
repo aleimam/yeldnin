@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import openpyxl; print\\('openpyxl', openpyxl.__version__\\)\")",
+      "Bash(py --version)",
+      "PowerShell($src = \"C:\\\\Users\\\\aleim\\\\OneDrive\\\\Desktop\\\\Pricing.xlsx\"; $dst = \"C:\\\\Claude\\\\YeldnIN\\\\_pricing_extract\"; if \\(Test-Path $dst\\) { Remove-Item $dst -Recurse -Force }; New-Item -ItemType Directory -Path $dst | Out-Null; Copy-Item $src \"$dst\\\\Pricing.zip\"; Expand-Archive \"$dst\\\\Pricing.zip\" -DestinationPath \"$dst\\\\unzipped\" -Force; Get-ChildItem \"$dst\\\\unzipped\\\\xl\" -Recurse | Select-Object FullName)",
+      "Bash(node parse.js)",
+      "Bash(node -e ' *)",
+      "PowerShell(Set-Location \"C:\\\\Claude\\\\YeldnIN\"; Start-Sleep -Milliseconds 300; try { Remove-Item \"C:\\\\Claude\\\\YeldnIN\\\\_pricing_extract\" -Recurse -Force -ErrorAction Stop; \"cleaned up\" } catch { \"still in use - will leave for now: $\\($_.Exception.Message\\)\" })",
+      "Bash(npm -v)",
+      "Bash(git --version)",
+      "Bash(docker --version)",
+      "Bash(psql --version)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(node -p \"process.platform + ' / ' + process.arch\")",
+      "Bash(node -e \"try{require\\('node:sqlite'\\);console.log\\('node:sqlite AVAILABLE'\\)}catch\\(e\\){console.log\\('no node:sqlite:',e.message\\)}\")",
+      "Bash(npm uninstall *)",
+      "Bash(node -e \"const {createClient}=require\\('@libsql/client'\\); const c=createClient\\({url:'file:./prisma/dev.db'}\\); c.execute\\('select 1 as x'\\).then\\(r=>{console.log\\('libsql OK', JSON.stringify\\(r.rows\\)\\)}\\).catch\\(e=>console.log\\('libsql FAIL', e.message\\)\\)\")",
+      "Bash(npm view *)",
+      "Bash(npm search *)",
+      "Bash(node --experimental-sqlite -e \"const {DatabaseSync}=require\\('node:sqlite'\\); const db=new DatabaseSync\\('./prisma/dev.db'\\); const r=db.prepare\\('select count\\(*\\) c from Module'\\).get\\(\\); console.log\\('node:sqlite reads existing DB:', JSON.stringify\\(r\\)\\); db.close\\(\\);\")",
+      "Bash(node -e \"const p=require\\('./node_modules/prisma-adapter-node-sqlite/package.json'\\); console.log\\('main:',p.main,'| exports:',JSON.stringify\\(p.exports\\),'| type:',p.type\\)\")",
+      "Bash(node -e \"const m=require\\('prisma-adapter-node-sqlite'\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(npx tsx *)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"=== tsc exit: $? ===\")",
+      "Bash(npm run *)",
+      "mcp__Claude_Preview__preview_start",
+      "PowerShell(try { Stop-Process -Id 26268 -Force -ErrorAction Stop; \"stopped 26268\" } catch { $_.Exception.Message }; Get-NetTCPConnection -LocalPort 3200 -State Listen -ErrorAction SilentlyContinue | Select-Object OwningProcess)",
+      "Bash(npx next *)",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(gh auth *)",
+      "Bash(git add *)",
+      "Bash(git -c core.autocrlf=false commit -q -m 'Phase 0: scaffold \\(Next.js 15 + Tailwind + Prisma/node:sqlite + i18n + dashboard shell\\) *)",
+      "Bash(git remote *)",
+      "Bash(git push *)"
+    ]
+  }
+}

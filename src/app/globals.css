@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* rgb triplets (used as `rgb(var(--x) / <alpha>)`) */
+    --brand: 37 99 235; /* blue-600 — overridable by admin settings */
+    --brand-fg: 255 255 255;
+    --ink: 30 41 59; /* slate-800 headings/text */
+    --muted: 100 116 139; /* slate-500 secondary text */
+    --surface: 255 255 255; /* card background */
+    --canvas: 248 250 252; /* slate-50 page background */
+    --line: 226 232 240; /* slate-200 borders */
+    --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  .dark {
+    --brand: 59 130 246;
+    --brand-fg: 255 255 255;
+    --ink: 226 232 240;
+    --muted: 148 163 184;
+    --surface: 30 41 59;
+    --canvas: 15 23 42;
+    --line: 51 65 85;
+  }
+
+  html {
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply bg-canvas text-ink;
+    font-family: var(--font-sans);
+  }
+
+  /* Logical-property helpers so RTL flips automatically. */
+  [dir="rtl"] body {
+    direction: rtl;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-surface shadow-sm;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-brand-fg hover:opacity-90;
+  }
+  .btn-secondary {
+    @apply btn border border-line bg-surface text-ink hover:bg-canvas;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30;
+  }
+  .input-error {
+    @apply border-red-500 focus:border-red-500 focus:ring-red-500/30;
+  }
+  .label {
+    @apply mb-1 block text-sm font-medium text-ink;
+  }
+
+  .th {
+    @apply px-3 py-2 text-start text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .td {
+    @apply px-3 py-2 text-sm text-ink;
+  }
+
+  .role-badge {
+    @apply inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300;
+  }
+}

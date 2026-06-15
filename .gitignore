@@ -1,0 +1,38 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# database (SQLite dev DB + journal)
+/prisma/dev.db
+/prisma/dev.db-journal
+/prisma/*.db
+/prisma/*.db-*
+
+# uploads (local file storage for attachments)
+/uploads/
+
+# env
+.env.local
+.env*.local
+
+# logs
+npm-debug.log*
+*.log
+
+# os / editor
+.DS_Store
+Thumbs.db
+~$*
+
+# temp extraction artifacts
+/_pdd/
+/_pricing_extract/

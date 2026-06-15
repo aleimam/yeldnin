@@ -1,0 +1,180 @@
+// YeldnIN — Prisma schema (SQLite)
+// Phase 0/1 foundation: auth, RBAC (roles/permissions/teams), modules, settings.
+// Module-specific models (Pricing, etc.) are added in their own phases.
+
+generator client {
+  provider   = "prisma-client-js"
+  // engineType="client" => engine-free client (WASM query compiler, no native
+  // Rust .node). Required on win32/arm64 where the x64 engine can't load.
+  // Queries run through the node:sqlite driver adapter (see src/lib/db.ts).
+  engineType = "client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users & auth ───────────────────────────────────────────────────────────
+
+enum UserTier {
+  SUPER_ADMIN
+  ADMIN
+  MEMBER
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  uid          String?  @unique
+  name         String
+  email        String   @unique
+  passwordHash String
+  tier         String   @default("MEMBER") // UserTier as string for SQLite portability
+  locale       String   @default("en")
+  active       Boolean  @default(true)
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  archivedAt   DateTime?
+
+  roles         UserRole[]
+  teamMembers   TeamMember[]
+  modulePerms   UserModulePermission[]
+  resetTokens   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Teams ──────────────────────────────────────────────────────────────────
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique // sales, xoonx, purchasing, logistics, operations, couriers, development
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members TeamMember[]
+  roles   TeamRole[]
+}
+
+model TeamMember {
+  id     Int  @id @default(autoincrement())
+  teamId Int
+  userId Int
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+}
+
+// ─── Roles & permissions ──────────────────────────────────────────────────────
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  userRoles   UserRole[]
+  teamRoles   TeamRole[]
+}
+
+model Permission {
+  id    Int    @id @default(autoincrement())
+  key   String @unique // e.g. "egv_pricer.manage", "user_access.manage"
+  label String
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model UserRole {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  roleId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model TeamRole {
+  id     Int  @id @default(autoincrement())
+  teamId Int
+  roleId Int
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, roleId])
+}
+
+// ─── Per-user, per-module access level ────────────────────────────────────────
+// Level: NONE | VIEW | OPERATE | MANAGE (stored as string for SQLite portability).
+// Permissions are purely per-user (teams do not auto-grant).
+
+model UserModulePermission {
+  id         Int    @id @default(autoincrement())
+  userId     Int
+  moduleKey  String
+  level      String @default("NONE")
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, moduleKey])
+  @@index([userId])
+}
+
+// ─── Module registry ──────────────────────────────────────────────────────────
+
+model Module {
+  id        Int     @id @default(autoincrement())
+  key       String  @unique
+  route     String
+  section   String  // "main" | "admin"
+  sortOrder Int     @default(0)
+  enabled   Boolean @default(true)
+}
+
+// ─── Platform settings (single row) ───────────────────────────────────────────
+
+model PlatformSettings {
+  id         Int      @id @default(1)
+  appName    String   @default("YeldnIN")
+  brandColor String   @default("37 99 235") // rgb triplet for --brand
+  logoUrl    String?
+  version    String   @default("0.1.0")
+  updatedAt  DateTime @updatedAt
+}
+
+// ─── UID counter (human-readable codes: <PREFIX><YY><MM><seq3>) ────────────────
+
+model Counter {
+  id     Int    @id @default(autoincrement())
+  prefix String
+  period String // "YYMM"
+  value  Int    @default(0)
+
+  @@unique([prefix, period])
+}
