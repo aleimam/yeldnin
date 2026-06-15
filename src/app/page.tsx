@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getT } from "@/i18n/server";
 import { TopBar } from "@/components/shell/TopBar";
 import { MAIN_MODULES, ADMIN_MODULES, type ModuleDef } from "@/lib/modules";
+import { requireUser } from "@/lib/auth/access";
 import type { TFunction } from "@/i18n";
 
 function ModuleCard({ m, t }: { m: ModuleDef; t: TFunction }) {
@@ -24,11 +25,15 @@ function ModuleCard({ m, t }: { m: ModuleDef; t: TFunction }) {
 }
 
 export default async function DashboardPage() {
+  const access = await requireUser();
   const t = await getT();
+
+  const mainVisible = MAIN_MODULES.filter((m) => access.canModule(m.key));
+  const adminVisible = ADMIN_MODULES.filter((m) => access.canModule(m.key));
 
   return (
     <>
-      <TopBar />
+      <TopBar user={access.user} />
       <main className="mx-auto max-w-7xl px-4 py-10">
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold text-ink">{t("dashboard.welcome")}</h1>
@@ -36,19 +41,23 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {MAIN_MODULES.map((m) => (
+          {mainVisible.map((m) => (
             <ModuleCard key={m.key} m={m} t={t} />
           ))}
         </div>
 
-        <h2 className="mb-4 mt-10 text-xs font-semibold tracking-widest text-muted">
-          {t("common.administration")}
-        </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {ADMIN_MODULES.map((m) => (
-            <ModuleCard key={m.key} m={m} t={t} />
-          ))}
-        </div>
+        {adminVisible.length > 0 && (
+          <>
+            <h2 className="mb-4 mt-10 text-xs font-semibold tracking-widest text-muted">
+              {t("common.administration")}
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {adminVisible.map((m) => (
+                <ModuleCard key={m.key} m={m} t={t} />
+              ))}
+            </div>
+          </>
+        )}
       </main>
 
       <footer className="border-t border-line py-6">

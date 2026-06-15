@@ -1,0 +1,94 @@
+import "server-only";
+import { cache } from "react";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { getSessionUserId } from "./session";
+import {
+  type Level,
+  type Tier,
+  effectiveLevel,
+  isAdminTier,
+  levelMeets,
+} from "./access-logic";
+
+export interface SessionUser {
+  id: number;
+  name: string;
+  email: string;
+  tier: Tier;
+  locale: string;
+  teamKeys: string[];
+}
+
+export interface Access {
+  user: SessionUser | null;
+  isAdmin: boolean;
+  /** Effective level for a module (admin => MANAGE). */
+  moduleLevel: (moduleKey: string) => Level;
+  /** level ≥ given threshold (default VIEW). */
+  canModule: (moduleKey: string, min?: Level) => boolean;
+}
+
+/** Load the current session + permissions. Memoized per request. */
+export const getAccess = cache(async (): Promise<Access> => {
+  const userId = await getSessionUserId();
+  if (!userId) return anonymous();
+
+  const user = await prisma.user.findFirst({
+    where: { id: userId, active: true, archivedAt: null },
+    include: {
+      teamMembers: { include: { team: true } },
+      modulePerms: true,
+    },
+  });
+  if (!user) return anonymous();
+
+  const tier = user.tier as Tier;
+  const levels = new Map<string, Level>();
+  for (const p of user.modulePerms) levels.set(p.moduleKey, p.level as Level);
+
+  const sessionUser: SessionUser = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    tier,
+    locale: user.locale,
+    teamKeys: user.teamMembers.map((tm) => tm.team.key),
+  };
+
+  const moduleLevel = (moduleKey: string): Level =>
+    effectiveLevel(tier, levels.get(moduleKey));
+
+  return {
+    user: sessionUser,
+    isAdmin: isAdminTier(tier),
+    moduleLevel,
+    canModule: (moduleKey, min = "VIEW") => levelMeets(moduleLevel(moduleKey), min),
+  };
+});
+
+function anonymous(): Access {
+  return {
+    user: null,
+    isAdmin: false,
+    moduleLevel: () => "NONE",
+    canModule: () => false,
+  };
+}
+
+/** Redirect to /login if not authenticated; otherwise return the Access. */
+export async function requireUser(): Promise<Access & { user: SessionUser }> {
+  const access = await getAccess();
+  if (!access.user) redirect("/login");
+  return access as Access & { user: SessionUser };
+}
+
+/** Guard a module page/action by minimum level. */
+export async function requireModule(
+  moduleKey: string,
+  min: Level = "VIEW",
+): Promise<Access & { user: SessionUser }> {
+  const access = await requireUser();
+  if (!access.canModule(moduleKey, min)) redirect("/");
+  return access;
+}

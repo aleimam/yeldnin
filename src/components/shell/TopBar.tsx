@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { getT } from "@/i18n/server";
+import { getAccess, type SessionUser } from "@/lib/auth/access";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 
-/**
- * Application top bar — matches the v1.28 layout.
- * NOTE: user/role and notifications are placeholders until Phase 1 (auth) wires
- * the real session.
- */
-export async function TopBar() {
+const TIER_LABEL: Record<string, string> = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  MEMBER: "Member",
+};
+
+/** Application top bar — matches the v1.28 layout. */
+export async function TopBar({ user }: { user: SessionUser }) {
   const t = await getT();
+  const access = await getAccess();
+  const showSettings = access.canModule("settings");
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/80 backdrop-blur">
@@ -30,7 +35,7 @@ export async function TopBar() {
         </button>
 
         {/* Global search */}
-        <div className="ms-auto hidden flex-1 justify-center md:flex">
+        <div className="hidden flex-1 justify-center md:flex">
           <input
             className="input max-w-sm"
             placeholder={t("common.search")}
@@ -39,18 +44,33 @@ export async function TopBar() {
         </div>
 
         {/* Right cluster */}
-        <div className="ms-auto flex items-center gap-3 md:ms-0">
+        <div className="ms-auto flex items-center gap-3">
           <LocaleSwitcher />
           <div className="hidden items-center gap-2 sm:flex">
-            <span className="text-sm font-medium text-ink">Mohamed Abotaleb</span>
-            <span className="role-badge">{t("common.admin")}</span>
+            <span className="text-sm font-medium text-ink">{user.name}</span>
+            <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
           </div>
           <button aria-label={t("common.notifications")} className="text-muted hover:text-ink">
             🔔
           </button>
-          <Link href="/settings" aria-label={t("common.settings")} className="text-muted hover:text-ink">
-            ⚙️
-          </Link>
+          {showSettings && (
+            <Link
+              href="/settings"
+              aria-label={t("common.settings")}
+              className="text-muted hover:text-ink"
+            >
+              ⚙️
+            </Link>
+          )}
+          <form method="POST" action="/api/logout">
+            <button
+              type="submit"
+              className="text-sm text-muted hover:text-ink"
+              title={t("common.signOut")}
+            >
+              ⎋
+            </button>
+          </form>
         </div>
       </div>
     </header>

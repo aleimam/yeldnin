@@ -35,7 +35,9 @@
       "Bash(git add *)",
       "Bash(git -c core.autocrlf=false commit -q -m 'Phase 0: scaffold \\(Next.js 15 + Tailwind + Prisma/node:sqlite + i18n + dashboard shell\\) *)",
       "Bash(git remote *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(npx vitest *)",
+      "Bash(echo \"tsc exit: $?\")"
     ]
   }
 }
