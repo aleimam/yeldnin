@@ -38,7 +38,8 @@
       "Bash(git push *)",
       "Bash(npx vitest *)",
       "Bash(echo \"tsc exit: $?\")",
-      "Bash(git -c core.autocrlf=false commit -q -m 'Phase 1.5: appearance themes, light/dark/system & branding *)"
+      "Bash(git -c core.autocrlf=false commit -q -m 'Phase 1.5: appearance themes, light/dark/system & branding *)",
+      "Bash(git -c core.autocrlf=false commit -q -m 'Phase 2 \\(engine\\): pricing calculation logic + Excel-parity tests *)"
     ]
   }
 }
