@@ -60,6 +60,21 @@ npm run build
 pm2 reload yeldnin
 ```
 
+## ⚠ nginx on this multi-vhost box (in.yeldn.com)
+
+Other vhosts (veeey, CWP) bind `listen 204.168.129.186:443` (a specific IP).
+`certbot --nginx` writes `listen 443 ssl` (wildcard `0.0.0.0:443`), which nginx
+treats as a *separate* listen socket — so connections to the public IP fall
+through to CWP's default (self-signed) vhost and return 404. After running
+certbot, ensure our vhost uses the **specific IP**:
+
+```bash
+sed -i 's/listen 443 ssl;/listen 204.168.129.186:443 ssl;/' /etc/nginx/conf.d/yeldnin-app.conf
+nginx -t && systemctl reload nginx
+```
+
+(Re-check this if certbot ever rewrites the vhost, e.g. on a manual re-issue.)
+
 ## Notes
 - `SESSION_SECRET` MUST be set in production — the app refuses to start with the
   dev placeholder when `NODE_ENV=production`.
