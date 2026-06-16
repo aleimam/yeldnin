@@ -852,6 +852,69 @@ model MonthlyReconciliationNote {
   @@unique([year, month])
 }
 
+// ─── XOONX finance (petty-cash expenses, FX, staff profit-share, month close) ──
+// Ported from the prior app. EGP money; user ids are plain (resolved by name).
+
+model XoonxExpenseCategory {
+  id        Int       @id @default(autoincrement())
+  name      String
+  enabled   Boolean   @default(true)
+  sortOrder Int       @default(0)
+  deletedAt DateTime? // soft-delete; categories with records are never hard-deleted
+
+  expenses XoonxExpense[]
+}
+
+// A local (Egypt) expense paid by XOONX staff from the shared petty cash.
+model XoonxExpense {
+  id                   Int      @id @default(autoincrement())
+  date                 DateTime @default(now())
+  categoryId           Int?
+  categoryNameSnapshot String
+  amount               Float // EGP
+  note                 String?
+  requestId            Int? // optional link to a XOONX request
+  tripId               Int? // optional link to a trip
+  createdById          Int
+  createdAt            DateTime @default(now())
+  updatedById          Int?
+  updatedAt            DateTime @updatedAt
+
+  category XoonxExpenseCategory? @relation(fields: [categoryId], references: [id])
+
+  @@index([date])
+  @@index([categoryId])
+}
+
+// Admin-set monthly FX rate (1 <currency> = rate EGP) for converting foreign costs.
+model XoonxFxRate {
+  id          Int      @id @default(autoincrement())
+  month       String // "YYYY-MM"
+  currency    String // USD | GBP | EUR
+  rate        Float
+  updatedById Int?
+  updatedAt   DateTime @updatedAt
+
+  @@unique([month, currency])
+}
+
+// A closed/published month: locks edits, snapshots the report, records the petty refill.
+model XoonxMonthClose {
+  id           Int      @id @default(autoincrement())
+  month        String   @unique // "YYYY-MM"
+  closedAt     DateTime @default(now())
+  closedById   Int
+  snapshotJson String
+  pettyRefill  Float    @default(0)
+}
+
+// Admin-set share of the staff profit pool (the 25%) per XOONX staff user.
+model XoonxStaffShare {
+  id       Int   @id @default(autoincrement())
+  userId   Int   @unique
+  sharePct Float @default(0) // percent of the staff (25%) pool
+}
+
 // ─── Content pages (admin-authored static pages; public at /p/[slug]) ─────────
 
 model ContentPage {
