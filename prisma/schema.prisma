@@ -251,6 +251,17 @@ model AccessPolicy {
   updatedAt DateTime @updatedAt
 }
 
+// Singleton holding admin overrides to the supply-chain Status Map (decision
+// "A"): status label renames (EN/AR), per-view carry-forward sets, and timer
+// ranges. The stages/transitions themselves are fixed in code
+// (lib/workflow/workflow-logic.ts); only this presentation layer is editable.
+// `overrides` is JSON shaped as WorkflowOverrides.
+model WorkflowConfig {
+  id        Int      @id @default(1)
+  overrides String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
 // ─── Expenses module (Operations cash + sales reconciliation) ─────────────────
 
 model ExpenseCategory {
