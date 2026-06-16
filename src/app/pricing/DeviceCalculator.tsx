@@ -103,12 +103,15 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
           {t("pricer.f.maleSupport")}
         </label>
 
-        <Field label={t("pricer.f.notes")}>
-          <textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
-        </Field>
-        <Field label={t("pricer.f.photos")}>
-          <PhotoUpload photos={photos} onChange={setPhotos} />
-        </Field>
+        {/* Notes + Photos side by side on desktop */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t("pricer.f.notes")}>
+            <textarea className="input" rows={4} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+          </Field>
+          <Field label={t("pricer.f.photos")}>
+            <PhotoUpload photos={photos} onChange={setPhotos} />
+          </Field>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-4">

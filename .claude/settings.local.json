@@ -59,7 +59,8 @@
       "Bash(tail -8 \"C:/Users/aleim/AppData/Local/Temp/claude/C--Claude-YeldnIN/e0a6cd76-fd30-4bc4-b385-5343a074490b/tasks/bnr2drb23.output\")",
       "Bash(git mv *)",
       "Bash(git -c core.autocrlf=false commit -q -m 'Pricing: rename to /pricing, Enter-submit forms, layout reorder, device round-up *)",
-      "Bash(git -c core.autocrlf=false commit -q -m 'Pricing #4: apply Excel final markup \\(x1.06, round up to 10\\) to supplements *)"
+      "Bash(git -c core.autocrlf=false commit -q -m 'Pricing #4: apply Excel final markup \\(x1.06, round up to 10\\) to supplements *)",
+      "Bash(git -c core.autocrlf=false commit -q -m 'Fix appearance upload \\(Server Action body limit\\) + Pricing notes/photos layout *)"
     ]
   }
 }
