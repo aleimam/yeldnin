@@ -11,7 +11,7 @@ const adapter = new PrismaNodeSQLite({
 const prisma = new PrismaClient({ adapter });
 
 const MODULES = [
-  { key: "egv_pricer", route: "/pricer", section: "main", sortOrder: 1 },
+  { key: "pricing", route: "/pricing", section: "main", sortOrder: 1 },
   { key: "expenses", route: "/expenses", section: "main", sortOrder: 2 },
   { key: "order_requests", route: "/sales", section: "main", sortOrder: 3 },
   { key: "xoonx", route: "/xoonx", section: "main", sortOrder: 4 },
@@ -42,6 +42,17 @@ async function main() {
     where: { id: 1 },
     update: {},
     create: { id: 1, appName: "YeldnIN", version: "0.1.0" },
+  });
+
+  // One-time rename: egv_pricer -> pricing (module key, permissions, audit). Idempotent.
+  await prisma.module.deleteMany({ where: { key: "egv_pricer" } });
+  await prisma.userModulePermission.updateMany({
+    where: { moduleKey: "egv_pricer" },
+    data: { moduleKey: "pricing" },
+  });
+  await prisma.auditLog.updateMany({
+    where: { moduleKey: "egv_pricer" },
+    data: { moduleKey: "pricing" },
   });
 
   // Module registry

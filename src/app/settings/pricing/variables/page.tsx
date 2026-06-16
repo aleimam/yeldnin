@@ -5,7 +5,7 @@ import { getPricingConfig } from "@/lib/pricing/pricing-config-service";
 import { VariablesForm } from "./VariablesForm";
 
 export default async function VariablesPage() {
-  const access = await requireModule("egv_pricer", "MANAGE");
+  const access = await requireModule("pricing", "MANAGE");
   const [t, config] = await Promise.all([getT(), getPricingConfig()]);
   return (
     <AppShell access={access} moduleKey="settings" pageTitle={t("pricer.var.title")} backHref="/settings">

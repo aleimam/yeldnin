@@ -99,7 +99,7 @@ model Role {
 
 model Permission {
   id    Int    @id @default(autoincrement())
-  key   String @unique // e.g. "egv_pricer.manage", "user_access.manage"
+  key   String @unique // e.g. "pricing.manage", "user_access.manage"
   label String
 
   roles RolePermission[]

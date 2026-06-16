@@ -143,8 +143,8 @@
   "dashboard.welcome": "Welcome in Yeldn",
   "dashboard.choose": "Choose a module to work in.",
 
-  "module.egv_pricer.name": "Pricing",
-  "module.egv_pricer.desc": "Price Smarter, Sell Better",
+  "module.pricing.name": "Pricing",
+  "module.pricing.desc": "Price Smarter, Sell Better",
   "module.expenses.name": "Expenses",
   "module.expenses.desc": "Nothing escapes the ledger",
   "module.order_requests.name": "Sales",

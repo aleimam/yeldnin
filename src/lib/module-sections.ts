@@ -12,10 +12,10 @@ export interface SectionDef {
 }
 
 export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
-  egv_pricer: [
-    { labelKey: "pricer.supplements", icon: "💊", href: "/pricer/supplements" },
-    { labelKey: "pricer.devices", icon: "🩺", href: "/pricer/devices" },
-    { labelKey: "pricer.history", icon: "🕐", href: "/pricer/history" },
+  pricing: [
+    { labelKey: "pricer.supplements", icon: "💊", href: "/pricing/supplements" },
+    { labelKey: "pricer.devices", icon: "🩺", href: "/pricing/devices" },
+    { labelKey: "pricer.history", icon: "🕐", href: "/pricing/history" },
   ],
   expenses: [
     { labelKey: "exp.dashboard", icon: "📊", href: "/expenses/dashboard" },
@@ -30,7 +30,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   ],
   audit_log: [
     { labelKey: "audit.all", icon: "📜", href: "/audit" },
-    { labelKey: "module.egv_pricer.name", icon: "🧮", href: "/audit/egv_pricer" },
+    { labelKey: "module.pricing.name", icon: "🧮", href: "/audit/pricing" },
     { labelKey: "module.expenses.name", icon: "💸", href: "/audit/expenses" },
     { labelKey: "module.user_access.name", icon: "👥", href: "/audit/user_access" },
     { labelKey: "module.settings.name", icon: "⚙️", href: "/audit/settings" },
@@ -59,7 +59,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   },
   {
     labelKey: "settings.group.pricing",
-    gateModule: "egv_pricer",
+    gateModule: "pricing",
     gateLevel: "MANAGE",
     items: [{ labelKey: "pricer.variables", icon: "⚙️", href: "/settings/pricing/variables" }],
   },

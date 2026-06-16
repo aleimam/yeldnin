@@ -26,7 +26,7 @@ interface CalcPayload {
 }
 
 export async function calcSupplementAction(p: CalcPayload): Promise<CalcResult> {
-  const access = await requireModule("egv_pricer", "OPERATE");
+  const access = await requireModule("pricing", "OPERATE");
   const parsed = parseSupplementForm(p.values);
   if (!parsed.ok) return { ok: false, fieldErrors: parsed.fieldErrors };
 
@@ -37,12 +37,12 @@ export async function calcSupplementAction(p: CalcPayload): Promise<CalcResult> 
     photoAssetIds: p.photoIds,
     userId: access.user.id,
   });
-  revalidatePath("/pricer/history");
+  revalidatePath("/pricing/history");
   return { ok: true, price: calc.price, id: calc.id };
 }
 
 export async function calcDeviceAction(p: CalcPayload): Promise<CalcResult> {
-  const access = await requireModule("egv_pricer", "OPERATE");
+  const access = await requireModule("pricing", "OPERATE");
   const parsed = parseDeviceForm(p.values);
   if (!parsed.ok) return { ok: false, fieldErrors: parsed.fieldErrors };
 
@@ -53,18 +53,18 @@ export async function calcDeviceAction(p: CalcPayload): Promise<CalcResult> {
     photoAssetIds: p.photoIds,
     userId: access.user.id,
   });
-  revalidatePath("/pricer/history");
+  revalidatePath("/pricing/history");
   return { ok: true, price: calc.price, id: calc.id };
 }
 
 export async function deleteCalculationAction(id: number): Promise<void> {
-  const access = await requireModule("egv_pricer", "OPERATE");
+  const access = await requireModule("pricing", "OPERATE");
   const calc = await getCalculation(id);
   if (!calc || calc.deletedAt) return;
   // Owner can delete their own; MANAGE can delete any.
-  if (calc.userId !== access.user.id && !access.canModule("egv_pricer", "MANAGE")) {
+  if (calc.userId !== access.user.id && !access.canModule("pricing", "MANAGE")) {
     return;
   }
   await softDeleteCalculation(id, access.user.id);
-  revalidatePath("/pricer/history");
+  revalidatePath("/pricing/history");
 }

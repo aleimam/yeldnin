@@ -5,14 +5,14 @@ import { listHistory } from "@/lib/pricing/pricing-service";
 import { DeleteButton } from "../DeleteButton";
 
 export default async function HistoryPage() {
-  const access = await requireModule("egv_pricer", "VIEW");
+  const access = await requireModule("pricing", "VIEW");
   const t = await getT();
-  const isAdmin = access.canModule("egv_pricer", "MANAGE") || access.isAdmin;
+  const isAdmin = access.canModule("pricing", "MANAGE") || access.isAdmin;
   const rows = await listHistory({ isAdmin });
-  const canDelete = access.canModule("egv_pricer", "OPERATE");
+  const canDelete = access.canModule("pricing", "OPERATE");
 
   return (
-    <AppShell access={access} moduleKey="egv_pricer" pageTitle={t("pricer.history")}>
+    <AppShell access={access} moduleKey="pricing" pageTitle={t("pricer.history")}>
       <div className="card overflow-x-auto">
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">

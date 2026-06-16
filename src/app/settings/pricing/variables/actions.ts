@@ -14,7 +14,7 @@ export async function saveVariablesAction(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const access = await requireModule("egv_pricer", "MANAGE");
+  const access = await requireModule("pricing", "MANAGE");
   const cur = await getPricingConfig();
 
   const num = (name: string, fallback: number): number => {
@@ -66,7 +66,7 @@ export async function saveVariablesAction(
   };
 
   await savePricingConfig(next);
-  await writeAudit(access.user.id, "egv_pricer", "pricing.variables.update", "pricingSettings", 1, { fx: next.fx });
+  await writeAudit(access.user.id, "pricing", "pricing.variables.update", "pricingSettings", 1, { fx: next.fx });
   revalidatePath("/settings/pricing/variables");
   return { ok: true };
 }

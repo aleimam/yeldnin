@@ -4,10 +4,10 @@ import { listSuppliers } from "@/lib/suppliers/suppliers-service";
 import { SupplementCalculator } from "../SupplementCalculator";
 
 export default async function SupplementsPage() {
-  const access = await requireModule("egv_pricer", "VIEW");
+  const access = await requireModule("pricing", "VIEW");
   const suppliers = await listSuppliers();
   return (
-    <AppShell access={access} moduleKey="egv_pricer">
+    <AppShell access={access} moduleKey="pricing">
       <SupplementCalculator
         suppliers={suppliers.map((s) => ({
           id: s.id,

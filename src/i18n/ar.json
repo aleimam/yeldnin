@@ -143,8 +143,8 @@
   "dashboard.welcome": "مرحبًا بك في يلدن",
   "dashboard.choose": "اختر وحدة للعمل بها.",
 
-  "module.egv_pricer.name": "التسعير",
-  "module.egv_pricer.desc": "سعّر بذكاء، بِع بشكل أفضل",
+  "module.pricing.name": "التسعير",
+  "module.pricing.desc": "سعّر بذكاء، بِع بشكل أفضل",
   "module.expenses.name": "المصروفات",
   "module.expenses.desc": "لا شيء يفلت من السجل",
   "module.order_requests.name": "المبيعات",

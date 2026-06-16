@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { calcDeviceAction } from "./actions";
-import type { SupplierOption } from "./SupplementCalculator";
+import { suppliersFor, amazonIdFor, type SupplierOption } from "./SupplementCalculator";
 
 const COUNTRIES = ["USA", "UK", "EU"] as const;
 
@@ -16,7 +16,7 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
   const [f, setF] = useState({
     productName: "",
     importedFrom: "USA",
-    supplierId: "",
+    supplierId: amazonIdFor(suppliers, "USA"),
     purchasePrice: "",
     lengthCm: "",
     widthCm: "",
@@ -29,9 +29,11 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
     setF((prev) => ({ ...prev, [k]: v }));
   const err = (k: string) => (errors[k] ? "input input-error" : "input");
 
-  const availSuppliers = suppliers.filter((s) =>
-    f.importedFrom === "USA" ? s.availableUSA : f.importedFrom === "UK" ? s.availableUK : s.availableEU,
-  );
+  const availSuppliers = suppliersFor(suppliers, f.importedFrom);
+
+  function changeCountry(c: string) {
+    setF((prev) => ({ ...prev, importedFrom: c, supplierId: amazonIdFor(suppliers, c) }));
+  }
 
   function submit() {
     start(async () => {
@@ -53,17 +55,22 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      <div className="card space-y-4 p-6 lg:col-span-2">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("pricer.f.productName")}>
+    <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <div className="card space-y-4 p-6">
+        {/* Row 1: Product name (2x) + Imported from */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label={t("pricer.f.productName")} className="sm:col-span-2">
             <input className="input" value={f.productName} onChange={(e) => set("productName", e.target.value)} />
           </Field>
           <Field label={t("pricer.f.importedFrom")} error={errors.importedFrom}>
-            <select className={err("importedFrom")} value={f.importedFrom} onChange={(e) => { set("importedFrom", e.target.value); set("supplierId", ""); }}>
+            <select className={err("importedFrom")} value={f.importedFrom} onChange={(e) => changeCountry(e.target.value)}>
               {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
+        </div>
+
+        {/* Row 2: Supplier, Price, Weight (kg) */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label={t("pricer.f.supplier")}>
             <select className="input" value={f.supplierId} onChange={(e) => set("supplierId", e.target.value)}>
               <option value="">{t("pricer.f.choose")}</option>
@@ -73,6 +80,13 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
           <Field label={t("pricer.f.purchasePrice")} error={errors.purchasePrice}>
             <input type="number" step="any" className={err("purchasePrice")} value={f.purchasePrice} onChange={(e) => set("purchasePrice", e.target.value)} />
           </Field>
+          <Field label={t("pricer.f.weightKg")} error={errors.weightKg}>
+            <input type="number" step="any" className={err("weightKg")} value={f.weightKg} onChange={(e) => set("weightKg", e.target.value)} />
+          </Field>
+        </div>
+
+        {/* Row 3: Dimensions in one line */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label={t("pricer.f.length")} error={errors.lengthCm}>
             <input type="number" step="any" className={err("lengthCm")} value={f.lengthCm} onChange={(e) => set("lengthCm", e.target.value)} />
           </Field>
@@ -82,14 +96,13 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
           <Field label={t("pricer.f.height")} error={errors.heightCm}>
             <input type="number" step="any" className={err("heightCm")} value={f.heightCm} onChange={(e) => set("heightCm", e.target.value)} />
           </Field>
-          <Field label={t("pricer.f.weightKg")} error={errors.weightKg}>
-            <input type="number" step="any" className={err("weightKg")} value={f.weightKg} onChange={(e) => set("weightKg", e.target.value)} />
-          </Field>
-          <label className="flex items-center gap-2 self-end text-sm text-ink">
-            <input type="checkbox" checked={f.maleSupport} onChange={(e) => set("maleSupport", e.target.checked)} />
-            {t("pricer.f.maleSupport")}
-          </label>
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-ink">
+          <input type="checkbox" checked={f.maleSupport} onChange={(e) => set("maleSupport", e.target.checked)} />
+          {t("pricer.f.maleSupport")}
+        </label>
+
         <Field label={t("pricer.f.notes")}>
           <textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
         </Field>
@@ -98,29 +111,35 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
         </Field>
       </div>
 
-      <div className="space-y-4">
-        <button onClick={submit} disabled={pending} className="btn-primary w-full">
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        <button type="submit" disabled={pending} className="btn-primary">
           {pending ? "…" : t("pricer.calculate")}
         </button>
-        {Object.keys(errors).length > 0 && (
-          <p className="text-sm text-red-600">{t("pricer.fixErrors")}</p>
-        )}
+        {Object.keys(errors).length > 0 && <p className="text-sm text-red-600">{t("pricer.fixErrors")}</p>}
         {price !== null && (
-          <div className="card p-6 text-center">
-            <div className="text-sm text-muted">{t("pricer.sellingPrice")}</div>
-            <div className="mt-1 text-4xl font-bold text-brand">
-              {price.toLocaleString()} <span className="text-lg">EGP</span>
-            </div>
+          <div className="text-lg text-ink">
+            {t("pricer.sellingPrice")}:{" "}
+            <span className="text-2xl font-bold text-brand">{price.toLocaleString()} EGP</span>
           </div>
         )}
       </div>
-    </div>
+    </form>
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  className,
+  children,
+}: {
+  label: string;
+  error?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div>
+    <div className={className}>
       <label className="label">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}

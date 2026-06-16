@@ -85,7 +85,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     margin: 1.15,
     volumetricDivisor: 5000,
     maleSupportMultiplier: 1.2,
-    roundStep: 0,
+    roundStep: 10, // device price rounds UP to the nearest 10
   },
 };
 
@@ -93,6 +93,12 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
 export function roundToNearest(value: number, step: number): number {
   if (!step || step <= 0) return value;
   return Math.round(value / step) * step;
+}
+
+/** Round UP to the next `step` (ceiling). step<=0 => no rounding. */
+export function roundUpToNearest(value: number, step: number): number {
+  if (!step || step <= 0) return value;
+  return Math.ceil(value / step) * step;
 }
 
 /**
@@ -187,6 +193,6 @@ export function computeDevicePrice(
         (input.purchasePrice * d.inflation * fx * d.fxFactor +
           chargeable * d.inflation * fx * d.perKg));
 
-  const price = roundToNearest(internal * d.margin, d.roundStep);
+  const price = roundUpToNearest(internal * d.margin, d.roundStep);
   return { price, chargeableWeight: chargeable };
 }

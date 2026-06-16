@@ -80,6 +80,7 @@ describe("computeDevicePrice — Excel parity", () => {
     };
     const { price, chargeableWeight } = computeDevicePrice(input);
     expect(chargeableWeight).toBeCloseTo(1.5, 5); // max(0.675, 1.5)
-    expect(price).toBeCloseTo(109166.5201, 2);
+    // internal*1.15 = 109166.5201, rounded UP to the nearest 10:
+    expect(price).toBe(109170);
   });
 });

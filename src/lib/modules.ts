@@ -12,7 +12,7 @@ export interface ModuleDef {
 }
 
 export const MODULES: ModuleDef[] = [
-  { key: "egv_pricer", route: "/pricer", section: "main", icon: "🧮" },
+  { key: "pricing", route: "/pricing", section: "main", icon: "🧮" },
   { key: "expenses", route: "/expenses", section: "main", icon: "💸" },
   { key: "order_requests", route: "/sales", section: "main", icon: "🧾" },
   { key: "xoonx", route: "/xoonx", section: "main", icon: "🌐" },
