@@ -233,6 +233,7 @@ model Product {
   updatedAt         DateTime  @updatedAt
 
   photos ProductPhoto[]
+  items  Item[]
 
   @@index([scope])
   @@index([type])
@@ -323,6 +324,60 @@ model HubPhoto {
   createdAt DateTime @default(now())
 
   @@index([hubId])
+}
+
+// ─── Supply chain: the tracked item + its movement engine ─────────────────────
+
+// One physical unit, tracked from Request to Customer. `status` is the canonical
+// ItemStatus (lib/workflow/workflow-logic). Current location is polymorphic
+// (containerType + containerId); exceptionFlag moves it to a shared pool while
+// remembering its source container. Timer fields drive the auto-advance worker.
+model Item {
+  id                  Int       @id @default(autoincrement())
+  uid                 String?   @unique // ITM<YY><MM><seq3>
+  productId           Int
+  product             Product   @relation(fields: [productId], references: [id])
+  scope               String // EGV | XOONX | PERSONAL (denormalized for fast filtering)
+  status              String    @default("REQUESTED")
+  containerType       String? // REQUEST | PURCHASE | PATCH | TRANSFER | TRIP | HUB | SHIPMENT | ORDER
+  containerId         Int?
+  requestId           Int? // origin request (anchor for pool returns)
+  exceptionFlag       String? // LOST | DAMAGED | ERRANT | DELAYED
+  sourceContainerType String?
+  sourceContainerId   Int?
+  isSpecialOrder      Boolean   @default(false)
+  sellingPrice        Float?
+  purchasePrice       Float?
+  receivedAt          DateTime? // set when status → HUB; drives the timers
+  transitAt           DateTime? // scheduled auto-advance → TRANSIT
+  globalShippingAt    DateTime? // scheduled auto-advance → GLOBAL_SHIPPING
+  notes               String?
+  createdById         Int?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  events ItemEvent[]
+
+  @@index([status])
+  @@index([scope])
+  @@index([containerType, containerId])
+  @@index([requestId])
+  @@index([exceptionFlag])
+}
+
+model ItemEvent {
+  id            Int      @id @default(autoincrement())
+  itemId        Int
+  item          Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  fromStatus    String?
+  toStatus      String
+  containerType String?
+  containerId   Int?
+  action        String?
+  byUserId      Int?
+  createdAt     DateTime @default(now())
+
+  @@index([itemId])
 }
 
 model PricingCalculation {
