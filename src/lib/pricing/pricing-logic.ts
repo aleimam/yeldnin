@@ -36,6 +36,7 @@ export interface PricingConfig {
     roundStep: number; // 10 (round to nearest)
     injectionShape: Shape; // "Injection"
     injectionFee: number; // 2000 (added after, for injections)
+    markupFactor: number; // 1.06 -> final markup, then round UP to nearest roundStep
   };
   // device formula constants
   device: {
@@ -75,6 +76,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
     roundStep: 10,
     injectionShape: "Injection",
     injectionFee: 2000,
+    markupFactor: 1.06,
   },
   device: {
     base: 2200,
@@ -155,6 +157,8 @@ export function computeSupplementPrice(
 
   let price = roundToNearest(c.margin * base, c.roundStep);
   if (input.shape === c.injectionShape) price += c.injectionFee;
+  // Final markup (Excel A-column "Price"): ×markupFactor, rounded UP to nearest 10.
+  price = roundUpToNearest(price * c.markupFactor, c.roundStep);
 
   return { price, totalMultiplier: M, tier };
 }

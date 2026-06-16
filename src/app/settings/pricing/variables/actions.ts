@@ -51,6 +51,7 @@ export async function saveVariablesAction(
       roundStep: num("supplement.roundStep", cur.supplement.roundStep),
       injectionShape: cur.supplement.injectionShape,
       injectionFee: num("supplement.injectionFee", cur.supplement.injectionFee),
+      markupFactor: num("supplement.markupFactor", cur.supplement.markupFactor),
     },
     device: {
       base: num("device.base", cur.device.base),

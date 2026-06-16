@@ -80,6 +80,7 @@ export function VariablesForm({ config }: { config: PricingConfig }) {
         <Num name="supplement.margin" label="Margin" value={config.supplement.margin} />
         <Num name="supplement.roundStep" label="Round step" value={config.supplement.roundStep} />
         <Num name="supplement.injectionFee" label="Injection fee" value={config.supplement.injectionFee} />
+        <Num name="supplement.markupFactor" label="Markup (×, round up)" value={config.supplement.markupFactor} />
       </Group>
 
       <Group title={`${t("pricer.var.constants")} — ${t("pricer.devices")}`}>

@@ -33,10 +33,10 @@ describe("computeSupplementPrice — Excel parity", () => {
       size: "Normal",
       maleSupport: false,
     };
-    expect(computeSupplementPrice(input).price).toBe(3580);
+    expect(computeSupplementPrice(input).price).toBe(3800); // base 3580 ×1.06, round up
   });
 
-  it("Vitamins 2 sheet (Injection, Glass) => 10610", () => {
+  it("Vitamins 2 sheet (Injection, Glass) => 11250", () => {
     const input: SupplementInput = {
       importedFrom: "USA",
       purchasePrice: 60,
@@ -48,10 +48,10 @@ describe("computeSupplementPrice — Excel parity", () => {
       size: "Normal",
       maleSupport: false,
     };
-    expect(computeSupplementPrice(input).price).toBe(10610);
+    expect(computeSupplementPrice(input).price).toBe(11250); // base 10610 ×1.06, round up
   });
 
-  it("X sheet => 30740", () => {
+  it("X sheet => 32590", () => {
     const input: SupplementInput = {
       importedFrom: "USA",
       purchasePrice: 320,
@@ -63,7 +63,37 @@ describe("computeSupplementPrice — Excel parity", () => {
       size: "Normal",
       maleSupport: false,
     };
-    expect(computeSupplementPrice(input).price).toBe(30740);
+    expect(computeSupplementPrice(input).price).toBe(32590); // base 30740 ×1.06, round up
+  });
+
+  it("user example 1 (P20·C200·W200) => 3780", () => {
+    const input: SupplementInput = {
+      importedFrom: "USA",
+      purchasePrice: 20,
+      count: 200,
+      dailyDose: 1,
+      weight: 200,
+      shape: "Capsules/Tablets",
+      packaging: "Plastic",
+      size: "Normal",
+      maleSupport: false,
+    };
+    expect(computeSupplementPrice(input).price).toBe(3780);
+  });
+
+  it("user example 2 (P100·C100·W100) => 11090", () => {
+    const input: SupplementInput = {
+      importedFrom: "USA",
+      purchasePrice: 100,
+      count: 100,
+      dailyDose: 1,
+      weight: 100,
+      shape: "Capsules/Tablets",
+      packaging: "Plastic",
+      size: "Normal",
+      maleSupport: false,
+    };
+    expect(computeSupplementPrice(input).price).toBe(11090);
   });
 });
 
