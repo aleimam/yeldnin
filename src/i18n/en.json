@@ -364,7 +364,7 @@
   "reqtype.OUT_OF_STOCK": "Out of Stock",
   "reqtype.RESTOCK": "Restock",
   "reqtype.OPTIONAL": "Optional",
-  "purchasing.pool": "Pending pool",
+  "purchasing.pool": "Requests Pool",
   "purchasing.purchases": "Purchases",
   "purchasing.new": "New purchase",
   "purchasing.uid": "UID",

@@ -11,6 +11,8 @@ export interface SectionDef {
   href: string;
   minLevel?: Level; // default VIEW
   capability?: string; // capability key on this module (overrides minLevel)
+  module?: string; // owning module for the gate (default: the sidebar's moduleKey)
+  shortcut?: boolean; // a cross-link to another module's section (visual hint)
 }
 
 export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
@@ -42,16 +44,17 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "requests.title", icon: "🧾", href: "/requests" },
     { labelKey: "products.title", icon: "📦", href: "/products" },
   ],
-  purchasing: [
-    { labelKey: "purchasing.pool", icon: "🪣", href: "/purchasing/pool" },
-    { labelKey: "purchasing.purchases", icon: "🛒", href: "/purchasing/purchases" },
-    { labelKey: "products.title", icon: "📦", href: "/products" },
-  ],
+  // Logistics holds the merged Purchasing + Logistics nav. Pool/Purchases are
+  // gated by the (separate) `purchasing` permission; Patches…Hubs by `logistics`.
+  // Products is a shortcut to the Sales-owned shared catalog (purchasing folks).
   logistics: [
+    { labelKey: "purchasing.pool", icon: "🪣", href: "/purchasing/pool", module: "purchasing" },
+    { labelKey: "purchasing.purchases", icon: "🛒", href: "/purchasing/purchases", module: "purchasing" },
     { labelKey: "patches.title", icon: "📮", href: "/patches" },
     { labelKey: "trip.title", icon: "✈️", href: "/trips" },
     { labelKey: "travelers.title", icon: "🧳", href: "/travelers" },
     { labelKey: "hubs.title", icon: "🏠", href: "/hubs" },
+    { labelKey: "products.title", icon: "📦", href: "/products", module: "purchasing", shortcut: true },
   ],
   operations: [{ labelKey: "shipments.title", icon: "🚢", href: "/shipments" }],
   couriers: [{ labelKey: "couriers.title", icon: "🛵", href: "/couriers" }],

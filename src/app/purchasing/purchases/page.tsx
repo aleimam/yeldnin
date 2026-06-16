@@ -14,7 +14,7 @@ export default async function PurchasesPage() {
   return (
     <AppShell
       access={access}
-      moduleKey="purchasing"
+      moduleKey="logistics"
       pageTitle={t("purchasing.purchases")}
       actions={canBuy ? <Link href="/purchasing/purchases/new" className="btn-primary">+ {t("purchasing.new")}</Link> : null}
     >

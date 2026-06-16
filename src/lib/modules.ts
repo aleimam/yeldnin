@@ -9,6 +9,13 @@ export interface ModuleDef {
   section: ModuleSection;
   /** Emoji placeholder icon (refined against the live app later). */
   icon: string;
+  /**
+   * If set, this module is folded into another module's navigation: it keeps its
+   * own permission key (still grantable per-user, still gates its pages), but is
+   * hidden from the top nav (switcher + dashboard) and its sections live under
+   * the parent's sidebar. Tab title / sidebar resolve to the parent.
+   */
+  foldedInto?: string;
 }
 
 export const MODULES: ModuleDef[] = [
@@ -16,7 +23,9 @@ export const MODULES: ModuleDef[] = [
   { key: "expenses", route: "/expenses", section: "main", icon: "💸" },
   { key: "order_requests", route: "/sales", section: "main", icon: "🧾" },
   { key: "xoonx", route: "/xoonx", section: "main", icon: "🌐" },
-  { key: "purchasing", route: "/purchasing", section: "main", icon: "🛒" },
+  // Purchasing is folded into Logistics: one "Logistics" nav holds both, but the
+  // purchasing permission stays separate (granted independently; gates its pages).
+  { key: "purchasing", route: "/purchasing", section: "main", icon: "🛒", foldedInto: "logistics" },
   { key: "logistics", route: "/logistics", section: "main", icon: "🚚" },
   { key: "operations", route: "/operations", section: "main", icon: "💼" },
   { key: "couriers", route: "/couriers", section: "main", icon: "🛵" },
@@ -29,3 +38,8 @@ export const MODULES: ModuleDef[] = [
 
 export const MAIN_MODULES = MODULES.filter((m) => m.section === "main");
 export const ADMIN_MODULES = MODULES.filter((m) => m.section === "admin");
+
+/** Keys of modules folded into `parentKey` (their permissions also reach the parent's nav). */
+export function childModules(parentKey: string): string[] {
+  return MODULES.filter((m) => m.foldedInto === parentKey).map((m) => m.key);
+}

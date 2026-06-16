@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { productScopes } from "@/lib/products/products-logic";
 import { pendingPool } from "@/lib/purchasing/purchasing-service";
+import { REQUEST_TYPES } from "@/lib/requests/request-logic";
 
 export default async function PoolPage() {
   const access = await requireModule("purchasing", "VIEW");
@@ -14,7 +15,7 @@ export default async function PoolPage() {
   return (
     <AppShell
       access={access}
-      moduleKey="purchasing"
+      moduleKey="logistics"
       pageTitle={t("purchasing.pool")}
       actions={canBuy && pool.length > 0 ? <Link href="/purchasing/purchases/new" className="btn-primary">+ {t("purchasing.new")}</Link> : null}
     >
@@ -24,6 +25,9 @@ export default async function PoolPage() {
             <tr>
               <th className="th">{t("requests.scope")}</th>
               <th className="th">{t("requests.product")}</th>
+              {REQUEST_TYPES.map((ty) => (
+                <th key={ty} className="th text-end">{t(`reqtype.${ty}`)}</th>
+              ))}
               <th className="th text-end">{t("purchasing.pending")}</th>
             </tr>
           </thead>
@@ -32,10 +36,13 @@ export default async function PoolPage() {
               <tr key={`${p.scope}:${p.productId}`} className="hover:bg-canvas/60">
                 <td className="td text-muted">{t(`scope.${p.scope}`)}</td>
                 <td className="td">{p.productName}</td>
-                <td className="td text-end font-medium">{p.count}</td>
+                {REQUEST_TYPES.map((ty) => (
+                  <td key={ty} className="td text-end text-muted">{p.byType[ty] ?? "—"}</td>
+                ))}
+                <td className="td text-end font-semibold text-ink">{p.count}</td>
               </tr>
             ))}
-            {pool.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("purchasing.poolEmpty")}</td></tr>}
+            {pool.length === 0 && <tr><td className="td text-muted" colSpan={REQUEST_TYPES.length + 3}>{t("purchasing.poolEmpty")}</td></tr>}
           </tbody>
         </table>
       </div>

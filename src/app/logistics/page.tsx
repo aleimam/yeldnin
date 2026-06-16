@@ -1,14 +1,11 @@
-import { requireModule } from "@/lib/auth/access";
-import { AppShell } from "@/components/shell/AppShell";
-import { ComingSoon } from "@/components/shell/ComingSoon";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/access";
 
-const KEY = "logistics";
-
-export default async function Page() {
-  const a = await requireModule(KEY, "VIEW");
-  return (
-    <AppShell access={a} moduleKey={KEY}>
-      <ComingSoon moduleKey={KEY} />
-    </AppShell>
-  );
+// Merged Logistics landing. Purchasing folds in here, but the permissions stay
+// separate — so route to the first section the user can actually reach.
+export default async function LogisticsPage() {
+  const access = await requireUser();
+  if (access.canModule("purchasing", "VIEW")) redirect("/purchasing/pool");
+  if (access.canModule("logistics", "VIEW")) redirect("/patches");
+  redirect("/");
 }

@@ -35,11 +35,12 @@ export async function AppShell({
   const sections = isSettings
     ? []
     : sectionsFor(moduleKey)
-        .filter((s) =>
-          s.capability
-            ? access.can(moduleKey, s.capability)
-            : access.canModule(moduleKey, s.minLevel ?? "VIEW"),
-        )
+        .filter((s) => {
+          const mod = s.module ?? moduleKey; // sections may belong to a folded-in module
+          return s.capability
+            ? access.can(mod, s.capability)
+            : access.canModule(mod, s.minLevel ?? "VIEW");
+        })
         .map((s) => ({ labelKey: s.labelKey, icon: s.icon, href: s.href }));
   const hasNav = isSettings ? (groups?.length ?? 0) > 0 : sections.length > 0;
 

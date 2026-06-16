@@ -11,7 +11,9 @@ export function TitleSetter({ appName }: { appName: string }) {
   const path = usePathname();
 
   useEffect(() => {
-    const mod = MODULES.find((m) => path === m.route || path.startsWith(m.route + "/"));
+    const matched = MODULES.find((m) => path === m.route || path.startsWith(m.route + "/"));
+    // A folded module (purchasing) shows under its parent's name + sidebar (logistics).
+    const mod = matched?.foldedInto ? MODULES.find((m) => m.key === matched.foldedInto) ?? matched : matched;
     const moduleName = mod ? t(`module.${mod.key}.name`) : "";
 
     let sectionName = "";

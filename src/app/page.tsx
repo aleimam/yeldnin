@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getT } from "@/i18n/server";
 import { TopBar } from "@/components/shell/TopBar";
-import { MAIN_MODULES, ADMIN_MODULES, type ModuleDef } from "@/lib/modules";
+import { MAIN_MODULES, ADMIN_MODULES, childModules, type ModuleDef } from "@/lib/modules";
 import { requireUser } from "@/lib/auth/access";
 import { canAccessSettings } from "@/lib/module-sections";
 import { SiteFooter } from "@/components/shell/SiteFooter";
@@ -31,8 +31,11 @@ export default async function DashboardPage() {
   const t = await getT();
 
   const canSee = (key: string) =>
-    key === "settings" ? canAccessSettings(access.can, access.isAdmin) : access.canModule(key);
-  const mainVisible = MAIN_MODULES.filter((m) => canSee(m.key));
+    key === "settings"
+      ? canAccessSettings(access.can, access.isAdmin)
+      : access.canModule(key) || childModules(key).some((c) => access.canModule(c));
+  // Folded-in modules (purchasing → logistics) have no separate dashboard tile.
+  const mainVisible = MAIN_MODULES.filter((m) => !m.foldedInto && canSee(m.key));
   const adminVisible = ADMIN_MODULES.filter((m) => canSee(m.key));
 
   return (

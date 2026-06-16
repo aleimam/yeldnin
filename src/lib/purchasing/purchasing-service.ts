@@ -4,27 +4,51 @@ import { nextUid } from "@/lib/uid";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
 import { clampLinesToPool, type PurchaseLineInput } from "./purchasing-logic";
 
-/** Items still awaiting purchase (REQUESTED, in a REQUEST container), grouped. */
-export async function pendingPool(scopes: string[]): Promise<
-  { scope: string; productId: number; productName: string; count: number }[]
-> {
+export interface PoolRow {
+  scope: string;
+  productId: number;
+  productName: string;
+  count: number; // total pending (sum of byType)
+  byType: Record<string, number>; // pending split by origin request type
+}
+
+/** Items still awaiting purchase (REQUESTED, in a REQUEST container), grouped by
+ *  (scope, product) and split by the originating request's type. */
+export async function pendingPool(scopes: string[]): Promise<PoolRow[]> {
   if (!scopes.length) return [];
   const items = await prisma.item.findMany({
     where: { status: "REQUESTED", containerType: "REQUEST", exceptionFlag: null, scope: { in: scopes } },
-    select: { scope: true, productId: true },
+    select: { scope: true, productId: true, requestId: true, containerId: true },
   });
-  const counts = new Map<string, number>();
-  for (const it of items) counts.set(`${it.scope}:${it.productId}`, (counts.get(`${it.scope}:${it.productId}`) ?? 0) + 1);
-  if (!counts.size) return [];
+  if (!items.length) return [];
+
+  // origin request → type (requestId is the anchor; containerId == request id here)
+  const reqIds = [...new Set(items.map((i) => i.requestId ?? i.containerId).filter((x): x is number => x != null))];
+  const requests = reqIds.length
+    ? await prisma.request.findMany({ where: { id: { in: reqIds } }, select: { id: true, type: true } })
+    : [];
+  const typeOf = new Map(requests.map((r) => [r.id, r.type]));
+
+  const rows = new Map<string, PoolRow>();
+  for (const it of items) {
+    const key = `${it.scope}:${it.productId}`;
+    let row = rows.get(key);
+    if (!row) {
+      row = { scope: it.scope, productId: it.productId, productName: "—", count: 0, byType: {} };
+      rows.set(key, row);
+    }
+    row.count += 1;
+    const rid = it.requestId ?? it.containerId;
+    const type = (rid != null ? typeOf.get(rid) : undefined) ?? "UNKNOWN";
+    row.byType[type] = (row.byType[type] ?? 0) + 1;
+  }
+
   const productIds = [...new Set(items.map((i) => i.productId))];
   const products = await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } });
   const nameOf = new Map(products.map((p) => [p.id, p.name]));
-  return [...counts.entries()]
-    .map(([key, count]) => {
-      const [scope, pid] = key.split(":");
-      return { scope, productId: Number(pid), productName: nameOf.get(Number(pid)) ?? "—", count };
-    })
-    .sort((a, b) => a.productName.localeCompare(b.productName));
+  for (const row of rows.values()) row.productName = nameOf.get(row.productId) ?? "—";
+
+  return [...rows.values()].sort((a, b) => a.productName.localeCompare(b.productName));
 }
 
 /** Available REQUESTED units for one scope, by productId (for clamping). */

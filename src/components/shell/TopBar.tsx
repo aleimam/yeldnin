@@ -4,7 +4,7 @@ import { getAccess, type SessionUser } from "@/lib/auth/access";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getEffectiveTheme, getColorMode } from "@/lib/prefs";
-import { MODULES } from "@/lib/modules";
+import { MODULES, childModules } from "@/lib/modules";
 import { canAccessSettings } from "@/lib/module-sections";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { ModuleSwitcher } from "./ModuleSwitcher";
@@ -41,8 +41,11 @@ export async function TopBar({
   const darkLogo = assetUrl(settings.darkLogoUrl) ?? logo;
 
   const canSee = (key: string) =>
-    key === "settings" ? canAccessSettings(access.can, access.isAdmin) : access.canModule(key);
-  const switcherModules = MODULES.filter((m) => canSee(m.key)).map((m) => ({
+    key === "settings"
+      ? canAccessSettings(access.can, access.isAdmin)
+      : access.canModule(key) || childModules(key).some((c) => access.canModule(c));
+  // Folded-in modules (e.g. purchasing → logistics) don't get their own tile.
+  const switcherModules = MODULES.filter((m) => !m.foldedInto && canSee(m.key)).map((m) => ({
     key: m.key,
     label: t(`module.${m.key}.name`),
     icon: m.icon,

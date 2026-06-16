@@ -20,7 +20,7 @@ export default async function NewPurchasePage() {
   ]);
 
   return (
-    <AppShell access={access} moduleKey="purchasing" pageTitle={t("purchasing.new")} backHref="/purchasing/pool">
+    <AppShell access={access} moduleKey="logistics" pageTitle={t("purchasing.new")} backHref="/purchasing/pool">
       <PurchaseForm
         allowedScopes={scopes}
         pool={pool}

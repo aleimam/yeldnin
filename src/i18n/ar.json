@@ -364,7 +364,7 @@
   "reqtype.OUT_OF_STOCK": "نفاد المخزون",
   "reqtype.RESTOCK": "إعادة تخزين",
   "reqtype.OPTIONAL": "اختياري",
-  "purchasing.pool": "قائمة الانتظار",
+  "purchasing.pool": "مجمّع الطلبات",
   "purchasing.purchases": "المشتريات",
   "purchasing.new": "شراء جديد",
   "purchasing.uid": "المعرّف",

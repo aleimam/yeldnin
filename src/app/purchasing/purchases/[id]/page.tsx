@@ -17,7 +17,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
   const loc = locale === "ar" ? "ar" : "en";
 
   return (
-    <AppShell access={access} moduleKey="purchasing" pageTitle={purchase.uid ?? `#${purchase.id}`} backHref="/purchasing/purchases">
+    <AppShell access={access} moduleKey="logistics" pageTitle={purchase.uid ?? `#${purchase.id}`} backHref="/purchasing/purchases">
       <div className="max-w-3xl space-y-6">
         <div className="card p-5">
           <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
