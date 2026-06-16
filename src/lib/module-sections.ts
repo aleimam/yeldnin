@@ -33,9 +33,16 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   ],
   // Products are shared master data, surfaced in each operational module that
   // may view/add them (scope-filtered on the page). See products-logic.
-  order_requests: [{ labelKey: "products.title", icon: "📦", href: "/products" }],
+  order_requests: [
+    { labelKey: "products.title", icon: "📦", href: "/products" },
+    { labelKey: "customers.title", icon: "🙋", href: "/customers" },
+  ],
   xoonx: [{ labelKey: "products.title", icon: "📦", href: "/products" }],
   purchasing: [{ labelKey: "products.title", icon: "📦", href: "/products" }],
+  logistics: [
+    { labelKey: "travelers.title", icon: "🧳", href: "/travelers" },
+    { labelKey: "hubs.title", icon: "🏠", href: "/hubs" },
+  ],
   audit_log: [
     { labelKey: "audit.all", icon: "📜", href: "/audit" },
     { labelKey: "module.pricing.name", icon: "🧮", href: "/audit/pricing" },

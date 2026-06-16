@@ -248,6 +248,83 @@ model ProductPhoto {
   @@index([productId])
 }
 
+// Customer (Sales). contactChannel: WHATSAPP | PHONE | DIRECT | FACEBOOK | INSTAGRAM.
+model Customer {
+  id             Int       @id @default(autoincrement())
+  uid            String?   @unique // CUS<YY><MM><seq3>
+  name           String
+  contactChannel String    @default("WHATSAPP")
+  contactNumber  String?
+  notes          String?
+  active         Boolean   @default(true)
+  archivedAt     DateTime?
+  createdById    Int?
+  createdAt      DateTime  @default(now())
+  updatedById    Int?
+  updatedAt      DateTime  @updatedAt
+}
+
+// Traveler (Logistics). allowedProductTypes is a CSV of ProductType keys.
+model Traveler {
+  id                  Int       @id @default(autoincrement())
+  uid                 String?   @unique // TRV<YY><MM><seq3>
+  name                String
+  contact             String?
+  notes               String?
+  referenceTravelerId Int?
+  reference           Traveler? @relation("TravelerRef", fields: [referenceTravelerId], references: [id])
+  referredBy          Traveler[] @relation("TravelerRef")
+  active              Boolean   @default(true)
+  blacklisted         Boolean   @default(false)
+  staticAddress       Boolean   @default(false)
+  carriesMaleSupport  Boolean   @default(false)
+  allowedProductTypes String    @default("")
+  archivedAt          DateTime?
+  createdById         Int?
+  createdAt           DateTime  @default(now())
+  updatedById         Int?
+  updatedAt           DateTime  @updatedAt
+
+  photos TravelerPhoto[]
+}
+
+model TravelerPhoto {
+  id         Int      @id @default(autoincrement())
+  travelerId Int
+  traveler   Traveler @relation(fields: [travelerId], references: [id], onDelete: Cascade)
+  assetId    String
+  createdAt  DateTime @default(now())
+
+  @@index([travelerId])
+}
+
+// Hub (Logistics) — an abroad receiving point with inventory. country: USA | UK | EU.
+model Hub {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // HUB<YY><MM><seq3>
+  name        String
+  country     String
+  notes       String?
+  active      Boolean   @default(true)
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedById Int?
+  updatedAt   DateTime  @updatedAt
+
+  photos HubPhoto[]
+}
+
+model HubPhoto {
+  id        Int      @id @default(autoincrement())
+  hubId     Int
+  hub       Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime @default(now())
+
+  @@index([hubId])
+}
+
 model PricingCalculation {
   id           Int       @id @default(autoincrement())
   section      String // SUPPLEMENT | DEVICE
