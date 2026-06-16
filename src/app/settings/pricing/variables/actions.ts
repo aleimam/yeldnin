@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/access";
 import { SHAPES, PACKAGING, SIZES, type PricingConfig } from "@/lib/pricing/pricing-logic";
 import { getPricingConfig, savePricingConfig } from "@/lib/pricing/pricing-config-service";
+import { writeAudit } from "@/lib/audit";
 
 export interface FormState {
   error?: string;
@@ -13,7 +14,7 @@ export async function saveVariablesAction(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  await requireModule("egv_pricer", "MANAGE");
+  const access = await requireModule("egv_pricer", "MANAGE");
   const cur = await getPricingConfig();
 
   const num = (name: string, fallback: number): number => {
@@ -65,6 +66,7 @@ export async function saveVariablesAction(
   };
 
   await savePricingConfig(next);
+  await writeAudit(access.user.id, "egv_pricer", "pricing.variables.update", "pricingSettings", 1, { fx: next.fx });
   revalidatePath("/settings/pricing/variables");
   return { ok: true };
 }

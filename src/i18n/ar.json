@@ -167,6 +167,16 @@
   "module.settings.desc": "خصّص تجربتك",
   "module.user_access.name": "المستخدمون والصلاحيات",
   "module.user_access.desc": "كل شيء تحت السيطرة",
+  "module.audit_log.name": "سجل التدقيق",
+  "module.audit_log.desc": "كل تغيير، موثّق",
+
+  "audit.all": "الكل",
+  "audit.date": "التاريخ",
+  "audit.user": "المستخدم",
+  "audit.module": "الوحدة",
+  "audit.action": "الإجراء",
+  "audit.entity": "العنصر",
+  "audit.empty": "لا توجد سجلات.",
 
   "footer.about": "عن يلدن هيلث",
   "footer.contact": "اتصل بنا",

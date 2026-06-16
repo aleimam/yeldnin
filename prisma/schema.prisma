@@ -359,13 +359,14 @@ model MonthlyReconciliationNote {
 model AuditLog {
   id         Int      @id @default(autoincrement())
   userId     Int? // plain id (resolved by name on display)
+  moduleKey  String   @default("") // which module's settings/data was edited
   action     String
   entityType String
   entityId   String
   meta       String? // JSON
   createdAt  DateTime @default(now())
 
-  @@index([entityType])
+  @@index([moduleKey])
   @@index([createdAt])
 }
 

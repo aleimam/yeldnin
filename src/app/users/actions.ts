@@ -13,6 +13,7 @@ import {
   getUserTier,
 } from "@/lib/users/users-service";
 import { MODULES } from "@/lib/modules";
+import { writeAudit } from "@/lib/audit";
 
 export interface FormState {
   error?: string;
@@ -44,6 +45,7 @@ export async function createUserAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Could not create user." };
   }
+  await writeAudit(access.user.id, "user_access", "user.create", "user", newId, { email, tier });
   revalidatePath("/users");
   redirect(`/users/${newId}`);
 }
@@ -76,6 +78,7 @@ export async function saveProfileAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Could not save." };
   }
+  await writeAudit(access.user.id, "user_access", "user.profile.update", "user", id, { tier, active });
   revalidatePath(`/users/${id}`);
   return { ok: true };
 }
@@ -84,18 +87,19 @@ export async function setPasswordAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requireModule("user_access", "MANAGE");
+  const access = await requireModule("user_access", "MANAGE");
   const id = Number(formData.get("id"));
   const password = String(formData.get("password") ?? "");
   const pwErr = validatePasswordStrength(password);
   if (pwErr) return { error: pwErr };
   await setUserPassword(id, password);
+  await writeAudit(access.user.id, "user_access", "user.password.set", "user", id);
   return { ok: true };
 }
 
 /** Save teams + per-module access levels in one go ("Save all"). */
 export async function saveAccessAction(formData: FormData): Promise<void> {
-  await requireModule("user_access", "MANAGE");
+  const access = await requireModule("user_access", "MANAGE");
   const id = Number(formData.get("id"));
 
   const teamKeys = formData.getAll("team").map(String);
@@ -107,5 +111,6 @@ export async function saveAccessAction(formData: FormData): Promise<void> {
 
   await setUserTeams(id, teamKeys);
   await setUserModuleLevels(id, levels);
+  await writeAudit(access.user.id, "user_access", "user.access.update", "user", id);
   revalidatePath(`/users/${id}`);
 }

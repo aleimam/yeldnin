@@ -53,7 +53,8 @@
       "Bash(git -c core.autocrlf=false commit -q -m 'Sidebar navigation: collapsible per-module sidebar + real module switcher *)",
       "Bash(git -c core.autocrlf=false commit -q -m 'Batch 1: move Sign out into a gear account menu *)",
       "Bash(git rm *)",
-      "Bash(git -c core.autocrlf=false commit -q -m 'Polish: route Save All batches through the service layer *)"
+      "Bash(git -c core.autocrlf=false commit -q -m 'Polish: route Save All batches through the service layer *)",
+      "Bash(git -c core.autocrlf=false commit -q -m 'Batch 3: dedicated Audit Log module *)"
     ]
   }
 }

@@ -167,6 +167,16 @@
   "module.settings.desc": "Customize your experience",
   "module.user_access.name": "Users & Privileges",
   "module.user_access.desc": "Everything is under control",
+  "module.audit_log.name": "Audit Log",
+  "module.audit_log.desc": "Every change, on the record",
+
+  "audit.all": "All",
+  "audit.date": "Date",
+  "audit.user": "User",
+  "audit.module": "Module",
+  "audit.action": "Action",
+  "audit.entity": "Item",
+  "audit.empty": "No audit entries.",
 
   "footer.about": "About Yeldn Health",
   "footer.contact": "Contact Us",

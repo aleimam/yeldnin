@@ -94,6 +94,6 @@ export async function deleteAttachmentAction(formData: FormData): Promise<void> 
   if (!allowed) return;
   await prisma.expenseAttachment.delete({ where: { id: attId } });
   await deleteAsset(att.assetId);
-  await writeAudit(access.user.id, "expense.attachment.remove", "expenseTransaction", tx.id, { attachmentId: attId });
+  await writeAudit(access.user.id, "expenses", "expense.attachment.remove", "expenseTransaction", tx.id, { attachmentId: attId });
   revalidatePath(`/expenses/transactions/${tx.id}`);
 }

@@ -4,6 +4,7 @@ import { requireModule } from "@/lib/auth/access";
 import { isThemeKey } from "@/lib/theme";
 import { saveUpload } from "@/lib/assets/assets-service";
 import { updateAppearance } from "@/lib/settings/settings-service";
+import { writeAudit } from "@/lib/audit";
 
 export interface FormState {
   error?: string;
@@ -20,7 +21,7 @@ export async function saveAppearanceAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requireModule("settings", "MANAGE");
+  const access = await requireModule("settings", "MANAGE");
 
   const appName = String(formData.get("appName") ?? "").trim();
   const themeKey = String(formData.get("themeKey") ?? "default");
@@ -47,6 +48,9 @@ export async function saveAppearanceAction(
   }
 
   await updateAppearance(updates);
+  await writeAudit(access.user.id, "settings", "settings.appearance.update", "platformSettings", 1, {
+    fields: Object.keys(updates),
+  });
   revalidatePath("/", "layout"); // refresh app name / logo / favicon / theme everywhere
   return { ok: true };
 }

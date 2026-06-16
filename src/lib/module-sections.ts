@@ -24,10 +24,16 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "exp.reconciliation", icon: "⚖️", href: "/expenses/reconciliation" },
     { labelKey: "exp.monthlySales", icon: "🧮", href: "/expenses/admin/monthly-sales", minLevel: "MANAGE" },
     { labelKey: "exp.bankCollections", icon: "🏦", href: "/expenses/admin/bank-collections", minLevel: "MANAGE" },
-    { labelKey: "exp.audit", icon: "📜", href: "/expenses/admin/audit", minLevel: "MANAGE" },
   ],
   user_access: [
     { labelKey: "module.user_access.name", icon: "👥", href: "/users" },
+  ],
+  audit_log: [
+    { labelKey: "audit.all", icon: "📜", href: "/audit" },
+    { labelKey: "module.egv_pricer.name", icon: "🧮", href: "/audit/egv_pricer" },
+    { labelKey: "module.expenses.name", icon: "💸", href: "/audit/expenses" },
+    { labelKey: "module.user_access.name", icon: "👥", href: "/audit/user_access" },
+    { labelKey: "module.settings.name", icon: "⚙️", href: "/audit/settings" },
   ],
 };
 

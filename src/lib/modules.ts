@@ -24,6 +24,7 @@ export const MODULES: ModuleDef[] = [
   { key: "history", route: "/history", section: "main", icon: "🕐" },
   { key: "settings", route: "/settings", section: "admin", icon: "⚙️" },
   { key: "user_access", route: "/users", section: "admin", icon: "👥" },
+  { key: "audit_log", route: "/audit", section: "admin", icon: "📜" },
 ];
 
 export const MAIN_MODULES = MODULES.filter((m) => m.section === "main");

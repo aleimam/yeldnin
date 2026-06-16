@@ -62,7 +62,7 @@ export async function createExpenseTransaction(
         : undefined,
     },
   });
-  await writeAudit(access.user.id, "expense.tx.create", "expenseTransaction", tx.id, {
+  await writeAudit(access.user.id, "expenses", "expense.tx.create", "expenseTransaction", tx.id, {
     amount: tx.amount,
     category: snap.name,
     type: snap.type,
@@ -106,7 +106,7 @@ export async function updateExpenseTransaction(
       updatedById: access.user.id,
     },
   });
-  await writeAudit(access.user.id, "expense.tx.update", "expenseTransaction", id, { changes });
+  await writeAudit(access.user.id, "expenses", "expense.tx.update", "expenseTransaction", id, { changes });
   return updated;
 }
 
@@ -123,7 +123,7 @@ export async function deleteExpenseTransaction(id: number, access: AuthedAccess)
       now: new Date(),
     });
   if (!allowed) throw new Error("Not allowed to delete this transaction");
-  await writeAudit(access.user.id, "expense.tx.delete", "expenseTransaction", id, {
+  await writeAudit(access.user.id, "expenses", "expense.tx.delete", "expenseTransaction", id, {
     amount: tx.amount,
     category: tx.categoryNameSnapshot,
   });
@@ -276,7 +276,7 @@ export async function createOrUpdateMonthlySalesReport(
     create: { ...data, note: data.note || null, createdById: access.user.id },
     update: { ...data, note: data.note || null, updatedById: access.user.id },
   });
-  await writeAudit(access.user.id, existing ? "expense.monthlySales.update" : "expense.monthlySales.create", "monthlySalesReport", `${data.year}-${data.month}`, { totalSales: data.totalSales });
+  await writeAudit(access.user.id, "expenses", existing ? "expense.monthlySales.update" : "expense.monthlySales.create", "monthlySalesReport", `${data.year}-${data.month}`, { totalSales: data.totalSales });
   return saved;
 }
 
@@ -295,7 +295,7 @@ export async function createOrUpdateMonthlyBankCollectionReport(
     if (!Number.isFinite(l.amount)) continue;
     await prisma.monthlyBankCollectionLine.create({ data: { reportId: report.id, accountId: l.accountId, accountNameSnapshot: l.accountNameSnapshot, amount: l.amount } });
   }
-  await writeAudit(access.user.id, existing ? "expense.bankCollection.update" : "expense.bankCollection.create", "monthlyBankCollectionReport", `${data.year}-${data.month}`, { lines: data.lines.length });
+  await writeAudit(access.user.id, "expenses", existing ? "expense.bankCollection.update" : "expense.bankCollection.create", "monthlyBankCollectionReport", `${data.year}-${data.month}`, { lines: data.lines.length });
   return report;
 }
 

@@ -2,13 +2,14 @@
 import { revalidatePath } from "next/cache";
 import { requireModule } from "@/lib/auth/access";
 import { saveSupplierBatch } from "@/lib/suppliers/suppliers-service";
+import { writeAudit } from "@/lib/audit";
 
 const on = (fd: FormData, k: string) => fd.get(k) === "on";
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 /** Save All for suppliers: parse rows, hand the batch to the service. */
 export async function saveSuppliersAction(fd: FormData): Promise<void> {
-  await requireModule("settings", "MANAGE");
+  const access = await requireModule("settings", "MANAGE");
   const ids = str(fd, "ids").split(",").filter(Boolean).map(Number);
 
   const rows = ids.map((id) => ({
@@ -34,5 +35,9 @@ export async function saveSuppliersAction(fd: FormData): Promise<void> {
     : null;
 
   await saveSupplierBatch(rows, add);
+  await writeAudit(access.user.id, "settings", "settings.suppliers.save", "supplier", "batch", {
+    rows: rows.length,
+    added: add ? 1 : 0,
+  });
   revalidatePath("/settings/logistics");
 }
