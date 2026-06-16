@@ -123,6 +123,25 @@ export async function clearFlag(itemIds: number[], userId: number): Promise<void
 }
 
 /**
+ * Items that ever entered a given container (via the event log), regardless of
+ * where they are now. Container detail pages use this — items move *out* when
+ * they advance, so a "current occupants" query would lose them.
+ */
+export async function itemsInContainerHistory(containerType: string, containerId: number) {
+  const events = await prisma.itemEvent.findMany({
+    where: { containerType, containerId },
+    select: { itemId: true },
+  });
+  const ids = [...new Set(events.map((e) => e.itemId))];
+  if (!ids.length) return [];
+  return prisma.item.findMany({
+    where: { id: { in: ids } },
+    orderBy: { id: "asc" },
+    include: { product: { select: { name: true } } },
+  });
+}
+
+/**
  * Timer-worker core: advance every item whose auto-advance timer is due
  * (HUB→TRANSIT, TRANSIT→GLOBAL_SHIPPING). Returns the number advanced.
  * Called by the scheduled job.

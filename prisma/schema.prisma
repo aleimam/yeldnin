@@ -455,8 +455,54 @@ model Purchase {
   updatedById     Int?
   updatedAt       DateTime  @updatedAt
 
+  patches Patch[]
+
   @@index([scope])
   @@index([status])
+}
+
+// Patch (Logistics) — a shipment from Supplier to a destination (Hub for now;
+// Trip once that exists). Created from a Purchase; carries the chosen ORDERED
+// items SHIPPED → DELIVERED → HUB(received). Its contents are the Items pointing
+// at it (containerType=PATCH).
+model Patch {
+  id              Int       @id @default(autoincrement())
+  uid             String?   @unique // PAT<YY><MM><seq3>
+  purchaseId      Int?
+  purchase        Purchase? @relation(fields: [purchaseId], references: [id])
+  scope           String
+  country         String
+  supplierName    String?
+  destinationType String    @default("HUB")
+  destinationId   Int?
+  destinationName String?
+  tracking        String?
+  courier         String? // free text until the Couriers module exists
+  status          String    @default("DISPATCHED") // DISPATCHED | DELIVERED | RECEIVED
+  dispatchedAt    DateTime  @default(now())
+  deliveredAt     DateTime?
+  receivedAt      DateTime?
+  notes           String?
+  archivedAt      DateTime?
+  createdById     Int?
+  createdAt       DateTime  @default(now())
+  updatedById     Int?
+  updatedAt       DateTime  @updatedAt
+
+  photos PatchPhoto[]
+
+  @@index([scope])
+  @@index([status])
+}
+
+model PatchPhoto {
+  id        Int      @id @default(autoincrement())
+  patchId   Int
+  patch     Patch    @relation(fields: [patchId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime @default(now())
+
+  @@index([patchId])
 }
 
 model PricingCalculation {

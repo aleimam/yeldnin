@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
-import { moveItems } from "@/lib/items/items-service";
+import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
 import { clampLinesToPool, type PurchaseLineInput } from "./purchasing-logic";
 
 /** Items still awaiting purchase (REQUESTED, in a REQUEST container), grouped. */
@@ -106,11 +106,7 @@ export function getPurchase(id: number) {
   return prisma.purchase.findFirst({ where: { id, archivedAt: null } });
 }
 export function getPurchaseItems(purchaseId: number) {
-  return prisma.item.findMany({
-    where: { containerType: "PURCHASE", containerId: purchaseId },
-    orderBy: { id: "asc" },
-    include: { product: { select: { name: true } } },
-  });
+  return itemsInContainerHistory("PURCHASE", purchaseId);
 }
 export function listHubsForPicker() {
   return prisma.hub.findMany({
