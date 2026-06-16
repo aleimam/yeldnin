@@ -4,17 +4,19 @@ import { getT } from "@/i18n/server";
 import { productScopes } from "@/lib/products/products-logic";
 import { listSuppliersForPicker } from "@/lib/products/products-service";
 import { pendingPool, listHubsForPicker } from "@/lib/purchasing/purchasing-service";
+import { eligibleTripsForPurchase } from "@/lib/trips/trip-service";
 import { supplierLabel } from "@/app/products/supplier-label";
 import { PurchaseForm } from "../../PurchaseForm";
 
 export default async function NewPurchasePage() {
   const access = await requireModule("purchasing", "OPERATE");
   const scopes = productScopes(access, "VIEW");
-  const [t, pool, suppliers, hubs] = await Promise.all([
+  const [t, pool, suppliers, hubs, trips] = await Promise.all([
     getT(),
     pendingPool(scopes),
     listSuppliersForPicker(),
     listHubsForPicker(),
+    eligibleTripsForPurchase(),
   ]);
 
   return (
@@ -24,6 +26,7 @@ export default async function NewPurchasePage() {
         pool={pool}
         suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s) }))}
         hubs={hubs}
+        trips={trips}
       />
     </AppShell>
   );

@@ -18,11 +18,13 @@ export function PurchaseForm({
   pool,
   suppliers,
   hubs,
+  trips,
 }: {
   allowedScopes: Scope[];
   pool: PoolRow[];
   suppliers: { id: number; label: string }[];
   hubs: { id: number; name: string; country: string }[];
+  trips: { id: number; name: string }[];
 }) {
   const t = useT();
   const router = useRouter();
@@ -32,6 +34,7 @@ export function PurchaseForm({
   const [country, setCountry] = useState<string>("USA");
   const [supplierId, setSupplierId] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
+  const [destinationType, setDestinationType] = useState("HUB");
   const [destinationId, setDestinationId] = useState("");
   const [notes, setNotes] = useState("");
   const [qty, setQty] = useState<Record<number, string>>({});
@@ -48,7 +51,7 @@ export function PurchaseForm({
       country,
       supplierId: supplierId ? Number(supplierId) : null,
       purchasePrice: purchasePrice ? Number(purchasePrice) : null,
-      destinationType: "HUB",
+      destinationType,
       destinationId: destinationId ? Number(destinationId) : null,
       notes: notes || undefined,
       lines,
@@ -87,17 +90,26 @@ export function PurchaseForm({
         </div>
       </div>
 
-      {/* purchase price · destination in one row */}
+      {/* purchase price · destination type · destination in one row */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className="label">{t("purchasing.price")}</label>
           <input type="number" step="any" className="input" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} />
         </div>
-        <div className="sm:col-span-2">
+        <div>
+          <label className="label">{t("purchasing.destType")}</label>
+          <select className="input" value={destinationType} onChange={(e) => { setDestinationType(e.target.value); setDestinationId(""); }}>
+            <option value="HUB">{t("purchasing.destHub")}</option>
+            <option value="TRIP">{t("purchasing.destTrip")}</option>
+          </select>
+        </div>
+        <div>
           <label className="label">{t("purchasing.destination")}</label>
           <select className="input" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
-            <option value="">{t("purchasing.pickHub")}</option>
-            {hubs.map((h) => <option key={h.id} value={h.id}>{h.name} ({h.country})</option>)}
+            <option value="">{destinationType === "HUB" ? t("purchasing.pickHub") : t("purchasing.pickTrip")}</option>
+            {destinationType === "HUB"
+              ? hubs.map((h) => <option key={h.id} value={h.id}>{h.name} ({h.country})</option>)
+              : trips.map((tr) => <option key={tr.id} value={tr.id}>{tr.name}</option>)}
           </select>
         </div>
       </div>

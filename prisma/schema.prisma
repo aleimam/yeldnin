@@ -291,6 +291,7 @@ model Traveler {
   updatedAt           DateTime  @updatedAt
 
   photos TravelerPhoto[]
+  trips  Trip[]
 }
 
 model TravelerPhoto {
@@ -301,6 +302,32 @@ model TravelerPhoto {
   createdAt  DateTime @default(now())
 
   @@index([travelerId])
+}
+
+// Trip (Logistics) — a traveler's journey carrying items to Egypt. Inherits
+// allowed types / male-support / notes from the traveler. Its contents are the
+// Items pointing at it (containerType=TRIP). status drives the late lifecycle.
+model Trip {
+  id                  Int       @id @default(autoincrement())
+  uid                 String?   @unique // TRP<YY><MM><seq3>
+  travelerId          Int
+  traveler            Traveler  @relation(fields: [travelerId], references: [id])
+  country             String
+  maxWeight           Float?
+  dealPricePerKg      Float?
+  lastReceivingDate   DateTime?
+  deliveryDateInEgypt DateTime?
+  allowedProductTypes String    @default("")
+  maleSupport         Boolean   @default(false)
+  notes               String?
+  status              String    @default("NEW")
+  archivedAt          DateTime?
+  createdById         Int?
+  createdAt           DateTime  @default(now())
+  updatedById         Int?
+  updatedAt           DateTime  @updatedAt
+
+  @@index([status])
 }
 
 // Hub (Logistics) — an abroad receiving point with inventory. country: USA | UK | EU.

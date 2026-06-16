@@ -1,8 +1,8 @@
 // Pure purchasing logic. No DB/IO. Unit-tested.
 import { isScope } from "@/lib/products/products-logic";
 
-// Destination of a purchase. TRIP is added once the Trip container exists.
-export const PURCHASE_DEST_TYPES = ["HUB"] as const;
+// Destination of a purchase: a Hub abroad, or a Traveler's Trip.
+export const PURCHASE_DEST_TYPES = ["HUB", "TRIP"] as const;
 export type PurchaseDestType = (typeof PURCHASE_DEST_TYPES)[number];
 
 export interface PurchaseLineInput {

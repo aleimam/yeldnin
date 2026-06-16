@@ -49,6 +49,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   ],
   logistics: [
     { labelKey: "patches.title", icon: "📮", href: "/patches" },
+    { labelKey: "trip.title", icon: "✈️", href: "/trips" },
     { labelKey: "travelers.title", icon: "🧳", href: "/travelers" },
     { labelKey: "hubs.title", icon: "🏠", href: "/hubs" },
   ],

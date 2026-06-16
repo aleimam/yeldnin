@@ -58,10 +58,17 @@ export async function createPurchase(input: CreatePurchaseInput, userId: number)
   const supplier = input.supplierId
     ? await prisma.supplier.findUnique({ where: { id: input.supplierId }, select: { name: true } })
     : null;
-  const hub =
-    input.destinationType === "HUB" && input.destinationId
-      ? await prisma.hub.findUnique({ where: { id: input.destinationId }, select: { name: true } })
-      : null;
+  let destinationName: string | null = null;
+  if (input.destinationId && input.destinationType === "HUB") {
+    const hub = await prisma.hub.findUnique({ where: { id: input.destinationId }, select: { name: true } });
+    destinationName = hub?.name ?? null;
+  } else if (input.destinationId && input.destinationType === "TRIP") {
+    const trip = await prisma.trip.findUnique({
+      where: { id: input.destinationId },
+      select: { traveler: { select: { name: true } }, country: true },
+    });
+    destinationName = trip ? `${trip.traveler.name} · ${trip.country}` : null;
+  }
 
   const uid = await nextUid("PUR");
   const purchase = await prisma.purchase.create({
@@ -74,7 +81,7 @@ export async function createPurchase(input: CreatePurchaseInput, userId: number)
       purchasePrice: input.purchasePrice ?? null,
       destinationType: input.destinationType,
       destinationId: input.destinationId ?? null,
-      destinationName: hub?.name ?? null,
+      destinationName,
       notes: input.notes?.trim() || null,
       createdById: userId,
     },
