@@ -5,6 +5,7 @@ import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getEffectiveTheme, getColorMode } from "@/lib/prefs";
 import { MODULES } from "@/lib/modules";
+import { canAccessSettings } from "@/lib/module-sections";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { MobileMenuButton } from "./MobileMenuButton";
@@ -39,7 +40,9 @@ export async function TopBar({
   const logo = assetUrl(settings.logoUrl);
   const darkLogo = assetUrl(settings.darkLogoUrl) ?? logo;
 
-  const switcherModules = MODULES.filter((m) => access.canModule(m.key)).map((m) => ({
+  const canSee = (key: string) =>
+    key === "settings" ? canAccessSettings(access.canModule) : access.canModule(key);
+  const switcherModules = MODULES.filter((m) => canSee(m.key)).map((m) => ({
     key: m.key,
     label: t(`module.${m.key}.name`),
     icon: m.icon,

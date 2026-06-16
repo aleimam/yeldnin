@@ -35,6 +35,10 @@
   "settings.appearance.darkLogo": "شعار الوضع الداكن",
   "settings.appearance.favicon": "أيقونة الموقع",
   "settings.appearance.saved": "تم حفظ المظهر.",
+  "settings.group.general": "عام",
+  "settings.group.pricing": "التسعير",
+  "settings.group.expenses": "المصروفات",
+  "settings.group.logistics": "اللوجستيات",
 
   "pricer.supplements": "المكملات",
   "pricer.devices": "الأجهزة",

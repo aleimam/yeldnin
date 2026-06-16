@@ -51,7 +51,50 @@ function NavList({
   );
 }
 
-export function Sidebar({ sections }: { sections: SidebarSection[] }) {
+export interface SidebarGroup {
+  labelKey: string;
+  items: SidebarSection[];
+}
+
+function Body({
+  sections,
+  groups,
+  collapsed,
+  onNavigate,
+}: {
+  sections?: SidebarSection[];
+  groups?: SidebarGroup[];
+  collapsed: boolean;
+  onNavigate?: () => void;
+}) {
+  const t = useT();
+  if (groups) {
+    return (
+      <div className="py-1">
+        {groups.map((g) => (
+          <div key={g.labelKey} className="mb-1">
+            {!collapsed && (
+              <div className="px-3 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted">
+                {t(g.labelKey)}
+              </div>
+            )}
+            {collapsed && <div className="mx-3 my-2 border-t border-line" />}
+            <NavList sections={g.items} collapsed={collapsed} onNavigate={onNavigate} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return <NavList sections={sections ?? []} collapsed={collapsed} onNavigate={onNavigate} />;
+}
+
+export function Sidebar({
+  sections,
+  groups,
+}: {
+  sections?: SidebarSection[];
+  groups?: SidebarGroup[];
+}) {
   const t = useT();
   const { collapsed, toggleCollapsed, drawerOpen, closeDrawer } = useSidebar();
 
@@ -64,7 +107,7 @@ export function Sidebar({ sections }: { sections: SidebarSection[] }) {
         }`}
       >
         <div className="flex-1 overflow-y-auto">
-          <NavList sections={sections} collapsed={collapsed} />
+          <Body sections={sections} groups={groups} collapsed={collapsed} />
         </div>
         <button
           type="button"
@@ -88,7 +131,7 @@ export function Sidebar({ sections }: { sections: SidebarSection[] }) {
                 ✕
               </button>
             </div>
-            <NavList sections={sections} collapsed={false} onNavigate={closeDrawer} />
+            <Body sections={sections} groups={groups} collapsed={false} onNavigate={closeDrawer} />
           </aside>
         </div>
       )}

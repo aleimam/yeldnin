@@ -65,6 +65,6 @@ export async function saveVariablesAction(
   };
 
   await savePricingConfig(next);
-  revalidatePath("/pricer", "layout");
+  revalidatePath("/settings/pricing/variables");
   return { ok: true };
 }

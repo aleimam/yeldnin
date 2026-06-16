@@ -35,6 +35,10 @@
   "settings.appearance.darkLogo": "Dark-mode logo",
   "settings.appearance.favicon": "Favicon",
   "settings.appearance.saved": "Appearance saved.",
+  "settings.group.general": "General",
+  "settings.group.pricing": "Pricing",
+  "settings.group.expenses": "Expenses",
+  "settings.group.logistics": "Logistics",
 
   "pricer.supplements": "Supplements",
   "pricer.devices": "Devices",

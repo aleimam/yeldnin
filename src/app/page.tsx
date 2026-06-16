@@ -3,6 +3,7 @@ import { getT } from "@/i18n/server";
 import { TopBar } from "@/components/shell/TopBar";
 import { MAIN_MODULES, ADMIN_MODULES, type ModuleDef } from "@/lib/modules";
 import { requireUser } from "@/lib/auth/access";
+import { canAccessSettings } from "@/lib/module-sections";
 import type { TFunction } from "@/i18n";
 
 function ModuleCard({ m, t }: { m: ModuleDef; t: TFunction }) {
@@ -28,8 +29,10 @@ export default async function DashboardPage() {
   const access = await requireUser();
   const t = await getT();
 
-  const mainVisible = MAIN_MODULES.filter((m) => access.canModule(m.key));
-  const adminVisible = ADMIN_MODULES.filter((m) => access.canModule(m.key));
+  const canSee = (key: string) =>
+    key === "settings" ? canAccessSettings(access.canModule) : access.canModule(key);
+  const mainVisible = MAIN_MODULES.filter((m) => canSee(m.key));
+  const adminVisible = ADMIN_MODULES.filter((m) => canSee(m.key));
 
   return (
     <>
