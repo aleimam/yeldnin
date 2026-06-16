@@ -1,6 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
+import { notifyAdmins } from "@/lib/notify/notify-service";
+import { issueOpenedPayload } from "@/lib/notify/notify-logic";
 
 const clean = (s?: string | null) => s?.trim() || null;
 
@@ -11,7 +13,7 @@ export async function createIssue(
   userId: number,
 ) {
   const uid = await nextUid("ISS");
-  return prisma.issue.create({
+  const issue = await prisma.issue.create({
     data: {
       uid,
       title: input.title.trim(),
@@ -23,6 +25,8 @@ export async function createIssue(
       items: itemRefs.length ? { create: itemRefs.map((r) => ({ itemId: r.itemId, label: r.label })) } : undefined,
     },
   });
+  await notifyAdmins(issueOpenedPayload(issue)).catch(() => {});
+  return issue;
 }
 
 /** Open (or update) the issue auto-created from a trip-review ISSUE mark. */
@@ -40,6 +44,7 @@ export async function openIssueForMark(
   const issue = await prisma.issue.create({
     data: { uid, title: input.title, note: clean(input.note), sourceType: "TRIP_MARK", sourceId: markId, createdById: userId },
   });
+  await notifyAdmins(issueOpenedPayload(issue)).catch(() => {});
   return issue.id;
 }
 

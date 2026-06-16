@@ -61,6 +61,14 @@ export function AccountMenu({
           </div>
 
           <div className="p-1.5">
+            <Link
+              href="/account"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-canvas"
+            >
+              <span>🔔</span>
+              {t("common.notifications")}
+            </Link>
             {showSettings && (
               <Link
                 href="/settings"

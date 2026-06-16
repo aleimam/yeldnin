@@ -48,6 +48,7 @@ model User {
   teamMembers   TeamMember[]
   modulePerms   UserModulePermission[]
   resetTokens   PasswordResetToken[]
+  pushSubscriptions PushSubscription[]
   pricingCalculations PricingCalculation[]
   expenseTransactions ExpenseTransaction[] @relation("ExpenseCreatedBy")
 }
@@ -58,6 +59,21 @@ model PasswordResetToken {
   tokenHash String   @unique
   expiresAt DateTime
   usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// A browser push subscription (one per device/browser per user). The Web Push
+// endpoint is globally unique; p256dh + auth are the client's encryption keys.
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  ua        String? // user-agent string, for the user to recognize the device
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
