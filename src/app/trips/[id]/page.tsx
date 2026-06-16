@@ -6,6 +6,7 @@ import { getTrip, getTripItems } from "@/lib/trips/trip-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { TripAdvanceButton } from "../TripAdvanceButton";
+import { TripOpsButtons } from "@/app/operations/TripOpsButtons";
 
 export default async function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("logistics", "VIEW");
@@ -13,6 +14,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const trip = await getTrip(Number(id));
   if (!trip) notFound();
   const canManage = access.canModule("logistics", "OPERATE");
+  const canOps = access.canModule("operations", "OPERATE");
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getTripItems(trip.id), getWorkflow()]);
   const loc = locale === "ar" ? "ar" : "en";
 
@@ -27,7 +29,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
               <div><span className="text-muted">{t("trip.lastReceiving")}: </span><span className="text-ink">{trip.lastReceivingDate ? trip.lastReceivingDate.toISOString().slice(0, 10) : "—"}</span></div>
               <div><span className="text-muted">{t("trip.status")}: </span><span className="text-ink">{t(`tripstatus.${trip.status}`)}</span></div>
             </div>
-            {canManage && <TripAdvanceButton id={trip.id} status={trip.status} />}
+            <div className="flex items-center gap-3">
+              {canManage && <TripAdvanceButton id={trip.id} status={trip.status} />}
+              {canOps && <TripOpsButtons tripId={trip.id} status={trip.status} />}
+            </div>
           </div>
           {trip.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{trip.notes}</p>}
         </div>

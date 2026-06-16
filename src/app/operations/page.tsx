@@ -1,14 +1,7 @@
+import { redirect } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
-import { AppShell } from "@/components/shell/AppShell";
-import { ComingSoon } from "@/components/shell/ComingSoon";
 
-const KEY = "operations";
-
-export default async function Page() {
-  const a = await requireModule(KEY, "VIEW");
-  return (
-    <AppShell access={a} moduleKey={KEY}>
-      <ComingSoon moduleKey={KEY} />
-    </AppShell>
-  );
+export default async function OperationsPage() {
+  await requireModule("operations", "VIEW");
+  redirect("/shipments");
 }

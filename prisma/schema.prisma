@@ -327,6 +327,28 @@ model Trip {
   updatedById         Int?
   updatedAt           DateTime  @updatedAt
 
+  shipments Shipment[]
+
+  @@index([status])
+}
+
+// Shipment (Operations) — created by splitting a picked-up Trip by scope/size.
+// Its contents are the Items pointing at it (containerType=SHIPMENT). Scope
+// drives who can see it (EGV→EGV+admin, XOONX→XOONX+admin, PERSONAL→admin).
+model Shipment {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // SHP<YY><MM><seq3>
+  scope       String
+  tripId      Int?
+  trip        Trip?     @relation(fields: [tripId], references: [id])
+  status      String    @default("OFFICE") // OFFICE | PHOTOS_SENT | WEBSITE
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedById Int?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([scope])
   @@index([status])
 }
 
