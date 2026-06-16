@@ -232,8 +232,9 @@ model Product {
   updatedById       Int?
   updatedAt         DateTime  @updatedAt
 
-  photos ProductPhoto[]
-  items  Item[]
+  photos       ProductPhoto[]
+  items        Item[]
+  requestLines RequestLine[]
 
   @@index([scope])
   @@index([type])
@@ -263,6 +264,8 @@ model Customer {
   createdAt      DateTime  @default(now())
   updatedById    Int?
   updatedAt      DateTime  @updatedAt
+
+  requests Request[]
 }
 
 // Traveler (Logistics). allowedProductTypes is a CSV of ProductType keys.
@@ -378,6 +381,54 @@ model ItemEvent {
   createdAt     DateTime @default(now())
 
   @@index([itemId])
+}
+
+// ─── Supply chain: Request (Sales/XOONX) — the first container ─────────────────
+// type: SPECIAL_ORDER | OUT_OF_STOCK | RESTOCK | OPTIONAL. Submitting a request
+// spawns one Item per unit (count) at REQUESTED.
+model Request {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // REQ<YY><MM><seq3>
+  type        String
+  scope       String
+  customerId  Int?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  notes       String?
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedById Int?
+  updatedAt   DateTime  @updatedAt
+
+  lines  RequestLine[]
+  photos RequestPhoto[]
+
+  @@index([scope])
+  @@index([type])
+}
+
+model RequestLine {
+  id            Int      @id @default(autoincrement())
+  requestId     Int
+  request       Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  productId     Int
+  product       Product  @relation(fields: [productId], references: [id])
+  count         Int      @default(1)
+  sellingPrice  Float?
+  purchasePrice Float?
+  notes         String?
+
+  @@index([requestId])
+}
+
+model RequestPhoto {
+  id        Int      @id @default(autoincrement())
+  requestId Int
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
 }
 
 model PricingCalculation {

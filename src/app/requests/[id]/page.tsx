@@ -1,0 +1,75 @@
+import { notFound, redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/access";
+import { AppShell } from "@/components/shell/AppShell";
+import { getT, getLocale } from "@/i18n/server";
+import { assetUrl } from "@/lib/assets/assets-service";
+import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
+import { getRequest, getRequestItems } from "@/lib/requests/request-service";
+import { getWorkflow } from "@/lib/workflow/workflow-config-service";
+import type { ItemStatus } from "@/lib/workflow/workflow-logic";
+
+export default async function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const access = await requireUser();
+  const visible = requestScopes(access, "VIEW");
+  if (!visible.length) redirect("/");
+  const { id } = await params;
+  const req = await getRequest(Number(id));
+  if (!req || !visible.includes(req.scope as never)) notFound();
+  const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getRequestItems(req.id), getWorkflow()]);
+
+  return (
+    <AppShell access={access} moduleKey={primaryRequestModule(access)} pageTitle={req.uid ?? `#${req.id}`} backHref="/requests">
+      <div className="max-w-3xl space-y-6">
+        <div className="card p-5">
+          <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+            <div><span className="text-muted">{t("requests.type")}: </span><span className="text-ink">{t(`reqtype.${req.type}`)}</span></div>
+            <div><span className="text-muted">{t("requests.scope")}: </span><span className="text-ink">{t(`scope.${req.scope}`)}</span></div>
+            {req.customer && <div><span className="text-muted">{t("requests.customer")}: </span><span className="text-ink">{req.customer.name}</span></div>}
+          </div>
+          {req.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{req.notes}</p>}
+          {req.photos.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {req.photos.map((p) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <a key={p.id} href={assetUrl(p.assetId)!} target="_blank" rel="noreferrer"><img src={assetUrl(p.assetId)!} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" /></a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card p-5">
+          <h2 className="mb-3 font-semibold text-ink">{t("requests.products")}</h2>
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("requests.count")}</th><th className="th text-end">{t("requests.sell")}</th><th className="th text-end">{t("requests.buy")}</th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {req.lines.map((l) => (
+                <tr key={l.id}>
+                  <td className="td">{l.product.name}</td>
+                  <td className="td text-end">{l.count}</td>
+                  <td className="td text-end text-muted">{l.sellingPrice ?? "—"}</td>
+                  <td className="td text-end text-muted">{l.purchasePrice ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card p-5">
+          <h2 className="mb-3 font-semibold text-ink">{t("requests.items")} ({items.length})</h2>
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-line"><th className="th">{t("requests.uid")}</th><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {items.map((it) => (
+                <tr key={it.id}>
+                  <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
+                  <td className="td">{it.product.name}</td>
+                  <td className="td">{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
