@@ -8,13 +8,22 @@ import { createCustomerAction, saveCustomerAction, archiveCustomerAction } from 
 export interface CustomerInitial {
   id?: number;
   name: string;
+  scope: string;
   contactChannel: string;
   contactNumber: string;
   notes: string;
   active: boolean;
 }
 
-export function CustomerForm({ mode, initial }: { mode: "create" | "edit"; initial: CustomerInitial }) {
+export function CustomerForm({
+  mode,
+  initial,
+  allowedScopes,
+}: {
+  mode: "create" | "edit";
+  initial: CustomerInitial;
+  allowedScopes: string[];
+}) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -23,6 +32,7 @@ export function CustomerForm({ mode, initial }: { mode: "create" | "edit"; initi
   const [active, setActive] = useState(initial.active);
   const [f, setF] = useState({
     name: initial.name,
+    scope: initial.scope || allowedScopes[0] || "EGV",
     contactChannel: initial.contactChannel || "WHATSAPP",
     contactNumber: initial.contactNumber,
     notes: initial.notes,
@@ -32,7 +42,7 @@ export function CustomerForm({ mode, initial }: { mode: "create" | "edit"; initi
   function submit() {
     setError(null);
     setSaved(false);
-    const payload = { name: f.name, contactChannel: f.contactChannel, contactNumber: f.contactNumber || undefined, notes: f.notes || undefined };
+    const payload = { name: f.name, scope: f.scope, contactChannel: f.contactChannel, contactNumber: f.contactNumber || undefined, notes: f.notes || undefined };
     start(async () => {
       const res = mode === "create" ? await createCustomerAction(payload) : await saveCustomerAction({ ...payload, id: initial.id!, active });
       if (res.ok) {
@@ -52,6 +62,12 @@ export function CustomerForm({ mode, initial }: { mode: "create" | "edit"; initi
       {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("customers.saved")}</div>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className="label">{t("customers.name")}</label><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></div>
+        <div>
+          <label className="label">{t("requests.scope")}</label>
+          <select className="input" value={f.scope} onChange={(e) => set("scope", e.target.value)} disabled={allowedScopes.length <= 1}>
+            {allowedScopes.map((s) => <option key={s} value={s}>{t(`scope.${s}`)}</option>)}
+          </select>
+        </div>
         <div>
           <label className="label">{t("customers.channel")}</label>
           <select className="input" value={f.contactChannel} onChange={(e) => set("contactChannel", e.target.value)}>

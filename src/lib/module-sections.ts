@@ -43,6 +43,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   xoonx: [
     { labelKey: "requests.title", icon: "🧾", href: "/requests" },
     { labelKey: "products.title", icon: "📦", href: "/products" },
+    { labelKey: "customers.title", icon: "🙋", href: "/customers" },
   ],
   // Logistics holds the merged Purchasing + Logistics nav. Pool/Purchases are
   // gated by the (separate) `purchasing` permission; Patches…Hubs by `logistics`.

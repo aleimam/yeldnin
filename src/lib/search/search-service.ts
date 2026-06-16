@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import type { Access } from "@/lib/auth/access";
 import { productScopes } from "@/lib/products/products-logic";
 import { requestScopes } from "@/lib/requests/request-logic";
+import { customerScopes } from "@/lib/customers/customers-logic";
 import { parseQuery, isSearchable, uidPrefix, UID_PREFIX_TYPE, type ParsedQuery } from "./search-logic";
 
 export interface SearchHit {
@@ -40,6 +41,7 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
   const can = (m: string) => access.canModule(m, "VIEW");
   const pScopes = productScopes(access, "VIEW");
   const rScopes = requestScopes(access, "VIEW");
+  const cScopes = customerScopes(access, "VIEW");
 
   const defs: EntityDef[] = [];
 
@@ -75,13 +77,13 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
     });
   }
 
-  if (can("order_requests")) {
+  if (cScopes.length) {
     defs.push({
       type: "customer",
       labelKey: "customers.title",
       run: async () => {
         const rows = await prisma.customer.findMany({
-          where: { archivedAt: null, ...clause(parsed, ["name", "contactNumber", "uid"]) },
+          where: { archivedAt: null, scope: { in: cScopes }, ...clause(parsed, ["name", "contactNumber", "uid"]) },
           select: { id: true, uid: true, name: true, contactNumber: true },
           take: perType,
           orderBy: { updatedAt: "desc" },

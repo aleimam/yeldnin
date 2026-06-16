@@ -19,7 +19,7 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
   let customerId = input.customerId ?? null;
   if (!customerId && input.newCustomer?.name?.trim()) {
     const c = await createCustomer(
-      { name: input.newCustomer.name, contactChannel: "WHATSAPP", contactNumber: input.newCustomer.contactNumber ?? null },
+      { name: input.newCustomer.name, scope: input.scope, contactChannel: "WHATSAPP", contactNumber: input.newCustomer.contactNumber ?? null },
       userId,
     );
     customerId = c.id;
@@ -93,11 +93,11 @@ export function getRequestItems(requestId: number) {
   });
 }
 
-export function listCustomerOptions() {
+export function listCustomerOptions(scopes: string[]) {
   return prisma.customer.findMany({
-    where: { archivedAt: null, active: true },
+    where: { archivedAt: null, active: true, scope: { in: scopes } },
     orderBy: { name: "asc" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, scope: true },
   });
 }
 

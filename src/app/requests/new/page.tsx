@@ -10,7 +10,7 @@ export default async function NewRequestPage() {
   const access = await requireUser();
   const allowed = requestScopes(access, "OPERATE");
   if (!allowed.length) redirect("/");
-  const [t, products, customers] = await Promise.all([getT(), listScopedProducts(allowed), listCustomerOptions()]);
+  const [t, products, customers] = await Promise.all([getT(), listScopedProducts(allowed), listCustomerOptions(allowed)]);
 
   return (
     <AppShell access={access} moduleKey={primaryRequestModule(access)} pageTitle={t("requests.new")} backHref="/requests">

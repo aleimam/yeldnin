@@ -272,6 +272,7 @@ model Customer {
   id             Int       @id @default(autoincrement())
   uid            String?   @unique // CUS<YY><MM><seq3>
   name           String
+  scope          String    @default("EGV") // EGV | XOONX (hard boundary, like requests/products)
   contactChannel String    @default("WHATSAPP")
   contactNumber  String?
   notes          String?
@@ -283,6 +284,8 @@ model Customer {
   updatedAt      DateTime  @updatedAt
 
   requests Request[]
+
+  @@index([scope])
 }
 
 // Traveler (Logistics). allowedProductTypes is a CSV of ProductType keys.

@@ -23,7 +23,7 @@ export function RequestForm({
 }: {
   allowedScopes: Scope[];
   products: { id: number; name: string; scope: string }[];
-  customers: { id: number; name: string }[];
+  customers: { id: number; name: string; scope: string }[];
 }) {
   const t = useT();
   const router = useRouter();
@@ -40,6 +40,7 @@ export function RequestForm({
 
   const isSpecial = requiresCustomer(type);
   const scopeProducts = products.filter((p) => p.scope === scope);
+  const scopeCustomers = customers.filter((c) => c.scope === scope);
   const setLine = (i: number, k: keyof Line, v: string) =>
     setLines((p) => p.map((l, idx) => (idx === i ? { ...l, [k]: v } : l)));
 
@@ -104,7 +105,7 @@ export function RequestForm({
           ) : (
             <select className="input" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
               <option value="">{t("pricer.f.choose")}</option>
-              {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {scopeCustomers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
         </div>

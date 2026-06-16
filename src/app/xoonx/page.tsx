@@ -1,14 +1,8 @@
+import { redirect } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
-import { AppShell } from "@/components/shell/AppShell";
-import { ComingSoon } from "@/components/shell/ComingSoon";
 
-const KEY = "xoonx";
-
-export default async function Page() {
-  const a = await requireModule(KEY, "VIEW");
-  return (
-    <AppShell access={a} moduleKey={KEY}>
-      <ComingSoon moduleKey={KEY} />
-    </AppShell>
-  );
+// XOONX landing → its first section (the shared, scope-filtered Requests page).
+export default async function XoonxPage() {
+  await requireModule("xoonx", "VIEW");
+  redirect("/requests");
 }
