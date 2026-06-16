@@ -202,6 +202,50 @@ model Supplier {
   archivedAt   DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  products Product[]
+}
+
+// ─── Supply chain: master data ────────────────────────────────────────────────
+
+// Product catalog. scope: EGV | XOONX | PERSONAL.
+// type: SUPPLEMENT | DEVICE | INJECTION | HEAVY_SUPPLEMENT | XOONX.
+model Product {
+  id                Int       @id @default(autoincrement())
+  uid               String?   @unique // PRD<YY><MM><seq3>
+  name              String
+  sku               String?
+  scope             String
+  type              String
+  defaultSupplierId Int?
+  defaultSupplier   Supplier? @relation(fields: [defaultSupplierId], references: [id])
+  weightG           Float?
+  size              String?
+  grade             String?
+  url               String?
+  notes             String?
+  isMaleSupport     Boolean   @default(false)
+  active            Boolean   @default(true)
+  archivedAt        DateTime?
+  createdById       Int?
+  createdAt         DateTime  @default(now())
+  updatedById       Int?
+  updatedAt         DateTime  @updatedAt
+
+  photos ProductPhoto[]
+
+  @@index([scope])
+  @@index([type])
+}
+
+model ProductPhoto {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime @default(now())
+
+  @@index([productId])
 }
 
 model PricingCalculation {

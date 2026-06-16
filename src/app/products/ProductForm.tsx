@@ -1,0 +1,174 @@
+"use client";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useT } from "@/i18n/client";
+import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { Toggle } from "@/components/Toggle";
+import { PRODUCT_TYPES, type Scope } from "@/lib/products/products-logic";
+import { createProductAction, saveProductAction, archiveProductAction } from "./actions";
+
+export interface SupplierOpt {
+  id: number;
+  label: string;
+}
+export interface ProductInitial {
+  id?: number;
+  name: string;
+  sku: string;
+  scope: string;
+  type: string;
+  defaultSupplierId: string; // "" or number-as-string
+  weightG: string;
+  size: string;
+  grade: string;
+  url: string;
+  notes: string;
+  isMaleSupport: boolean;
+  active: boolean;
+  photos: UploadedPhoto[];
+}
+
+export function ProductForm({
+  mode,
+  initial,
+  allowedScopes,
+  suppliers,
+}: {
+  mode: "create" | "edit";
+  initial: ProductInitial;
+  allowedScopes: Scope[];
+  suppliers: SupplierOpt[];
+}) {
+  const t = useT();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [active, setActive] = useState(initial.active);
+  const [photos, setPhotos] = useState<UploadedPhoto[]>(initial.photos);
+  const originalIds = new Set(initial.photos.map((p) => p.id));
+  const [f, setF] = useState({
+    name: initial.name,
+    sku: initial.sku,
+    scope: initial.scope || allowedScopes[0] || "",
+    type: initial.type,
+    defaultSupplierId: initial.defaultSupplierId,
+    weightG: initial.weightG,
+    size: initial.size,
+    grade: initial.grade,
+    url: initial.url,
+    notes: initial.notes,
+    isMaleSupport: initial.isMaleSupport,
+  });
+  const set = (k: keyof typeof f, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
+
+  function submit() {
+    setError(null);
+    setSaved(false);
+    const payload = {
+      name: f.name,
+      sku: f.sku || undefined,
+      scope: f.scope,
+      type: f.type,
+      defaultSupplierId: f.defaultSupplierId ? Number(f.defaultSupplierId) : null,
+      weightG: f.weightG ? Number(f.weightG) : null,
+      size: f.size || undefined,
+      grade: f.grade || undefined,
+      url: f.url || undefined,
+      notes: f.notes || undefined,
+      isMaleSupport: f.isMaleSupport,
+      photoIds: photos.map((p) => p.id).filter((id) => !originalIds.has(id)),
+    };
+    start(async () => {
+      const res =
+        mode === "create"
+          ? await createProductAction(payload)
+          : await saveProductAction({ ...payload, id: initial.id!, active });
+      if (res.ok) {
+        if (mode === "create") router.push(`/products/${res.id}`);
+        else {
+          setSaved(true);
+          router.refresh();
+        }
+      } else setError(res.error);
+    });
+  }
+
+  function archive() {
+    if (!confirm(t("products.archiveConfirm"))) return;
+    start(async () => {
+      await archiveProductAction(initial.id!);
+      router.push("/products");
+    });
+  }
+
+  return (
+    <div className="card max-w-3xl space-y-4 p-6">
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("products.saved")}</div>}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={t("products.name")}><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
+        <Field label={t("products.sku")}><input className="input" value={f.sku} onChange={(e) => set("sku", e.target.value)} /></Field>
+        <Field label={t("products.scope")}>
+          <select className="input" value={f.scope} onChange={(e) => set("scope", e.target.value)}>
+            {allowedScopes.map((s) => <option key={s} value={s}>{t(`scope.${s}`)}</option>)}
+          </select>
+        </Field>
+        <Field label={t("products.type")}>
+          <select className="input" value={f.type} onChange={(e) => set("type", e.target.value)}>
+            {PRODUCT_TYPES.map((ty) => <option key={ty} value={ty}>{t(`ptype.${ty}`)}</option>)}
+          </select>
+        </Field>
+        <Field label={t("products.supplier")}>
+          <select className="input" value={f.defaultSupplierId} onChange={(e) => set("defaultSupplierId", e.target.value)}>
+            <option value="">{t("pricer.f.choose")}</option>
+            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </Field>
+        <Field label={t("products.weight")}><input type="number" step="any" className="input" value={f.weightG} onChange={(e) => set("weightG", e.target.value)} /></Field>
+        <Field label={t("products.size")}><input className="input" value={f.size} onChange={(e) => set("size", e.target.value)} /></Field>
+        <Field label={t("products.grade")}><input className="input" value={f.grade} onChange={(e) => set("grade", e.target.value)} /></Field>
+        <Field label={t("products.url")} className="sm:col-span-2"><input className="input" value={f.url} onChange={(e) => set("url", e.target.value)} /></Field>
+      </div>
+
+      <Field label={t("products.notes")}>
+        <textarea className="input" rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+      </Field>
+
+      <div className="flex items-center gap-6">
+        <Toggle checked={f.isMaleSupport} onChange={(v) => set("isMaleSupport", v)} label={t("products.maleSupport")} />
+        {mode === "edit" && (
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+            {t("products.active")}
+          </label>
+        )}
+      </div>
+
+      <Field label={t("products.photos")}>
+        <PhotoUpload photos={photos} onChange={setPhotos} />
+      </Field>
+
+      <div className="flex items-center gap-4">
+        <button onClick={submit} disabled={pending} className="btn-primary">
+          {pending ? "…" : mode === "create" ? t("products.create") : t("common.save")}
+        </button>
+        {mode === "edit" && (
+          <button onClick={archive} disabled={pending} className="text-sm text-red-600 hover:underline disabled:opacity-50">
+            {t("products.archive")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={className}>
+      <label className="label">{label}</label>
+      {children}
+    </div>
+  );
+}
