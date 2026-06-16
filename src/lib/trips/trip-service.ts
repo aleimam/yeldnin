@@ -62,7 +62,10 @@ export function listTrips() {
   });
 }
 export function getTrip(id: number) {
-  return prisma.trip.findFirst({ where: { id, archivedAt: null }, include: { traveler: { select: { id: true, name: true } } } });
+  return prisma.trip.findFirst({
+    where: { id, archivedAt: null },
+    include: { traveler: { select: { id: true, name: true } }, _count: { select: { shipments: true } } },
+  });
 }
 export function getTripItems(tripId: number) {
   return itemsInContainerHistory("TRIP", tripId);

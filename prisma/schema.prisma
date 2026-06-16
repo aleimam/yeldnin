@@ -328,8 +328,38 @@ model Trip {
   updatedAt           DateTime  @updatedAt
 
   shipments Shipment[]
+  marks     TripMark[]
 
   @@index([status])
+}
+
+// 3-team review on a picked-up trip. One mark per (trip, team). Each team sees
+// only its own mark; admins see all and approve (OK→convert) or Hold.
+model TripMark {
+  id        Int       @id @default(autoincrement())
+  tripId    Int
+  trip      Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  team      String // PURCHASING | LOGISTICS | OPERATIONS
+  status    String // OK | ISSUE
+  note      String?
+  byUserId  Int?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  photos TripMarkPhoto[]
+
+  @@unique([tripId, team])
+  @@index([tripId])
+}
+
+model TripMarkPhoto {
+  id        Int      @id @default(autoincrement())
+  markId    Int
+  mark      TripMark @relation(fields: [markId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime @default(now())
+
+  @@index([markId])
 }
 
 // Shipment (Operations) — created by splitting a picked-up Trip by scope/size.

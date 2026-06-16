@@ -2,11 +2,15 @@ import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
+import { assetUrl } from "@/lib/assets/assets-service";
 import { getTrip, getTripItems } from "@/lib/trips/trip-service";
+import { getTripMarks } from "@/lib/review/review-service";
+import { teamsUserCanMark, REVIEW_TEAMS } from "@/lib/review/review-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { TripAdvanceButton } from "../TripAdvanceButton";
 import { TripOpsButtons } from "@/app/operations/TripOpsButtons";
+import { TripReview } from "@/app/operations/TripReview";
 
 export default async function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("logistics", "VIEW");
@@ -17,6 +21,15 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const canOps = access.canModule("operations", "OPERATE");
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getTripItems(trip.id), getWorkflow()]);
   const loc = locale === "ar" ? "ar" : "en";
+
+  // 3-team review (only once picked up). Each team sees its own mark; admins all.
+  const editableTeams = teamsUserCanMark(access);
+  const showReview = trip.status === "PICKED_UP";
+  const allMarks = showReview ? await getTripMarks(trip.id) : [];
+  const displayTeams = access.isAdmin ? [...REVIEW_TEAMS] : editableTeams;
+  const reviewMarks = allMarks
+    .filter((m) => displayTeams.includes(m.team as (typeof REVIEW_TEAMS)[number]))
+    .map((m) => ({ team: m.team, status: m.status, note: m.note, photos: m.photos.map((p) => ({ id: p.assetId, url: assetUrl(p.assetId)! })) }));
 
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={trip.uid ?? `#${trip.id}`} backHref="/trips">
@@ -36,6 +49,17 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
           </div>
           {trip.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{trip.notes}</p>}
         </div>
+
+        {showReview && (
+          <TripReview
+            tripId={trip.id}
+            displayTeams={displayTeams}
+            editableTeams={editableTeams}
+            marks={reviewMarks}
+            isAdmin={access.isAdmin}
+            converted={trip._count.shipments > 0}
+          />
+        )}
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("trip.items")} ({items.length})</h2>

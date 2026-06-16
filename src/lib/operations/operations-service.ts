@@ -20,6 +20,8 @@ export async function pickUpTrip(tripId: number, userId: number) {
 export async function convertTripToShipments(tripId: number, userId: number): Promise<number> {
   const trip = await prisma.trip.findUnique({ where: { id: tripId } });
   if (!trip || trip.status !== "PICKED_UP") return 0;
+  // Idempotent: never split a trip twice.
+  if ((await prisma.shipment.count({ where: { tripId } })) > 0) return 0;
   const items = await prisma.item.findMany({
     where: { containerType: "TRIP", containerId: tripId, exceptionFlag: null },
     include: { product: { select: { type: true } } },
