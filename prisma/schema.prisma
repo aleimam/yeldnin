@@ -362,6 +362,64 @@ model TripMarkPhoto {
   @@index([markId])
 }
 
+// Issues & Compensations. Issues open from a trip-review ISSUE mark, a
+// lost/damaged event, or manually. Compensations: supplier → replacement
+// (a Purchase @ price 0), traveler → money (EGP).
+model Issue {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // ISS<YY><MM><seq3>
+  title       String
+  note        String?
+  status      String    @default("OPEN") // OPEN | SOLVED
+  scope       String?
+  sourceType  String? // TRIP_MARK | MANUAL
+  sourceId    Int?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedById Int?
+  updatedAt   DateTime  @updatedAt
+  resolvedAt  DateTime?
+
+  photos        IssuePhoto[]
+  items         IssueItem[]
+  compensations Compensation[]
+
+  @@index([status])
+}
+
+model IssuePhoto {
+  id        Int      @id @default(autoincrement())
+  issueId   Int
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime @default(now())
+
+  @@index([issueId])
+}
+
+model IssueItem {
+  id      Int    @id @default(autoincrement())
+  issueId Int
+  issue   Issue  @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  itemId  Int
+  label   String // snapshot (product name + uid) for display
+
+  @@index([issueId])
+}
+
+model Compensation {
+  id          Int      @id @default(autoincrement())
+  issueId     Int
+  issue       Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  type        String // PRODUCT | MONEY
+  amountEgp   Float? // for MONEY
+  note        String?
+  createdById Int?
+  createdAt   DateTime @default(now())
+
+  @@index([issueId])
+}
+
 // Shipment (Operations) — created by splitting a picked-up Trip by scope/size.
 // Its contents are the Items pointing at it (containerType=SHIPMENT). Scope
 // drives who can see it (EGV→EGV+admin, XOONX→XOONX+admin, PERSONAL→admin).

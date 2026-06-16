@@ -55,6 +55,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   ],
   operations: [{ labelKey: "shipments.title", icon: "🚢", href: "/shipments" }],
   couriers: [{ labelKey: "couriers.title", icon: "🛵", href: "/couriers" }],
+  issues: [{ labelKey: "issues.title", icon: "⚠️", href: "/issues" }],
   audit_log: [
     { labelKey: "audit.all", icon: "📜", href: "/audit" },
     { labelKey: "module.pricing.name", icon: "🧮", href: "/audit/pricing" },
