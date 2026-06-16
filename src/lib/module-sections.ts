@@ -67,6 +67,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       { labelKey: "settings.appearance.title", icon: "🎨", href: "/settings/appearance", module: "settings", capability: "manageAppearance" },
       { labelKey: "pages.title", icon: "📄", href: "/settings/pages", module: "settings", capability: "managePages" },
       { labelKey: "perm.title", icon: "🔐", href: "/settings/permissions", module: "settings", capability: "managePermissions", adminOnly: true },
+      { labelKey: "workflow.title", icon: "🔄", href: "/settings/workflow", module: "settings", capability: "manageWorkflow", adminOnly: true },
     ],
   },
   {

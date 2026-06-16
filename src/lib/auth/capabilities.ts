@@ -48,6 +48,7 @@ export const CAPABILITIES: Capability[] = [
   // The permissions editor itself is additionally restricted to admin tiers in
   // code; this entry only documents/labels it. Default MANAGE.
   { key: "managePermissions", module: "settings", labelKey: "cap.settings.managePermissions", defaultLevel: "MANAGE" },
+  { key: "manageWorkflow", module: "settings", labelKey: "cap.settings.manageWorkflow", defaultLevel: "MANAGE" },
 ];
 
 /** Partial override map: { [moduleKey]: { [capabilityKey]: Level } }. */
