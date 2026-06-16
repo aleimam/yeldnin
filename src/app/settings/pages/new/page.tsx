@@ -1,4 +1,4 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { PageEditor } from "../PageEditor";
@@ -9,7 +9,7 @@ export default async function NewPagePage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "managePages");
   const [t, sp] = await Promise.all([getT(), searchParams]);
   return (
     <AppShell access={access} moduleKey="settings" pageTitle={t("pages.new")} backHref="/settings/pages">

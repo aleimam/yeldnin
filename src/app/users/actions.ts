@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { validatePasswordStrength } from "@/lib/auth/password";
 import {
   createUser,
@@ -34,7 +34,7 @@ export type UserResult = { ok: true; id: number } | { ok: false; error: string }
 export async function createUserAction(
   p: ProfilePayload & { password: string },
 ): Promise<UserResult> {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageUsers");
   if (!p.name?.trim()) return { ok: false, error: "Name is required." };
   if (!p.email?.trim()) return { ok: false, error: "Email is required." };
   const pwErr = validatePasswordStrength(p.password);
@@ -55,7 +55,7 @@ export async function createUserAction(
 export async function saveProfileAction(
   p: ProfilePayload & { id: number; active: boolean },
 ): Promise<UserResult> {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageUsers");
   if (!p.name?.trim()) return { ok: false, error: "Name is required." };
   if (!p.email?.trim()) return { ok: false, error: "Email is required." };
   if (p.tier === "SUPER_ADMIN" && access.user.tier !== "SUPER_ADMIN") {
@@ -81,7 +81,7 @@ export async function setPasswordAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageUsers");
   const id = Number(formData.get("id"));
   const password = String(formData.get("password") ?? "");
   const pwErr = validatePasswordStrength(password);
@@ -97,7 +97,7 @@ export async function saveAccessAction(payload: {
   teamKeys: string[];
   levels: Record<string, string>;
 }): Promise<void> {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageUsers");
   await setUserTeams(payload.userId, payload.teamKeys);
   await setUserModuleLevels(payload.userId, payload.levels);
   await writeAudit(access.user.id, "user_access", "user.access.update", "user", payload.userId);

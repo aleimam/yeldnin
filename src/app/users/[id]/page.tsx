@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getUserDetail, listTeams } from "@/lib/users/users-service";
@@ -14,7 +14,7 @@ export default async function EditUserPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageUsers");
   const { id } = await params;
   const userId = Number(id);
   const [user, teams, t] = await Promise.all([

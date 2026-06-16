@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listPages } from "@/lib/content/content-pages-service";
 
 export default async function PagesListPage() {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "managePages");
   const [t, pages] = await Promise.all([getT(), listPages()]);
 
   return (

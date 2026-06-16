@@ -12,7 +12,7 @@ const TIER_LABEL: Record<string, string> = {
 
 export default async function UsersPage() {
   const access = await requireModule("user_access", "VIEW");
-  const canManage = access.canModule("user_access", "MANAGE");
+  const canManage = access.can("user_access", "manageUsers");
   const users = await listUsers();
 
   return (

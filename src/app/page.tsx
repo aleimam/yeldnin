@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   const t = await getT();
 
   const canSee = (key: string) =>
-    key === "settings" ? canAccessSettings(access.canModule) : access.canModule(key);
+    key === "settings" ? canAccessSettings(access.can, access.isAdmin) : access.canModule(key);
   const mainVisible = MAIN_MODULES.filter((m) => canSee(m.key));
   const adminVisible = ADMIN_MODULES.filter((m) => canSee(m.key));
 

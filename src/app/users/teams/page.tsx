@@ -8,7 +8,7 @@ import { createTeamAction } from "./actions";
 export default async function TeamsPage() {
   const access = await requireModule("user_access", "VIEW");
   const [t, teams] = await Promise.all([getT(), listTeamsWithCounts()]);
-  const canManage = access.canModule("user_access", "MANAGE");
+  const canManage = access.can("user_access", "manageTeams");
 
   return (
     <AppShell access={access} moduleKey="user_access" pageTitle={t("users.teams")}>

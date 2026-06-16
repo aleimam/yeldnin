@@ -9,9 +9,11 @@ export async function POST(req: Request) {
   // Only users who can actually attach files anywhere may upload.
   const allowed =
     access.isAdmin ||
-    access.canModule("pricing", "OPERATE") ||
-    access.canModule("expenses", "OPERATE") ||
-    access.canModule("settings", "MANAGE");
+    access.can("pricing", "calculate") ||
+    access.can("expenses", "createTxn") ||
+    access.can("settings", "manageAppearance") ||
+    access.can("settings", "managePages") ||
+    access.can("user_access", "manageUsers");
   if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 
   const form = await req.formData();

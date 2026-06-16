@@ -16,7 +16,7 @@ export default async function ExpensesDashboard() {
   const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
   const maxBar = Math.max(1, ...d.byMonth.map((m) => Math.max(m.expenses, m.transfers)));
 
-  const canCreate = access.canModule("expenses", "OPERATE");
+  const canCreate = access.can("expenses", "createTxn");
 
   return (
     <AppShell

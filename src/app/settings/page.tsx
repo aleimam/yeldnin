@@ -7,9 +7,9 @@ import { visibleSettingsGroups, canAccessSettings } from "@/lib/module-sections"
 
 export default async function SettingsPage() {
   const access = await requireUser();
-  if (!canAccessSettings(access.canModule)) redirect("/");
+  if (!canAccessSettings(access.can, access.isAdmin)) redirect("/");
   const t = await getT();
-  const groups = visibleSettingsGroups(access.canModule);
+  const groups = visibleSettingsGroups(access.can, access.isAdmin);
 
   return (
     <AppShell access={access} moduleKey="settings">

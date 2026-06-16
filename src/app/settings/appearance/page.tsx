@@ -1,4 +1,4 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
@@ -6,7 +6,7 @@ import { assetUrl } from "@/lib/assets/assets-service";
 import { AppearanceForm } from "./AppearanceForm";
 
 export default async function AppearanceSettingsPage() {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "manageAppearance");
   const [t, s] = await Promise.all([getT(), getPlatformSettings()]);
 
   return (

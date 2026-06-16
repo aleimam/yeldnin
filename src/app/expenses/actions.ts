@@ -2,13 +2,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { requireModule } from "@/lib/auth/access";
+import { requireModule, requireCapability } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import {
   createExpenseTransaction,
   updateExpenseTransaction,
   deleteExpenseTransaction,
-  isExpensesManager,
+  canEditAnyExpense,
+  canEditOwnExpense,
 } from "@/lib/expenses/expenses-service";
 import { canEditExpense } from "@/lib/expenses/expenses-logic";
 import { deleteAsset } from "@/lib/assets/assets-service";
@@ -29,7 +30,7 @@ function validate(p: TxPayload): string | null {
 }
 
 export async function createTransactionAction(p: TxPayload): Promise<TxResult> {
-  const access = await requireModule("expenses", "OPERATE");
+  const access = await requireCapability("expenses", "createTxn");
   const err = validate(p);
   if (err) return { ok: false, error: err };
   try {
@@ -46,7 +47,8 @@ export async function createTransactionAction(p: TxPayload): Promise<TxResult> {
 }
 
 export async function updateTransactionAction(id: number, p: TxPayload): Promise<TxResult> {
-  const access = await requireModule("expenses", "OPERATE");
+  // Module access only; the service enforces the edit capability per-row.
+  const access = await requireModule("expenses", "VIEW");
   const err = validate(p);
   if (err) return { ok: false, error: err };
   try {
@@ -78,16 +80,16 @@ export async function deleteTransactionAction(formData: FormData): Promise<void>
 }
 
 export async function deleteAttachmentAction(formData: FormData): Promise<void> {
-  const access = await requireModule("expenses", "OPERATE");
+  const access = await requireModule("expenses", "VIEW");
   const attId = Number(formData.get("attachmentId"));
   if (!Number.isFinite(attId) || attId <= 0) return;
   const att = await prisma.expenseAttachment.findUnique({ where: { id: attId }, include: { transaction: true } });
   if (!att) return;
   const tx = att.transaction;
   const allowed = canEditExpense({
-    isManager: isExpensesManager(access),
+    isManager: canEditAnyExpense(access),
     isOwner: tx.createdById === access.user.id,
-    hasEditPermission: access.canModule("expenses", "OPERATE"),
+    hasEditPermission: canEditOwnExpense(access),
     createdAt: tx.createdAt,
     now: new Date(),
   });

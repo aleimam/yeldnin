@@ -2,13 +2,15 @@ import type { Level } from "@/lib/auth/access-logic";
 
 export const SIDEBAR_COOKIE = "yeldnin_sidebar"; // "open" | "collapsed"
 
-// Sidebar sections per module. `labelKey` is an i18n key; `minLevel` hides a
-// section unless the user holds at least that level on the module.
+// Sidebar sections per module. `labelKey` is an i18n key. A section is hidden
+// unless the user passes its gate: `capability` (preferred) checks a named
+// capability on the module; otherwise `minLevel` checks the plain level.
 export interface SectionDef {
   labelKey: string;
   icon: string;
   href: string;
   minLevel?: Level; // default VIEW
+  capability?: string; // capability key on this module (overrides minLevel)
 }
 
 export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
@@ -22,8 +24,8 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "exp.transactions", icon: "🧾", href: "/expenses/transactions" },
     { labelKey: "exp.reports", icon: "📈", href: "/expenses/reports" },
     { labelKey: "exp.reconciliation", icon: "⚖️", href: "/expenses/reconciliation" },
-    { labelKey: "exp.monthlySales", icon: "🧮", href: "/expenses/admin/monthly-sales", minLevel: "MANAGE" },
-    { labelKey: "exp.bankCollections", icon: "🏦", href: "/expenses/admin/bank-collections", minLevel: "MANAGE" },
+    { labelKey: "exp.monthlySales", icon: "🧮", href: "/expenses/admin/monthly-sales", capability: "manageAdmin" },
+    { labelKey: "exp.bankCollections", icon: "🏦", href: "/expenses/admin/bank-collections", capability: "manageAdmin" },
   ],
   user_access: [
     { labelKey: "users.users", icon: "👥", href: "/users" },
@@ -42,60 +44,63 @@ export function sectionsFor(moduleKey: string): SectionDef[] {
   return MODULE_SECTIONS[moduleKey] ?? [];
 }
 
-// ── Settings module: grouped sections. Each group is gated by the OWNING
-// module's MANAGE level (Settings unifies the UI, but access stays per-module).
+// ── Settings module: grouped sections. Settings unifies the UI, but each item
+// is gated by a named capability on its OWNING module (so access still tracks
+// the module that owns the data). `adminOnly` items are restricted to admins.
+export interface SettingsItem {
+  labelKey: string;
+  icon: string;
+  href: string;
+  module: string; // capability owner
+  capability: string; // capability key
+  adminOnly?: boolean; // gate by admin tier instead of the capability
+}
 export interface SettingsGroup {
   labelKey: string;
-  gateModule: string;
-  gateLevel: Level;
-  items: SectionDef[];
+  items: SettingsItem[];
 }
 
 export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     labelKey: "settings.group.general",
-    gateModule: "settings",
-    gateLevel: "MANAGE",
     items: [
-      { labelKey: "settings.appearance.title", icon: "🎨", href: "/settings/appearance" },
-      { labelKey: "pages.title", icon: "📄", href: "/settings/pages" },
+      { labelKey: "settings.appearance.title", icon: "🎨", href: "/settings/appearance", module: "settings", capability: "manageAppearance" },
+      { labelKey: "pages.title", icon: "📄", href: "/settings/pages", module: "settings", capability: "managePages" },
+      { labelKey: "perm.title", icon: "🔐", href: "/settings/permissions", module: "settings", capability: "managePermissions", adminOnly: true },
     ],
   },
   {
     labelKey: "settings.group.pricing",
-    gateModule: "pricing",
-    gateLevel: "MANAGE",
-    items: [{ labelKey: "pricer.variables", icon: "⚙️", href: "/settings/pricing/variables" }],
+    items: [{ labelKey: "pricer.variables", icon: "⚙️", href: "/settings/pricing/variables", module: "pricing", capability: "editVariables" }],
   },
   {
     labelKey: "settings.group.expenses",
-    gateModule: "expenses",
-    gateLevel: "MANAGE",
     items: [
-      { labelKey: "exp.categories", icon: "🏷️", href: "/settings/expenses/categories" },
-      { labelKey: "exp.accounts", icon: "💳", href: "/settings/expenses/accounts" },
+      { labelKey: "exp.categories", icon: "🏷️", href: "/settings/expenses/categories", module: "expenses", capability: "manageReference" },
+      { labelKey: "exp.accounts", icon: "💳", href: "/settings/expenses/accounts", module: "expenses", capability: "manageReference" },
     ],
   },
   {
-    // Interim: Suppliers is gated by settings/MANAGE until the real Logistics
-    // module exists, at which point this moves to gateModule "logistics".
+    // Interim: Suppliers lives under Settings until the real Logistics module exists.
     labelKey: "settings.group.logistics",
-    gateModule: "settings",
-    gateLevel: "MANAGE",
-    items: [{ labelKey: "suppliers.title", icon: "🚚", href: "/settings/logistics" }],
+    items: [{ labelKey: "suppliers.title", icon: "🚚", href: "/settings/logistics", module: "settings", capability: "manageModules" }],
   },
 ];
 
-type CanFn = (moduleKey: string, level: Level) => boolean;
+type CapFn = (moduleKey: string, capability: string) => boolean;
 
-export function visibleSettingsGroups(can: CanFn) {
-  return SETTINGS_GROUPS.filter((g) => can(g.gateModule, g.gateLevel)).map((g) => ({
-    labelKey: g.labelKey,
-    items: g.items,
-  }));
+function itemVisible(it: SettingsItem, can: CapFn, isAdmin: boolean): boolean {
+  return it.adminOnly ? isAdmin : can(it.module, it.capability);
 }
 
-/** Can the user reach the Settings module at all (manages ≥1 settings area)? */
-export function canAccessSettings(can: CanFn): boolean {
-  return SETTINGS_GROUPS.some((g) => can(g.gateModule, g.gateLevel));
+export function visibleSettingsGroups(can: CapFn, isAdmin: boolean) {
+  return SETTINGS_GROUPS.map((g) => ({
+    labelKey: g.labelKey,
+    items: g.items.filter((it) => itemVisible(it, can, isAdmin)),
+  })).filter((g) => g.items.length > 0);
+}
+
+/** Can the user reach the Settings module at all (≥1 visible settings item)? */
+export function canAccessSettings(can: CapFn, isAdmin: boolean): boolean {
+  return SETTINGS_GROUPS.some((g) => g.items.some((it) => itemVisible(it, can, isAdmin)));
 }

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getTeamDetail, listAllUsers } from "@/lib/teams/teams-service";
@@ -15,7 +15,7 @@ export default async function TeamDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageTeams");
   const { id } = await params;
   const team = await getTeamDetail(Number(id));
   if (!team) notFound();

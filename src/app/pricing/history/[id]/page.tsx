@@ -14,9 +14,9 @@ export default async function CalculationDetailPage({
   const access = await requireModule("pricing", "VIEW");
   const { id } = await params;
   const [calc, t] = await Promise.all([getCalculation(Number(id)), getT()]);
-  const isAdmin = access.canModule("pricing", "MANAGE") || access.isAdmin;
-  // Non-admins never see soft-deleted records.
-  if (!calc || (calc.deletedAt && !isAdmin)) notFound();
+  const canManageHistory = access.can("pricing", "deleteAny");
+  // Those without deleteAny never see soft-deleted records.
+  if (!calc || (calc.deletedAt && !canManageHistory)) notFound();
 
   const input = JSON.parse(calc.inputJson) as Record<string, unknown>;
   const yesNo = (v: unknown) => (v ? t("common.yes") : t("common.no"));

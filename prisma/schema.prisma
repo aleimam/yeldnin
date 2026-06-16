@@ -242,6 +242,15 @@ model PricingSettings {
   updatedAt DateTime @updatedAt
 }
 
+// Singleton holding admin overrides to the per-level capability defaults.
+// `overrides` is JSON: { [moduleKey]: { [capabilityKey]: Level } }. Missing
+// entries fall back to the in-code defaults (see lib/auth/capabilities.ts).
+model AccessPolicy {
+  id        Int      @id @default(1)
+  overrides String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
 // ─── Expenses module (Operations cash + sales reconciliation) ─────────────────
 
 model ExpenseCategory {

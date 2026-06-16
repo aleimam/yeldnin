@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { isThemeKey } from "@/lib/theme";
 import { saveUpload } from "@/lib/assets/assets-service";
 import { updateAppearance } from "@/lib/settings/settings-service";
@@ -21,7 +21,7 @@ export async function saveAppearanceAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "manageAppearance");
 
   const appName = String(formData.get("appName") ?? "").trim();
   const themeKey = String(formData.get("themeKey") ?? "default");

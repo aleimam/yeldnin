@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getPageById } from "@/lib/content/content-pages-service";
@@ -13,7 +13,7 @@ export default async function EditPagePage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "managePages");
   const { id } = await params;
   const page = await getPageById(Number(id));
   if (!page) notFound();

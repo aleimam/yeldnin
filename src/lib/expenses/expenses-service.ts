@@ -12,12 +12,17 @@ import {
 
 type AuthedAccess = Access & { user: SessionUser };
 
-// A "manager" (MANAGE on expenses; admins inherit it) can edit/delete anytime.
-export function isExpensesManager(access: AuthedAccess): boolean {
-  return access.canModule("expenses", "MANAGE");
+// Capability-backed helpers (admins inherit everything via access.can()).
+// editAny = edit/delete any entry with no time window; editOwn = own within
+// the window; deleteTxn = delete any entry.
+export function canEditAnyExpense(access: AuthedAccess): boolean {
+  return access.can("expenses", "editAny");
 }
-function canEdit(access: AuthedAccess): boolean {
-  return access.canModule("expenses", "OPERATE");
+export function canEditOwnExpense(access: AuthedAccess): boolean {
+  return access.can("expenses", "editOwn");
+}
+export function canDeleteAnyExpense(access: AuthedAccess): boolean {
+  return access.can("expenses", "deleteTxn");
 }
 
 export function monthRange(year: number, month: number): { gte: Date; lt: Date } {
@@ -79,9 +84,9 @@ export async function updateExpenseTransaction(
   if (!tx) throw new Error("Transaction not found");
   if (
     !canEditExpense({
-      isManager: isExpensesManager(access),
+      isManager: canEditAnyExpense(access),
       isOwner: tx.createdById === access.user.id,
-      hasEditPermission: canEdit(access),
+      hasEditPermission: canEditOwnExpense(access),
       createdAt: tx.createdAt,
       now: new Date(),
     })
@@ -114,11 +119,11 @@ export async function deleteExpenseTransaction(id: number, access: AuthedAccess)
   const tx = await prisma.expenseTransaction.findUnique({ where: { id }, include: { attachments: true } });
   if (!tx) return [];
   const allowed =
-    canDeleteExpense({ isManager: isExpensesManager(access), hasDeletePermission: isExpensesManager(access) }) ||
+    canDeleteExpense({ isManager: canDeleteAnyExpense(access), hasDeletePermission: false }) ||
     canEditExpense({
-      isManager: isExpensesManager(access),
+      isManager: canEditAnyExpense(access),
       isOwner: tx.createdById === access.user.id,
-      hasEditPermission: canEdit(access),
+      hasEditPermission: canEditOwnExpense(access),
       createdAt: tx.createdAt,
       now: new Date(),
     });

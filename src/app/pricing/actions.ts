@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import {
   parseSupplementForm,
   parseDeviceForm,
@@ -29,7 +29,7 @@ interface CalcPayload {
 }
 
 export async function calcSupplementAction(p: CalcPayload): Promise<CalcResult> {
-  const access = await requireModule("pricing", "OPERATE");
+  const access = await requireCapability("pricing", "calculate");
   const parsed = parseSupplementForm(p.values);
   if (!parsed.ok) return { ok: false, fieldErrors: parsed.fieldErrors };
 
@@ -45,7 +45,7 @@ export async function calcSupplementAction(p: CalcPayload): Promise<CalcResult> 
 }
 
 export async function calcDeviceAction(p: CalcPayload): Promise<CalcResult> {
-  const access = await requireModule("pricing", "OPERATE");
+  const access = await requireCapability("pricing", "calculate");
   const parsed = parseDeviceForm(p.values);
   if (!parsed.ok) return { ok: false, fieldErrors: parsed.fieldErrors };
 
@@ -61,20 +61,20 @@ export async function calcDeviceAction(p: CalcPayload): Promise<CalcResult> {
 }
 
 export async function deleteCalculationAction(id: number): Promise<void> {
-  const access = await requireModule("pricing", "OPERATE");
+  const access = await requireCapability("pricing", "deleteOwn");
   const calc = await getCalculation(id);
   if (!calc || calc.deletedAt) return;
-  // Owner can delete their own; MANAGE can delete any.
-  if (calc.userId !== access.user.id && !access.canModule("pricing", "MANAGE")) {
+  // Owner can soft-delete their own; deleting someone else's needs deleteAny.
+  if (calc.userId !== access.user.id && !access.can("pricing", "deleteAny")) {
     return;
   }
   await softDeleteCalculation(id, access.user.id);
   revalidatePath("/pricing/history");
 }
 
-/** Permanently remove one calculation. Managers only. */
+/** Permanently remove one calculation. Requires the deleteAny capability. */
 export async function hardDeleteCalculationAction(id: number): Promise<void> {
-  const access = await requireModule("pricing", "MANAGE");
+  const access = await requireCapability("pricing", "deleteAny");
   const calc = await getCalculation(id);
   if (!calc) return;
   await hardDeleteCalculation(id);
@@ -84,9 +84,9 @@ export async function hardDeleteCalculationAction(id: number): Promise<void> {
   revalidatePath("/pricing/history");
 }
 
-/** Permanently wipe the entire calculation history. Managers only. */
+/** Permanently wipe the entire calculation history. Requires deleteAny. */
 export async function purgeHistoryAction(): Promise<void> {
-  const access = await requireModule("pricing", "MANAGE");
+  const access = await requireCapability("pricing", "deleteAny");
   await hardDeleteAllHistory();
   await writeAudit(access.user.id, "pricing", "calc.purgeAll", "pricingCalculation", "all");
   revalidatePath("/pricing/history");

@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { saveSupplierBatch } from "@/lib/suppliers/suppliers-service";
 import { writeAudit } from "@/lib/audit";
 
@@ -9,7 +9,7 @@ const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
 /** Save All for suppliers: parse rows, hand the batch to the service. */
 export async function saveSuppliersAction(fd: FormData): Promise<void> {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "manageModules");
   const ids = str(fd, "ids").split(",").filter(Boolean).map(Number);
 
   const rows = ids.map((id) => ({

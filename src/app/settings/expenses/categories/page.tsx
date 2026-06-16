@@ -1,11 +1,11 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCategories } from "@/lib/expenses/expenses-service";
 import { saveCategoriesAction } from "../actions";
 
 export default async function CategoriesSettingsPage() {
-  const access = await requireModule("expenses", "MANAGE");
+  const access = await requireCapability("expenses", "manageReference");
   const [t, categories] = await Promise.all([getT(), listCategories(true)]);
 
   return (

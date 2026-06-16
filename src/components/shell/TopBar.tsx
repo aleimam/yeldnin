@@ -36,12 +36,12 @@ export async function TopBar({
     getEffectiveTheme(),
     getColorMode(),
   ]);
-  const showSettings = access.canModule("settings");
+  const showSettings = canAccessSettings(access.can, access.isAdmin);
   const logo = assetUrl(settings.logoUrl);
   const darkLogo = assetUrl(settings.darkLogoUrl) ?? logo;
 
   const canSee = (key: string) =>
-    key === "settings" ? canAccessSettings(access.canModule) : access.canModule(key);
+    key === "settings" ? canAccessSettings(access.can, access.isAdmin) : access.canModule(key);
   const switcherModules = MODULES.filter((m) => canSee(m.key)).map((m) => ({
     key: m.key,
     label: t(`module.${m.key}.name`),

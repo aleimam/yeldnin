@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import {
   createPage,
   updatePage,
@@ -27,7 +27,7 @@ function parse(fd: FormData): ContentPageInput {
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Could not save the page.");
 
 export async function createPageAction(fd: FormData): Promise<void> {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "managePages");
   let newId: number;
   try {
     const page = await createPage(parse(fd), access.user.id);
@@ -40,7 +40,7 @@ export async function createPageAction(fd: FormData): Promise<void> {
 }
 
 export async function updatePageAction(fd: FormData): Promise<void> {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "managePages");
   const id = Number(fd.get("id"));
   try {
     await updatePage(id, parse(fd), access.user.id);
@@ -52,7 +52,7 @@ export async function updatePageAction(fd: FormData): Promise<void> {
 }
 
 export async function deletePageAction(fd: FormData): Promise<void> {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "managePages");
   const id = Number(fd.get("id"));
   if (id) await deletePage(id, access.user.id);
   revalidatePath("/", "layout");

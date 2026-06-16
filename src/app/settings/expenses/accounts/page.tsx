@@ -1,11 +1,11 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listAccounts } from "@/lib/expenses/expenses-service";
 import { saveAccountsAction } from "../actions";
 
 export default async function AccountsSettingsPage() {
-  const access = await requireModule("expenses", "MANAGE");
+  const access = await requireCapability("expenses", "manageReference");
   const [t, accounts] = await Promise.all([getT(), listAccounts(true)]);
 
   return (

@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import {
   createOrUpdateMonthlySalesReport,
   createOrUpdateMonthlyBankCollectionReport,
@@ -13,7 +13,7 @@ const num = (fd: FormData, k: string) => {
 };
 
 export async function saveMonthlySalesAction(fd: FormData): Promise<void> {
-  const access = await requireModule("expenses", "MANAGE");
+  const access = await requireCapability("expenses", "manageAdmin");
   await createOrUpdateMonthlySalesReport(
     {
       year: num(fd, "year"),
@@ -32,7 +32,7 @@ export async function saveMonthlySalesAction(fd: FormData): Promise<void> {
 }
 
 export async function saveBankCollectionAction(fd: FormData): Promise<void> {
-  const access = await requireModule("expenses", "MANAGE");
+  const access = await requireCapability("expenses", "manageAdmin");
   const accounts = await prisma.expenseAccount.findMany({ where: { deletedAt: null } });
   const lines = accounts
     .map((a) => ({ accountId: a.id, accountNameSnapshot: a.name, amount: num(fd, `amt_${a.id}`) }))

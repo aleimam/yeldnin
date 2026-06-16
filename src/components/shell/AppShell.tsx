@@ -31,11 +31,15 @@ export async function AppShell({
   const initialCollapsed = store.get(SIDEBAR_COOKIE)?.value === "collapsed";
 
   const isSettings = moduleKey === "settings";
-  const groups = isSettings ? visibleSettingsGroups(access.canModule) : undefined;
+  const groups = isSettings ? visibleSettingsGroups(access.can, access.isAdmin) : undefined;
   const sections = isSettings
     ? []
     : sectionsFor(moduleKey)
-        .filter((s) => access.canModule(moduleKey, s.minLevel ?? "VIEW"))
+        .filter((s) =>
+          s.capability
+            ? access.can(moduleKey, s.capability)
+            : access.canModule(moduleKey, s.minLevel ?? "VIEW"),
+        )
         .map((s) => ({ labelKey: s.labelKey, icon: s.icon, href: s.href }));
   const hasNav = isSettings ? (groups?.length ?? 0) > 0 : sections.length > 0;
 

@@ -21,13 +21,13 @@ export default async function TransactionDetailPage({
   const [t, categories] = await Promise.all([getT(), listCategories()]);
 
   const editable = canEditExpense({
-    isManager: access.canModule("expenses", "MANAGE"),
+    isManager: access.can("expenses", "editAny"),
     isOwner: tx.createdById === access.user.id,
-    hasEditPermission: access.canModule("expenses", "OPERATE"),
+    hasEditPermission: access.can("expenses", "editOwn"),
     createdAt: tx.createdAt,
     now: new Date(),
   });
-  const canDelete = access.canModule("expenses", "MANAGE") || editable;
+  const canDelete = access.can("expenses", "deleteTxn") || editable;
 
   const assets = await prisma.asset.findMany({
     where: { id: { in: tx.attachments.map((a) => a.assetId) } },

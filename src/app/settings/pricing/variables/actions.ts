@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { SHAPES, PACKAGING, SIZES, type PricingConfig } from "@/lib/pricing/pricing-logic";
 import { getPricingConfig, savePricingConfig } from "@/lib/pricing/pricing-config-service";
 import { writeAudit } from "@/lib/audit";
@@ -14,7 +14,7 @@ export async function saveVariablesAction(
   _prev: FormState,
   fd: FormData,
 ): Promise<FormState> {
-  const access = await requireModule("pricing", "MANAGE");
+  const access = await requireCapability("pricing", "editVariables");
   const cur = await getPricingConfig();
 
   const num = (name: string, fallback: number): number => {

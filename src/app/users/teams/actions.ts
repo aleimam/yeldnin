@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import {
   createTeam,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/teams/teams-service";
 
 export async function createTeamAction(fd: FormData): Promise<void> {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageTeams");
   const name = String(fd.get("name") ?? "").trim();
   if (!name) return;
   const team = await createTeam(name);
@@ -21,7 +21,7 @@ export async function createTeamAction(fd: FormData): Promise<void> {
 }
 
 export async function renameTeamAction(fd: FormData): Promise<void> {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageTeams");
   const id = Number(fd.get("id"));
   const name = String(fd.get("name") ?? "").trim();
   if (!id || !name) return;
@@ -31,7 +31,7 @@ export async function renameTeamAction(fd: FormData): Promise<void> {
 }
 
 export async function addMemberAction(fd: FormData): Promise<void> {
-  await requireModule("user_access", "MANAGE");
+  await requireCapability("user_access", "manageTeams");
   const teamId = Number(fd.get("teamId"));
   const userId = Number(fd.get("userId"));
   if (!teamId || !userId) return;
@@ -40,7 +40,7 @@ export async function addMemberAction(fd: FormData): Promise<void> {
 }
 
 export async function removeMemberAction(fd: FormData): Promise<void> {
-  await requireModule("user_access", "MANAGE");
+  await requireCapability("user_access", "manageTeams");
   const teamId = Number(fd.get("teamId"));
   const userId = Number(fd.get("userId"));
   if (!teamId || !userId) return;
@@ -49,7 +49,7 @@ export async function removeMemberAction(fd: FormData): Promise<void> {
 }
 
 export async function deleteTeamAction(fd: FormData): Promise<void> {
-  const access = await requireModule("user_access", "MANAGE");
+  const access = await requireCapability("user_access", "manageTeams");
   const id = Number(fd.get("id"));
   if (!id) return;
   await deleteTeam(id);

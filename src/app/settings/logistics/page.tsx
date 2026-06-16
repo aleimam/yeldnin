@@ -1,11 +1,11 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listSuppliers } from "@/lib/suppliers/suppliers-service";
 import { saveSuppliersAction } from "./actions";
 
 export default async function LogisticsSettingsPage() {
-  const access = await requireModule("settings", "MANAGE");
+  const access = await requireCapability("settings", "manageModules");
   const [t, suppliers] = await Promise.all([getT(), listSuppliers()]);
 
   const cols = "sm:grid-cols-[1fr_1fr_150px_70px_70px]";

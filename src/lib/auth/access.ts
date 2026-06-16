@@ -10,6 +10,8 @@ import {
   isAdminTier,
   levelMeets,
 } from "./access-logic";
+import { resolveCapabilityLevel } from "./capabilities";
+import { getAccessPolicy } from "./access-policy-service";
 
 export interface SessionUser {
   id: number;
@@ -26,8 +28,10 @@ export interface Access {
   isAdmin: boolean;
   /** Effective level for a module (admin => MANAGE). */
   moduleLevel: (moduleKey: string) => Level;
-  /** level ≥ given threshold (default VIEW). */
+  /** level ≥ given threshold (default VIEW). Governs opening a module. */
   canModule: (moduleKey: string, min?: Level) => boolean;
+  /** Holds a named capability (admins always do; else level ≥ policy minimum). */
+  can: (moduleKey: string, capability: string) => boolean;
 }
 
 /** Load the current session + permissions. Memoized per request. */
@@ -47,6 +51,8 @@ export const getAccess = cache(async (): Promise<Access> => {
   const tier = user.tier as Tier;
   const levels = new Map<string, Level>();
   for (const p of user.modulePerms) levels.set(p.moduleKey, p.level as Level);
+  const policy = await getAccessPolicy();
+  const admin = isAdminTier(tier);
 
   const sessionUser: SessionUser = {
     id: user.id,
@@ -63,9 +69,12 @@ export const getAccess = cache(async (): Promise<Access> => {
 
   return {
     user: sessionUser,
-    isAdmin: isAdminTier(tier),
+    isAdmin: admin,
     moduleLevel,
     canModule: (moduleKey, min = "VIEW") => levelMeets(moduleLevel(moduleKey), min),
+    can: (moduleKey, capability) =>
+      admin ||
+      levelMeets(moduleLevel(moduleKey), resolveCapabilityLevel(policy, moduleKey, capability)),
   };
 });
 
@@ -75,6 +84,7 @@ function anonymous(): Access {
     isAdmin: false,
     moduleLevel: () => "NONE",
     canModule: () => false,
+    can: () => false,
   };
 }
 
@@ -92,5 +102,22 @@ export async function requireModule(
 ): Promise<Access & { user: SessionUser }> {
   const access = await requireUser();
   if (!access.canModule(moduleKey, min)) redirect("/");
+  return access;
+}
+
+/** Guard a page/action by a named capability (honors admin overrides). */
+export async function requireCapability(
+  moduleKey: string,
+  capability: string,
+): Promise<Access & { user: SessionUser }> {
+  const access = await requireUser();
+  if (!access.can(moduleKey, capability)) redirect("/");
+  return access;
+}
+
+/** Guard a page/action to admin tiers only (Super Admin / Admin). */
+export async function requireAdmin(): Promise<Access & { user: SessionUser }> {
+  const access = await requireUser();
+  if (!access.isAdmin) redirect("/");
   return access;
 }

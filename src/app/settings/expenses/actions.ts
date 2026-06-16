@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { saveCategoryBatch, saveAccountBatch } from "@/lib/expenses/expenses-service";
 import { writeAudit } from "@/lib/audit";
 
@@ -10,7 +10,7 @@ const idList = (fd: FormData) => str(fd, "ids").split(",").filter(Boolean).map(N
 
 /** Save All for expense categories. */
 export async function saveCategoriesAction(fd: FormData): Promise<void> {
-  const access = await requireModule("expenses", "MANAGE");
+  const access = await requireCapability("expenses", "manageReference");
   const rows = idList(fd).map((id) => ({
     id,
     remove: on(fd, `remove_${id}`),
@@ -26,7 +26,7 @@ export async function saveCategoriesAction(fd: FormData): Promise<void> {
 
 /** Save All for expense accounts. */
 export async function saveAccountsAction(fd: FormData): Promise<void> {
-  const access = await requireModule("expenses", "MANAGE");
+  const access = await requireCapability("expenses", "manageReference");
   const rows = idList(fd).map((id) => ({
     id,
     remove: on(fd, `remove_${id}`),

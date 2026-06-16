@@ -1,4 +1,4 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { prisma } from "@/lib/db";
@@ -15,7 +15,7 @@ const FIELDS: [key: string, labelKey: string][] = [
 ];
 
 export default async function MonthlySalesPage() {
-  const access = await requireModule("expenses", "MANAGE");
+  const access = await requireCapability("expenses", "manageAdmin");
   const t = await getT();
   const now = new Date();
   const reports = await prisma.monthlySalesReport.findMany({ orderBy: [{ year: "desc" }, { month: "desc" }], take: 12 });

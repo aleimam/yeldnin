@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCategories, listTransactions } from "@/lib/expenses/expenses-service";
 import { ExpenseForm } from "../../ExpenseForm";
 
 export default async function NewTransactionPage() {
-  const access = await requireModule("expenses", "OPERATE");
+  const access = await requireCapability("expenses", "createTxn");
   const [t, categories, recent] = await Promise.all([
     getT(),
     listCategories(),

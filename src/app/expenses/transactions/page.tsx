@@ -7,7 +7,7 @@ import { listTransactions } from "@/lib/expenses/expenses-service";
 export default async function TransactionsPage() {
   const access = await requireModule("expenses", "VIEW");
   const [t, rows] = await Promise.all([getT(), listTransactions({})]);
-  const canCreate = access.canModule("expenses", "OPERATE");
+  const canCreate = access.can("expenses", "createTxn");
 
   return (
     <AppShell

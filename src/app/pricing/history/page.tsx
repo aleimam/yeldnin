@@ -9,16 +9,16 @@ import { HardDeleteButton, PurgeHistoryButton } from "../HistoryActions";
 export default async function HistoryPage() {
   const access = await requireModule("pricing", "VIEW");
   const t = await getT();
-  const isAdmin = access.canModule("pricing", "MANAGE") || access.isAdmin;
-  const rows = await listHistory({ isAdmin });
-  const canDelete = access.canModule("pricing", "OPERATE");
+  const canManageHistory = access.can("pricing", "deleteAny");
+  const rows = await listHistory({ isAdmin: canManageHistory });
+  const canSoftDelete = access.can("pricing", "deleteOwn");
 
   return (
     <AppShell
       access={access}
       moduleKey="pricing"
       pageTitle={t("pricer.history")}
-      actions={isAdmin && rows.length > 0 ? <PurgeHistoryButton /> : null}
+      actions={canManageHistory && rows.length > 0 ? <PurgeHistoryButton /> : null}
     >
       <div className="card overflow-x-auto">
         <table className="w-full">
@@ -61,10 +61,10 @@ export default async function HistoryPage() {
                     <Link href={`/pricing/history/${r.id}`} className="text-sm text-brand hover:underline">
                       {t("pricer.details")}
                     </Link>
-                    {isAdmin ? (
+                    {canManageHistory ? (
                       <HardDeleteButton id={r.id} />
                     ) : (
-                      canDelete && !r.deletedAt && <DeleteButton id={r.id} />
+                      canSoftDelete && !r.deletedAt && <DeleteButton id={r.id} />
                     )}
                   </div>
                 </td>
