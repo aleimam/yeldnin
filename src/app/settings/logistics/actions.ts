@@ -1,53 +1,38 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/db";
 import { requireModule } from "@/lib/auth/access";
+import { saveSupplierBatch } from "@/lib/suppliers/suppliers-service";
 
 const on = (fd: FormData, k: string) => fd.get(k) === "on";
+const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 
-/** Save All for suppliers: batch-update every row + archive + add a new one. */
+/** Save All for suppliers: parse rows, hand the batch to the service. */
 export async function saveSuppliersAction(fd: FormData): Promise<void> {
   await requireModule("settings", "MANAGE");
-  const ids = String(fd.get("ids") ?? "").split(",").filter(Boolean).map(Number);
-  const ops = [];
+  const ids = str(fd, "ids").split(",").filter(Boolean).map(Number);
 
-  for (const id of ids) {
-    if (on(fd, `remove_${id}`)) {
-      ops.push(prisma.supplier.update({ where: { id }, data: { archivedAt: new Date() } }));
-      continue;
-    }
-    const name = String(fd.get(`name_${id}`) ?? "").trim();
-    if (!name) continue;
-    ops.push(
-      prisma.supplier.update({
-        where: { id },
-        data: {
-          name,
-          contact: String(fd.get(`contact_${id}`) ?? "").trim() || null,
-          availableUSA: on(fd, `usa_${id}`),
-          availableUK: on(fd, `uk_${id}`),
-          availableEU: on(fd, `eu_${id}`),
-          active: on(fd, `active_${id}`),
-        },
-      }),
-    );
-  }
+  const rows = ids.map((id) => ({
+    id,
+    remove: on(fd, `remove_${id}`),
+    name: str(fd, `name_${id}`),
+    contact: str(fd, `contact_${id}`) || null,
+    availableUSA: on(fd, `usa_${id}`),
+    availableUK: on(fd, `uk_${id}`),
+    availableEU: on(fd, `eu_${id}`),
+    active: on(fd, `active_${id}`),
+  }));
 
-  const newName = String(fd.get("new_name") ?? "").trim();
-  if (newName) {
-    ops.push(
-      prisma.supplier.create({
-        data: {
-          name: newName,
-          contact: String(fd.get("new_contact") ?? "").trim() || null,
-          availableUSA: on(fd, "new_usa"),
-          availableUK: on(fd, "new_uk"),
-          availableEU: on(fd, "new_eu"),
-        },
-      }),
-    );
-  }
+  const newName = str(fd, "new_name");
+  const add = newName
+    ? {
+        name: newName,
+        contact: str(fd, "new_contact") || null,
+        availableUSA: on(fd, "new_usa"),
+        availableUK: on(fd, "new_uk"),
+        availableEU: on(fd, "new_eu"),
+      }
+    : null;
 
-  if (ops.length) await prisma.$transaction(ops);
+  await saveSupplierBatch(rows, add);
   revalidatePath("/settings/logistics");
 }

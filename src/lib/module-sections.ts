@@ -67,6 +67,8 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     ],
   },
   {
+    // Interim: Suppliers is gated by settings/MANAGE until the real Logistics
+    // module exists, at which point this moves to gateModule "logistics".
     labelKey: "settings.group.logistics",
     gateModule: "settings",
     gateLevel: "MANAGE",

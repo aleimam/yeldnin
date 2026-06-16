@@ -23,36 +23,46 @@ export function listSuppliersForCountry(country: CountryKey) {
   });
 }
 
-export function createSupplier(input: {
+export interface SupplierRow {
+  id: number;
+  remove: boolean;
   name: string;
+  contact: string | null;
   availableUSA: boolean;
   availableUK: boolean;
   availableEU: boolean;
-  contact?: string;
-}) {
-  return prisma.supplier.create({ data: { ...input, name: input.name.trim() } });
+  active: boolean;
+}
+export interface NewSupplier {
+  name: string;
+  contact: string | null;
+  availableUSA: boolean;
+  availableUK: boolean;
+  availableEU: boolean;
 }
 
-export function updateSupplier(
-  id: number,
-  input: {
-    name: string;
-    availableUSA: boolean;
-    availableUK: boolean;
-    availableEU: boolean;
-    contact?: string;
-    active: boolean;
-  },
-) {
-  return prisma.supplier.update({
-    where: { id },
-    data: { ...input, name: input.name.trim() },
-  });
-}
-
-export function archiveSupplier(id: number) {
-  return prisma.supplier.update({
-    where: { id },
-    data: { archivedAt: new Date() },
-  });
+/** Apply a "Save All" batch: update/archive existing rows + optionally add one. */
+export async function saveSupplierBatch(rows: SupplierRow[], add: NewSupplier | null) {
+  const ops = [];
+  for (const r of rows) {
+    if (r.remove) {
+      ops.push(prisma.supplier.update({ where: { id: r.id }, data: { archivedAt: new Date() } }));
+    } else if (r.name) {
+      ops.push(
+        prisma.supplier.update({
+          where: { id: r.id },
+          data: {
+            name: r.name,
+            contact: r.contact,
+            availableUSA: r.availableUSA,
+            availableUK: r.availableUK,
+            availableEU: r.availableEU,
+            active: r.active,
+          },
+        }),
+      );
+    }
+  }
+  if (add?.name) ops.push(prisma.supplier.create({ data: add }));
+  if (ops.length) await prisma.$transaction(ops);
 }

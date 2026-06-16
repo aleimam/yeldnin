@@ -316,3 +316,51 @@ export async function calculateMonthlyReconciliation(year: number, month: number
 }
 
 export { reconciliationStatus };
+
+// ---------------- Settings "Save All" batches ----------------
+
+const normType = (t: string) => (t === "TRANSFER" ? "TRANSFER" : "EXPENSE");
+
+export interface CategoryRow {
+  id: number;
+  remove: boolean;
+  name: string;
+  type: string;
+  enabled: boolean;
+}
+export async function saveCategoryBatch(rows: CategoryRow[], add: { name: string; type: string } | null) {
+  const ops = [];
+  for (const r of rows) {
+    if (r.remove) {
+      ops.push(prisma.expenseCategory.update({ where: { id: r.id }, data: { deletedAt: new Date() } }));
+    } else if (r.name) {
+      ops.push(
+        prisma.expenseCategory.update({
+          where: { id: r.id },
+          data: { name: r.name, type: normType(r.type), enabled: r.enabled },
+        }),
+      );
+    }
+  }
+  if (add?.name) ops.push(prisma.expenseCategory.create({ data: { name: add.name, type: normType(add.type) } }));
+  if (ops.length) await prisma.$transaction(ops);
+}
+
+export interface AccountRow {
+  id: number;
+  remove: boolean;
+  name: string;
+  enabled: boolean;
+}
+export async function saveAccountBatch(rows: AccountRow[], add: { name: string } | null) {
+  const ops = [];
+  for (const r of rows) {
+    if (r.remove) {
+      ops.push(prisma.expenseAccount.update({ where: { id: r.id }, data: { deletedAt: new Date() } }));
+    } else if (r.name) {
+      ops.push(prisma.expenseAccount.update({ where: { id: r.id }, data: { name: r.name, enabled: r.enabled } }));
+    }
+  }
+  if (add?.name) ops.push(prisma.expenseAccount.create({ data: { name: add.name } }));
+  if (ops.length) await prisma.$transaction(ops);
+}
