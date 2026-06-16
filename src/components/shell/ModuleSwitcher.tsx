@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
 import { useT } from "@/i18n/client";
+import { useDropdown } from "@/lib/use-dropdown";
 
 export interface SwitcherModule {
   key: string;
@@ -18,10 +18,10 @@ export function ModuleSwitcher({
   activeKey?: string;
 }) {
   const t = useT();
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, ref } = useDropdown<HTMLDivElement>();
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -35,10 +35,8 @@ export function ModuleSwitcher({
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute start-0 z-40 mt-2 max-h-96 w-60 overflow-y-auto rounded-xl border border-line bg-surface p-1.5 shadow-lg">
-            {modules.map((m) => {
+        <div className="absolute start-0 z-40 mt-2 max-h-96 w-60 overflow-y-auto rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+          {modules.map((m) => {
               const active = m.key === activeKey;
               return (
                 <Link
@@ -54,8 +52,7 @@ export function ModuleSwitcher({
                 </Link>
               );
             })}
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

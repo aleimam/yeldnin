@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/i18n/client";
+import { useDropdown } from "@/lib/use-dropdown";
 import { LOCALE_COOKIE, type Locale } from "@/i18n";
 import {
   THEMES,
@@ -32,7 +33,7 @@ export function PreferencesMenu({
   mode: ColorMode;
 }) {
   const t = useT();
-  const [open, setOpen] = useState(false);
+  const { open, setOpen, ref } = useDropdown<HTMLDivElement>();
   const [curTheme, setCurTheme] = useState(theme);
   const [curMode, setCurMode] = useState<ColorMode>(mode);
 
@@ -60,7 +61,7 @@ export function PreferencesMenu({
   const modes: ColorMode[] = ["light", "dark", "system"];
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -73,10 +74,8 @@ export function PreferencesMenu({
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute end-0 z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-3 shadow-lg">
-            {/* Language */}
+        <div className="absolute end-0 z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-3 shadow-lg">
+          {/* Language */}
             <div className="mb-3">
               <div className="mb-1.5 text-xs font-semibold text-muted">
                 {t("pref.language")}
@@ -140,8 +139,7 @@ export function PreferencesMenu({
                 ))}
               </div>
             </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
