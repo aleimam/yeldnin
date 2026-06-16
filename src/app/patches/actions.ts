@@ -9,7 +9,7 @@ export interface PatchPayload {
   purchaseId: number;
   itemIds: number[];
   tracking?: string;
-  courier?: string;
+  courierId?: number | null;
   notes?: string;
   photoIds?: string[];
 }
@@ -21,7 +21,7 @@ export async function createPatchAction(p: PatchPayload): Promise<PatchResult> {
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   try {
     const patch = await createPatch(
-      { purchaseId: p.purchaseId, itemIds: p.itemIds, tracking: p.tracking ?? null, courier: p.courier ?? null, notes: p.notes ?? null },
+      { purchaseId: p.purchaseId, itemIds: p.itemIds, tracking: p.tracking ?? null, courierId: p.courierId ?? null, notes: p.notes ?? null },
       p.photoIds ?? [],
       access.user.id,
     );

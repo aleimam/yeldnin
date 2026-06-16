@@ -365,6 +365,21 @@ model TripMarkPhoto {
 // Shipment (Operations) — created by splitting a picked-up Trip by scope/size.
 // Its contents are the Items pointing at it (containerType=SHIPMENT). Scope
 // drives who can see it (EGV→EGV+admin, XOONX→XOONX+admin, PERSONAL→admin).
+// Courier (Couriers) — a delivery partner. Referenced by Patches (and later
+// the customer-delivery Orders). Master data.
+model Courier {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // CUR<YY><MM><seq3>
+  name        String
+  contact     String?
+  active      Boolean   @default(true)
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedById Int?
+  updatedAt   DateTime  @updatedAt
+}
+
 model Shipment {
   id          Int       @id @default(autoincrement())
   uid         String?   @unique // SHP<YY><MM><seq3>
@@ -556,7 +571,8 @@ model Patch {
   destinationId   Int?
   destinationName String?
   tracking        String?
-  courier         String? // free text until the Couriers module exists
+  courierId       Int? // → Courier (the partner); courier holds the name snapshot
+  courier         String? // courier name snapshot (or free text)
   status          String    @default("DISPATCHED") // DISPATCHED | DELIVERED | RECEIVED
   dispatchedAt    DateTime  @default(now())
   deliveredAt     DateTime?

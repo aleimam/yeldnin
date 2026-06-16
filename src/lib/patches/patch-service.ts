@@ -32,7 +32,7 @@ export interface CreatePatchInput {
   purchaseId: number;
   itemIds: number[];
   tracking?: string | null;
-  courier?: string | null;
+  courierId?: number | null;
   notes?: string | null;
 }
 const clean = (s?: string | null) => s?.trim() || null;
@@ -48,6 +48,12 @@ export async function createPatch(input: CreatePatchInput, photoAssetIds: string
   });
   if (!items.length) throw new Error("No dispatchable items selected.");
 
+  let courierName: string | null = null;
+  if (input.courierId) {
+    const c = await prisma.courier.findUnique({ where: { id: input.courierId }, select: { name: true } });
+    courierName = c?.name ?? null;
+  }
+
   const uid = await nextUid("PAT");
   const patch = await prisma.patch.create({
     data: {
@@ -60,7 +66,8 @@ export async function createPatch(input: CreatePatchInput, photoAssetIds: string
       destinationId: purchase.destinationId,
       destinationName: purchase.destinationName,
       tracking: clean(input.tracking),
-      courier: clean(input.courier),
+      courierId: input.courierId ?? null,
+      courier: courierName,
       notes: clean(input.notes),
       createdById: userId,
       photos: photoAssetIds.length ? { create: photoAssetIds.map((assetId) => ({ assetId })) } : undefined,

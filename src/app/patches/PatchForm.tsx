@@ -11,7 +11,7 @@ export interface PatchPurchaseOption {
   items: { id: number; productName: string }[];
 }
 
-export function PatchForm({ purchases }: { purchases: PatchPurchaseOption[] }) {
+export function PatchForm({ purchases, couriers }: { purchases: PatchPurchaseOption[]; couriers: { id: number; name: string }[] }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -20,7 +20,7 @@ export function PatchForm({ purchases }: { purchases: PatchPurchaseOption[] }) {
   const selected = purchases.find((p) => String(p.id) === purchaseId);
   const [itemIds, setItemIds] = useState<number[]>(selected ? selected.items.map((i) => i.id) : []);
   const [tracking, setTracking] = useState("");
-  const [courier, setCourier] = useState("");
+  const [courierId, setCourierId] = useState("");
   const [notes, setNotes] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
 
@@ -38,7 +38,7 @@ export function PatchForm({ purchases }: { purchases: PatchPurchaseOption[] }) {
         purchaseId: Number(purchaseId),
         itemIds,
         tracking: tracking || undefined,
-        courier: courier || undefined,
+        courierId: courierId ? Number(courierId) : null,
         notes: notes || undefined,
         photoIds: photos.map((p) => p.id),
       });
@@ -78,7 +78,13 @@ export function PatchForm({ purchases }: { purchases: PatchPurchaseOption[] }) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className="label">{t("patches.tracking")}</label><input className="input" value={tracking} onChange={(e) => setTracking(e.target.value)} /></div>
-        <div><label className="label">{t("patches.courier")}</label><input className="input" value={courier} onChange={(e) => setCourier(e.target.value)} /></div>
+        <div>
+          <label className="label">{t("patches.courier")}</label>
+          <select className="input" value={courierId} onChange={(e) => setCourierId(e.target.value)}>
+            <option value="">{t("pricer.f.choose")}</option>
+            {couriers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
       </div>
       <div><label className="label">{t("patches.notes")}</label><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
       <div><label className="label">{t("patches.photos")}</label><PhotoUpload photos={photos} onChange={setPhotos} /></div>
