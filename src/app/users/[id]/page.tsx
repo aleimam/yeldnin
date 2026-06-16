@@ -30,20 +30,20 @@ export default async function EditUserPage({
 
   return (
     <AppShell access={access} moduleKey="user_access" pageTitle={user.name} backHref="/users">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="max-w-2xl space-y-6">
         <ProfileForm
           user={{
             id: user.id,
             name: user.name,
+            fullName: user.fullName ?? "",
             email: user.email,
             tier: user.tier,
             active: user.active,
           }}
         />
         <PasswordForm userId={user.id} />
-      </div>
 
-      <form action={saveAccessAction} className="card mt-6 space-y-6 p-6">
+        <form action={saveAccessAction} className="card space-y-6 p-6">
         <input type="hidden" name="id" value={user.id} />
 
         <div>
@@ -67,7 +67,7 @@ export default async function EditUserPage({
         </div>
 
         <div>
-          <h2 className="font-semibold text-ink">Module access</h2>
+          <h2 className="font-semibold text-ink">Permissions</h2>
           {isAdminTier && (
             <p className="mt-1 text-xs text-amber-600">
               This user is {user.tier === "SUPER_ADMIN" ? "a Super Admin" : "an Admin"} and has full
@@ -100,7 +100,8 @@ export default async function EditUserPage({
         <button type="submit" className="btn-primary">
           Save all
         </button>
-      </form>
+        </form>
+      </div>
     </AppShell>
   );
 }

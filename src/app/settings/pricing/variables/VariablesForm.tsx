@@ -73,7 +73,7 @@ export function VariablesForm({ config }: { config: PricingConfig }) {
 
       <Group title={`${t("pricer.var.constants")} — ${t("pricer.supplements")}`}>
         <Num name="supplement.flatFee" label="Flat fee" value={config.supplement.flatFee} />
-        <Num name="supplement.fxFeeCoef" label="FX fee coef" value={config.supplement.fxFeeCoef} />
+        <Num name="supplement.fxFeeCoef" label="FX Fees" value={config.supplement.fxFeeCoef} />
         <Num name="supplement.innerMultiplier" label="Inner mult" value={config.supplement.innerMultiplier} />
         <Num name="supplement.weightFactor" label="Weight factor" value={config.supplement.weightFactor} />
         <Num name="supplement.dosageStep" label="Dosage step" value={config.supplement.dosageStep} />
@@ -86,11 +86,11 @@ export function VariablesForm({ config }: { config: PricingConfig }) {
       <Group title={`${t("pricer.var.constants")} — ${t("pricer.devices")}`}>
         <Num name="device.base" label="Base" value={config.device.base} />
         <Num name="device.inflation" label="Inflation" value={config.device.inflation} />
-        <Num name="device.fxFactor" label="FX factor" value={config.device.fxFactor} />
-        <Num name="device.perKg" label="Per kg" value={config.device.perKg} />
+        <Num name="device.fxFactor" label="VAT" value={config.device.fxFactor} />
+        <Num name="device.perKg" label="Weight Factor" value={config.device.perKg} />
         <Num name="device.handling" label="Handling" value={config.device.handling} />
         <Num name="device.margin" label="Margin" value={config.device.margin} />
-        <Num name="device.volumetricDivisor" label="Volumetric div" value={config.device.volumetricDivisor} />
+        <Num name="device.volumetricDivisor" label="Volumetric Weight" value={config.device.volumetricDivisor} />
         <Num name="device.maleSupportMultiplier" label={t("pricer.f.maleSupport")} value={config.device.maleSupportMultiplier} />
         <Num name="device.roundStep" label="Round step" value={config.device.roundStep} />
       </Group>

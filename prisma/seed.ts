@@ -136,6 +136,39 @@ async function main() {
     console.log(`    password: ${password}  (change after first login)\n`);
   }
 
+  // Starter footer pages (drafts) — only if none exist yet.
+  if ((await prisma.contentPage.count()) === 0) {
+    const adminId =
+      (await prisma.user.findFirst({ where: { tier: "SUPER_ADMIN" }, select: { id: true } }))?.id ??
+      (await prisma.user.findFirst({ select: { id: true } }))?.id;
+    if (adminId) {
+      const starters = [
+        { slug: "about", titleEn: "About Yeldn Health" },
+        { slug: "contact", titleEn: "Contact Us" },
+        { slug: "privacy", titleEn: "Privacy Policy" },
+        { slug: "terms", titleEn: "Terms of Service" },
+      ];
+      for (let i = 0; i < starters.length; i++) {
+        const s = starters[i];
+        await prisma.contentPage.create({
+          data: {
+            slug: s.slug,
+            titleEn: s.titleEn,
+            titleAr: "",
+            bodyEn: `# ${s.titleEn}\n\n_Draft — edit this page in Settings → Pages, then publish._`,
+            bodyAr: "",
+            visibility: "PUBLIC",
+            published: false, // drafts; publish to show in the footer
+            showInFooter: true,
+            showInMenu: true,
+            sortOrder: i + 1,
+            createdById: adminId,
+          },
+        });
+      }
+    }
+  }
+
   console.log("Seed complete.");
 }
 

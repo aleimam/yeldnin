@@ -4,6 +4,7 @@ import { TopBar } from "@/components/shell/TopBar";
 import { MAIN_MODULES, ADMIN_MODULES, type ModuleDef } from "@/lib/modules";
 import { requireUser } from "@/lib/auth/access";
 import { canAccessSettings } from "@/lib/module-sections";
+import { SiteFooter } from "@/components/shell/SiteFooter";
 import type { TFunction } from "@/i18n";
 
 function ModuleCard({ m, t }: { m: ModuleDef; t: TFunction }) {
@@ -63,14 +64,7 @@ export default async function DashboardPage() {
         )}
       </main>
 
-      <footer className="border-t border-line py-6">
-        <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-x-6 gap-y-2 px-4 text-sm text-muted">
-          <a href="#">{t("footer.about")}</a>
-          <a href="#">{t("footer.contact")}</a>
-          <a href="#">{t("footer.privacy")}</a>
-          <a href="#">{t("footer.terms")}</a>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

@@ -26,6 +26,7 @@ export async function createUserAction(
 ): Promise<FormState> {
   const access = await requireModule("user_access", "MANAGE");
   const name = String(formData.get("name") ?? "").trim();
+  const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const tier = String(formData.get("tier") ?? "MEMBER");
   const password = String(formData.get("password") ?? "");
@@ -40,7 +41,7 @@ export async function createUserAction(
 
   let newId: number;
   try {
-    const user = await createUser({ name, email, tier, password });
+    const user = await createUser({ name, fullName, email, tier, password });
     newId = user.id;
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Could not create user." };
@@ -57,6 +58,7 @@ export async function saveProfileAction(
   const access = await requireModule("user_access", "MANAGE");
   const id = Number(formData.get("id"));
   const name = String(formData.get("name") ?? "").trim();
+  const fullName = String(formData.get("fullName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const tier = String(formData.get("tier") ?? "MEMBER");
   const active = formData.get("active") === "on";
@@ -74,7 +76,7 @@ export async function saveProfileAction(
     }
   }
   try {
-    await updateUserProfile(id, { name, email, tier, active });
+    await updateUserProfile(id, { name, fullName, email, tier, active });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Could not save." };
   }

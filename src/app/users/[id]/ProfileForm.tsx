@@ -7,7 +7,7 @@ const initial: FormState = {};
 export function ProfileForm({
   user,
 }: {
-  user: { id: number; name: string; email: string; tier: string; active: boolean };
+  user: { id: number; name: string; fullName: string; email: string; tier: string; active: boolean };
 }) {
   const [state, action, pending] = useActionState(saveProfileAction, initial);
 
@@ -26,8 +26,12 @@ export function ProfileForm({
         </div>
       )}
       <div>
-        <label htmlFor="name" className="label">Name</label>
+        <label htmlFor="name" className="label">Display name</label>
         <input id="name" name="name" className="input" defaultValue={user.name} required />
+      </div>
+      <div>
+        <label htmlFor="fullName" className="label">Full name (official)</label>
+        <input id="fullName" name="fullName" className="input" defaultValue={user.fullName} />
       </div>
       <div>
         <label htmlFor="email" className="label">Email</label>

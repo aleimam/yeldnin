@@ -26,7 +26,8 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "exp.bankCollections", icon: "🏦", href: "/expenses/admin/bank-collections", minLevel: "MANAGE" },
   ],
   user_access: [
-    { labelKey: "module.user_access.name", icon: "👥", href: "/users" },
+    { labelKey: "users.users", icon: "👥", href: "/users" },
+    { labelKey: "users.teams", icon: "🤝", href: "/users/teams" },
   ],
   audit_log: [
     { labelKey: "audit.all", icon: "📜", href: "/audit" },
@@ -55,7 +56,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     labelKey: "settings.group.general",
     gateModule: "settings",
     gateLevel: "MANAGE",
-    items: [{ labelKey: "settings.appearance.title", icon: "🎨", href: "/settings/appearance" }],
+    items: [
+      { labelKey: "settings.appearance.title", icon: "🎨", href: "/settings/appearance" },
+      { labelKey: "pages.title", icon: "📄", href: "/settings/pages" },
+    ],
   },
   {
     labelKey: "settings.group.pricing",

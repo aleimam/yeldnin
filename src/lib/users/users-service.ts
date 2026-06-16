@@ -46,6 +46,7 @@ export async function getUserTier(id: number): Promise<string | null> {
 
 export async function createUser(input: {
   name: string;
+  fullName?: string;
   email: string;
   tier: string;
   password: string;
@@ -57,6 +58,7 @@ export async function createUser(input: {
   return prisma.user.create({
     data: {
       name: input.name.trim(),
+      fullName: input.fullName?.trim() || null,
       email,
       tier: isTier(input.tier) ? input.tier : "MEMBER",
       passwordHash,
@@ -66,7 +68,7 @@ export async function createUser(input: {
 
 export async function updateUserProfile(
   id: number,
-  input: { name: string; email: string; tier: string; active: boolean },
+  input: { name: string; fullName?: string; email: string; tier: string; active: boolean },
 ) {
   const email = input.email.trim().toLowerCase();
   const clash = await prisma.user.findFirst({
@@ -77,6 +79,7 @@ export async function updateUserProfile(
     where: { id },
     data: {
       name: input.name.trim(),
+      fullName: input.fullName?.trim() || null,
       email,
       tier: isTier(input.tier) ? input.tier : "MEMBER",
       active: input.active,

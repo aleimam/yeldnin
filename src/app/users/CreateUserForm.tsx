@@ -15,8 +15,12 @@ export function CreateUserForm() {
         </div>
       )}
       <div>
-        <label htmlFor="name" className="label">Name</label>
+        <label htmlFor="name" className="label">Display name</label>
         <input id="name" name="name" className="input" required />
+      </div>
+      <div>
+        <label htmlFor="fullName" className="label">Full name (official)</label>
+        <input id="fullName" name="fullName" className="input" />
       </div>
       <div>
         <label htmlFor="email" className="label">Email</label>

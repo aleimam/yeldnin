@@ -60,7 +60,9 @@
       "Bash(git mv *)",
       "Bash(git -c core.autocrlf=false commit -q -m 'Pricing: rename to /pricing, Enter-submit forms, layout reorder, device round-up *)",
       "Bash(git -c core.autocrlf=false commit -q -m 'Pricing #4: apply Excel final markup \\(x1.06, round up to 10\\) to supplements *)",
-      "Bash(git -c core.autocrlf=false commit -q -m 'Fix appearance upload \\(Server Action body limit\\) + Pricing notes/photos layout *)"
+      "Bash(git -c core.autocrlf=false commit -q -m 'Fix appearance upload \\(Server Action body limit\\) + Pricing notes/photos layout *)",
+      "Bash(grep -vE \"^\\\\s*$\")",
+      "Bash(git -c core.autocrlf=false commit -q -m '8-task batch: content pages CMS, teams, official fullName, fixes *)"
     ]
   }
 }

@@ -27,6 +27,7 @@ model User {
   id           Int      @id @default(autoincrement())
   uid          String?  @unique
   name         String
+  fullName     String? // official full name (for documents); `name` is the display name
   email        String   @unique
   passwordHash String
   tier         String   @default("MEMBER") // UserTier as string for SQLite portability
@@ -352,6 +353,28 @@ model MonthlyReconciliationNote {
   updatedAt   DateTime @updatedAt
 
   @@unique([year, month])
+}
+
+// ─── Content pages (admin-authored static pages; public at /p/[slug]) ─────────
+
+model ContentPage {
+  id           Int      @id @default(autoincrement())
+  slug         String   @unique // url-safe: [a-z0-9-]
+  titleEn      String
+  titleAr      String   @default("")
+  bodyEn       String   @default("") // Markdown
+  bodyAr       String   @default("") // Markdown
+  visibility   String   @default("PUBLIC") // "PUBLIC" | "INTERNAL"
+  published    Boolean  @default(false)
+  showInFooter Boolean  @default(true)
+  showInMenu   Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdById  Int
+  createdAt    DateTime @default(now())
+  updatedById  Int?
+  updatedAt    DateTime @updatedAt
+
+  @@index([published])
 }
 
 // ─── Audit log (cross-module activity trail) ──────────────────────────────────
