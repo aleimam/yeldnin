@@ -44,45 +44,72 @@ export async function getUserTier(id: number): Promise<string | null> {
   return u?.tier ?? null;
 }
 
-export async function createUser(input: {
+export interface UserProfileInput {
   name: string;
   fullName?: string;
+  username?: string;
   email: string;
   tier: string;
-  password: string;
-}) {
+  primaryPhone?: string;
+  secondaryPhone?: string;
+  yeldnPhone?: string;
+  avatarUrl?: string | null;
+}
+
+const clean = (s?: string) => s?.trim() || null;
+
+async function assertUsernameFree(username: string | null, exceptId?: number) {
+  if (!username) return;
+  const clash = await prisma.user.findFirst({
+    where: { username, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { id: true },
+  });
+  if (clash) throw new Error("That username is already taken.");
+}
+
+export async function createUser(input: UserProfileInput & { password: string }) {
   const email = input.email.trim().toLowerCase();
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) throw new Error("A user with that email already exists.");
+  if (await prisma.user.findUnique({ where: { email } })) {
+    throw new Error("A user with that email already exists.");
+  }
+  const username = clean(input.username);
+  await assertUsernameFree(username);
   const passwordHash = await hashPassword(input.password);
   return prisma.user.create({
     data: {
       name: input.name.trim(),
-      fullName: input.fullName?.trim() || null,
+      fullName: clean(input.fullName),
+      username,
       email,
       tier: isTier(input.tier) ? input.tier : "MEMBER",
       passwordHash,
+      primaryPhone: clean(input.primaryPhone),
+      secondaryPhone: clean(input.secondaryPhone),
+      yeldnPhone: clean(input.yeldnPhone),
+      avatarUrl: input.avatarUrl || null,
     },
   });
 }
 
-export async function updateUserProfile(
-  id: number,
-  input: { name: string; fullName?: string; email: string; tier: string; active: boolean },
-) {
+export async function updateUserProfile(id: number, input: UserProfileInput & { active: boolean }) {
   const email = input.email.trim().toLowerCase();
-  const clash = await prisma.user.findFirst({
-    where: { email, id: { not: id } },
-  });
+  const clash = await prisma.user.findFirst({ where: { email, id: { not: id } }, select: { id: true } });
   if (clash) throw new Error("A user with that email already exists.");
+  const username = clean(input.username);
+  await assertUsernameFree(username, id);
   return prisma.user.update({
     where: { id },
     data: {
       name: input.name.trim(),
-      fullName: input.fullName?.trim() || null,
+      fullName: clean(input.fullName),
+      username,
       email,
       tier: isTier(input.tier) ? input.tier : "MEMBER",
       active: input.active,
+      primaryPhone: clean(input.primaryPhone),
+      secondaryPhone: clean(input.secondaryPhone),
+      yeldnPhone: clean(input.yeldnPhone),
+      avatarUrl: input.avatarUrl ?? null,
     },
   });
 }

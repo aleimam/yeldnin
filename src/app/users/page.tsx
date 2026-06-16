@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { listUsers } from "@/lib/users/users-service";
+import { assetUrl } from "@/lib/assets/assets-service";
 
 const TIER_LABEL: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -41,7 +42,15 @@ export default async function UsersPage() {
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-canvas/60">
                 <td className="td">
-                  <Link href={`/users/${u.id}`} className="font-medium text-brand hover:underline">
+                  <Link href={`/users/${u.id}`} className="flex items-center gap-2.5 font-medium text-brand hover:underline">
+                    {assetUrl(u.avatarUrl) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={assetUrl(u.avatarUrl)!} alt="" className="h-7 w-7 rounded-full border border-line object-cover" />
+                    ) : (
+                      <span className="grid h-7 w-7 place-items-center rounded-full bg-canvas text-xs text-muted">
+                        {u.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                     {u.name}
                   </Link>
                 </td>

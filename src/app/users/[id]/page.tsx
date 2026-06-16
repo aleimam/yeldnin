@@ -4,10 +4,10 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getUserDetail, listTeams } from "@/lib/users/users-service";
 import { MAIN_MODULES, ADMIN_MODULES } from "@/lib/modules";
-import { LEVELS } from "@/lib/auth/access-logic";
-import { saveAccessAction } from "../actions";
+import type { Level } from "@/lib/auth/access-logic";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
+import { AccessForm } from "./AccessForm";
 
 export default async function EditUserPage({
   params,
@@ -24,9 +24,9 @@ export default async function EditUserPage({
   ]);
   if (!user) notFound();
 
-  const teamSet = new Set(user.teamMembers.map((tm) => tm.team.key));
-  const levelOf = new Map(user.modulePerms.map((p) => [p.moduleKey, p.level]));
   const isAdminTier = user.tier === "ADMIN" || user.tier === "SUPER_ADMIN";
+  const initialLevels: Record<string, Level> = {};
+  for (const p of user.modulePerms) initialLevels[p.moduleKey] = p.level as Level;
 
   return (
     <AppShell access={access} moduleKey="user_access" pageTitle={user.name} backHref="/users">
@@ -36,71 +36,29 @@ export default async function EditUserPage({
             id: user.id,
             name: user.name,
             fullName: user.fullName ?? "",
+            username: user.username ?? "",
             email: user.email,
             tier: user.tier,
             active: user.active,
+            primaryPhone: user.primaryPhone ?? "",
+            secondaryPhone: user.secondaryPhone ?? "",
+            yeldnPhone: user.yeldnPhone ?? "",
+            avatarUrl: user.avatarUrl ?? null,
           }}
         />
         <PasswordForm userId={user.id} />
-
-        <form action={saveAccessAction} className="card space-y-6 p-6">
-        <input type="hidden" name="id" value={user.id} />
-
-        <div>
-          <h2 className="font-semibold text-ink">Teams</h2>
-          <div className="mt-3 flex flex-wrap gap-3">
-            {teams.map((team) => (
-              <label
-                key={team.key}
-                className="flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm"
-              >
-                <input
-                  type="checkbox"
-                  name="team"
-                  value={team.key}
-                  defaultChecked={teamSet.has(team.key)}
-                />
-                {team.name}
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h2 className="font-semibold text-ink">Permissions</h2>
-          {isAdminTier && (
-            <p className="mt-1 text-xs text-amber-600">
-              This user is {user.tier === "SUPER_ADMIN" ? "a Super Admin" : "an Admin"} and has full
-              access to every module regardless of the levels below.
-            </p>
-          )}
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {[...MAIN_MODULES, ...ADMIN_MODULES].map((m) => (
-              <div key={m.key} className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2">
-                <span className="flex items-center gap-2 text-sm text-ink">
-                  <span>{m.icon}</span>
-                  {t(`module.${m.key}.name`)}
-                </span>
-                <select
-                  name={`level.${m.key}`}
-                  defaultValue={levelOf.get(m.key) ?? "NONE"}
-                  className="input w-32"
-                >
-                  {LEVELS.map((lvl) => (
-                    <option key={lvl} value={lvl}>
-                      {lvl.charAt(0) + lvl.slice(1).toLowerCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <button type="submit" className="btn-primary">
-          Save all
-        </button>
-        </form>
+        <AccessForm
+          userId={user.id}
+          teams={teams.map((tm) => ({ key: tm.key, name: tm.name }))}
+          modules={[...MAIN_MODULES, ...ADMIN_MODULES].map((m) => ({
+            key: m.key,
+            icon: m.icon,
+            name: t(`module.${m.key}.name`),
+          }))}
+          initialTeamKeys={user.teamMembers.map((tm) => tm.team.key)}
+          initialLevels={initialLevels}
+          isAdminTier={isAdminTier}
+        />
       </div>
     </AppShell>
   );

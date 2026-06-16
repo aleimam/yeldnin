@@ -17,6 +17,8 @@
   "common.cancel": "Cancel",
   "common.delete": "Delete",
   "common.edit": "Edit",
+  "common.yes": "Yes",
+  "common.no": "No",
   "common.notifications": "Notifications",
   "common.settings": "Settings",
 
@@ -50,7 +52,7 @@
   "pricer.f.productName": "Product name",
   "pricer.f.importedFrom": "Imported from",
   "pricer.f.supplier": "Supplier",
-  "pricer.f.purchasePrice": "Purchase price (USD)",
+  "pricer.f.purchasePrice": "Purchase Price",
   "pricer.f.count": "Count",
   "pricer.f.dailyDose": "Daily dose",
   "pricer.f.weight": "Weight (g)",
@@ -72,6 +74,15 @@
   "pricer.hist.price": "Price",
   "pricer.hist.deletedBadge": "deleted",
   "pricer.delete": "Delete",
+  "pricer.details": "Details",
+  "pricer.detail.price": "Price",
+  "pricer.detail.inputs": "Inputs",
+  "pricer.deletePermanent": "Delete permanently",
+  "pricer.deletePermanentConfirm": "Permanently delete this calculation? This cannot be undone.",
+  "pricer.deletePermanentConfirm2": "Are you sure? This erases the record and its photos forever.",
+  "pricer.purgeAll": "Clear all history",
+  "pricer.purgeConfirm": "Permanently delete ALL calculation history? This cannot be undone.",
+  "pricer.purgeConfirm2": "Are you absolutely sure? Every record and photo will be erased.",
   "pricer.empty": "No calculations yet.",
   "pricer.var.title": "Pricing variables",
   "pricer.var.fx": "FX (USD → EGP)",
@@ -97,7 +108,7 @@
   "exp.accounts": "Accounts",
   "exp.audit": "Audit log",
   "exp.admin": "Admin",
-  "exp.new": "New entry",
+  "exp.new": "Add Expense",
   "exp.amount": "Amount (EGP)",
   "exp.category": "Category",
   "exp.note": "Note",
@@ -220,7 +231,8 @@
 
   "login.title": "Sign in to YeldnIN",
   "login.email": "Email",
+  "login.identifier": "Email or username",
   "login.password": "Password",
   "login.submit": "Sign in",
-  "login.error": "Invalid email or password."
+  "login.error": "Invalid email/username or password."
 }

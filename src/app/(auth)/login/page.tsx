@@ -34,13 +34,13 @@ export default async function LoginPage({
 
         <form method="POST" action="/api/login" className="space-y-4">
           <div>
-            <label htmlFor="email" className="label">
-              {t("login.email")}
+            <label htmlFor="identifier" className="label">
+              {t("login.identifier")}
             </label>
             <input
-              id="email"
-              name="email"
-              type="email"
+              id="identifier"
+              name="identifier"
+              type="text"
               autoComplete="username"
               required
               className="input"

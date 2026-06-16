@@ -10,8 +10,11 @@ import {
   createSupplementCalculation,
   createDeviceCalculation,
   softDeleteCalculation,
+  hardDeleteCalculation,
+  hardDeleteAllHistory,
   getCalculation,
 } from "@/lib/pricing/pricing-service";
+import { writeAudit } from "@/lib/audit";
 
 export type CalcResult =
   | { ok: true; price: number; id: number }
@@ -66,5 +69,25 @@ export async function deleteCalculationAction(id: number): Promise<void> {
     return;
   }
   await softDeleteCalculation(id, access.user.id);
+  revalidatePath("/pricing/history");
+}
+
+/** Permanently remove one calculation. Managers only. */
+export async function hardDeleteCalculationAction(id: number): Promise<void> {
+  const access = await requireModule("pricing", "MANAGE");
+  const calc = await getCalculation(id);
+  if (!calc) return;
+  await hardDeleteCalculation(id);
+  await writeAudit(access.user.id, "pricing", "calc.hardDelete", "pricingCalculation", id, {
+    productName: calc.productName,
+  });
+  revalidatePath("/pricing/history");
+}
+
+/** Permanently wipe the entire calculation history. Managers only. */
+export async function purgeHistoryAction(): Promise<void> {
+  const access = await requireModule("pricing", "MANAGE");
+  await hardDeleteAllHistory();
+  await writeAudit(access.user.id, "pricing", "calc.purgeAll", "pricingCalculation", "all");
   revalidatePath("/pricing/history");
 }

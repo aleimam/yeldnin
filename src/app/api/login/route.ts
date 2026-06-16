@@ -39,14 +39,18 @@ export async function POST(req: Request) {
   }
 
   const form = await req.formData();
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  // Accept either an email or a username in the same box ("identifier").
+  // Fall back to the legacy "email" field name for older cached pages.
+  const identifier = String(form.get("identifier") ?? form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
 
   const fail = () => seeOther("/login?error=1");
 
-  if (!email || !password) return fail();
+  if (!identifier || !password) return fail();
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findFirst({
+    where: { OR: [{ email: identifier.toLowerCase() }, { username: identifier }] },
+  });
   // Always run a comparison (constant-ish time) even when the user is missing.
   const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !user.active || user.archivedAt || !ok) return fail();

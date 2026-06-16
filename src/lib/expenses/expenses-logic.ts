@@ -1,7 +1,7 @@
 // Pure, dependency-free Expenses business logic. Unit-tested.
 // No DB, no "server-only" — safe to import anywhere.
 
-export const EDIT_WINDOW_DAYS = 15;
+export const EDIT_WINDOW_DAYS = 7;
 
 // Traffic-light thresholds for reconciliation difference (absolute value, EGP).
 export const RECON_THRESHOLDS = { GREEN_MAX: 5000, YELLOW_MAX: 25000 };

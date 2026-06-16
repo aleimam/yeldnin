@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { deleteAsset } from "@/lib/assets/assets-service";
 import {
   computeSupplementPrice,
   computeDevicePrice,
@@ -110,4 +111,22 @@ export async function softDeleteCalculation(id: number, byUserId: number) {
     where: { id },
     data: { deletedAt: new Date(), deletedById: byUserId },
   });
+}
+
+/** Permanently delete one calculation + its photo blobs (manager-only). */
+export async function hardDeleteCalculation(id: number) {
+  const calc = await prisma.pricingCalculation.findUnique({
+    where: { id },
+    include: { photos: { select: { assetId: true } } },
+  });
+  if (!calc) return;
+  await prisma.pricingCalculation.delete({ where: { id } }); // cascades photo rows
+  for (const p of calc.photos) await deleteAsset(p.assetId);
+}
+
+/** Permanently delete the entire calculation history + all photo blobs. */
+export async function hardDeleteAllHistory() {
+  const photos = await prisma.pricingPhoto.findMany({ select: { assetId: true } });
+  await prisma.pricingCalculation.deleteMany({}); // cascades all photo rows
+  for (const p of photos) await deleteAsset(p.assetId);
 }

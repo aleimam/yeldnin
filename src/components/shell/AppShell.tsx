@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { SidebarProvider } from "./SidebarContext";
+import { TitleSetter } from "./TitleSetter";
+import { getPlatformSettings } from "@/lib/settings/settings-service";
 import type { Access, SessionUser } from "@/lib/auth/access";
 import { sectionsFor, visibleSettingsGroups, SIDEBAR_COOKIE } from "@/lib/module-sections";
 
@@ -25,7 +27,7 @@ export async function AppShell({
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const store = await cookies();
+  const [store, settings] = await Promise.all([cookies(), getPlatformSettings()]);
   const initialCollapsed = store.get(SIDEBAR_COOKIE)?.value === "collapsed";
 
   const isSettings = moduleKey === "settings";
@@ -39,6 +41,7 @@ export async function AppShell({
 
   return (
     <SidebarProvider initialCollapsed={initialCollapsed}>
+      <TitleSetter appName={settings.appName} />
       <TopBar user={access.user} activeModuleKey={moduleKey} />
       <div className="mx-auto flex max-w-7xl">
         {hasNav && <Sidebar sections={sections} groups={groups} />}

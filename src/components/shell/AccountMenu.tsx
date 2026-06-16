@@ -9,16 +9,18 @@ const TIER_LABEL: Record<string, string> = {
   MEMBER: "Member",
 };
 
-/** Gear-triggered account menu: user info, Settings link, Sign out. */
+/** Avatar-triggered account menu: user info, Settings link, Sign out. */
 export function AccountMenu({
   name,
   email,
   tier,
+  avatarUrl,
   showSettings,
 }: {
   name: string;
   email: string;
   tier: string;
+  avatarUrl: string | null;
   showSettings: boolean;
 }) {
   const t = useT();
@@ -29,20 +31,33 @@ export function AccountMenu({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="text-muted hover:text-ink"
+        className="grid h-8 w-8 place-items-center overflow-hidden rounded-full border border-line bg-canvas text-muted hover:text-ink"
         aria-label={t("common.settings")}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        ⚙️
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+        ) : (
+          <span>⚙️</span>
+        )}
       </button>
 
       {open && (
         <div className="absolute end-0 z-40 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
-          <div className="border-b border-line px-3 py-3">
-            <div className="truncate text-sm font-medium text-ink">{name}</div>
-            <div className="truncate text-xs text-muted">{email}</div>
-            <span className="role-badge mt-1 inline-block">{TIER_LABEL[tier] ?? tier}</span>
+          <div className="flex items-center gap-3 border-b border-line px-3 py-3">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-canvas text-lg">👤</span>
+            )}
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium text-ink">{name}</div>
+              <div className="truncate text-xs text-muted">{email}</div>
+              <span className="role-badge mt-1 inline-block">{TIER_LABEL[tier] ?? tier}</span>
+            </div>
           </div>
 
           <div className="p-1.5">

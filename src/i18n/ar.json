@@ -17,6 +17,8 @@
   "common.cancel": "إلغاء",
   "common.delete": "حذف",
   "common.edit": "تعديل",
+  "common.yes": "نعم",
+  "common.no": "لا",
   "common.notifications": "الإشعارات",
   "common.settings": "الإعدادات",
 
@@ -50,7 +52,7 @@
   "pricer.f.productName": "اسم المنتج",
   "pricer.f.importedFrom": "مستورد من",
   "pricer.f.supplier": "المورّد",
-  "pricer.f.purchasePrice": "سعر الشراء (دولار)",
+  "pricer.f.purchasePrice": "سعر الشراء",
   "pricer.f.count": "العدد",
   "pricer.f.dailyDose": "الجرعة اليومية",
   "pricer.f.weight": "الوزن (جم)",
@@ -72,6 +74,15 @@
   "pricer.hist.price": "السعر",
   "pricer.hist.deletedBadge": "محذوف",
   "pricer.delete": "حذف",
+  "pricer.details": "التفاصيل",
+  "pricer.detail.price": "السعر",
+  "pricer.detail.inputs": "المدخلات",
+  "pricer.deletePermanent": "حذف نهائي",
+  "pricer.deletePermanentConfirm": "حذف هذه العملية نهائيًا؟ لا يمكن التراجع عن ذلك.",
+  "pricer.deletePermanentConfirm2": "هل أنت متأكد؟ سيتم محو السجل وصوره نهائيًا.",
+  "pricer.purgeAll": "مسح كل السجل",
+  "pricer.purgeConfirm": "حذف كل سجل الحسابات نهائيًا؟ لا يمكن التراجع عن ذلك.",
+  "pricer.purgeConfirm2": "هل أنت متأكد تمامًا؟ سيتم محو كل سجل وصورة.",
   "pricer.empty": "لا توجد حسابات بعد.",
   "pricer.var.title": "متغيرات التسعير",
   "pricer.var.fx": "سعر الصرف (دولار → جنيه)",
@@ -97,7 +108,7 @@
   "exp.accounts": "الحسابات",
   "exp.audit": "سجل التدقيق",
   "exp.admin": "الإدارة",
-  "exp.new": "إدخال جديد",
+  "exp.new": "إضافة مصروف",
   "exp.amount": "المبلغ (ج.م)",
   "exp.category": "الفئة",
   "exp.note": "ملاحظة",
@@ -220,7 +231,8 @@
 
   "login.title": "تسجيل الدخول إلى يلدن",
   "login.email": "البريد الإلكتروني",
+  "login.identifier": "البريد الإلكتروني أو اسم المستخدم",
   "login.password": "كلمة المرور",
   "login.submit": "تسجيل الدخول",
-  "login.error": "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+  "login.error": "البريد الإلكتروني/اسم المستخدم أو كلمة المرور غير صحيحة."
 }

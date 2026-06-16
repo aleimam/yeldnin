@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
@@ -15,9 +16,14 @@ export default async function ExpensesDashboard() {
   const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
   const maxBar = Math.max(1, ...d.byMonth.map((m) => Math.max(m.expenses, m.transfers)));
 
-  return (
-    <AppShell access={access} moduleKey="expenses">
+  const canCreate = access.canModule("expenses", "OPERATE");
 
+  return (
+    <AppShell
+      access={access}
+      moduleKey="expenses"
+      actions={canCreate ? <Link href="/expenses/transactions/new" className="btn-primary">+ {t("exp.new")}</Link> : null}
+    >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="card p-5">
           <div className="text-sm text-muted">{t("exp.monthExpenses")}</div>

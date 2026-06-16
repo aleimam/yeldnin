@@ -63,11 +63,9 @@ export async function TopBar({
               <img src={darkLogo!} alt={settings.appName} className="hidden h-7 w-auto dark:block" />
             </>
           ) : (
-            <>
-              <span className="grid h-7 w-7 place-items-center rounded-md bg-brand text-brand-fg">✦</span>
-              <span className="text-lg font-bold text-ink">{settings.appName}</span>
-            </>
+            <span className="grid h-7 w-7 place-items-center rounded-md bg-brand text-brand-fg">✦</span>
           )}
+          <span className="text-lg font-bold text-ink">{settings.appName}</span>
           <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-medium text-muted">
             v{settings.version}
           </span>
@@ -97,7 +95,13 @@ export async function TopBar({
             <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
           </div>
           <button aria-label={t("common.notifications")} className="text-muted hover:text-ink">🔔</button>
-          <AccountMenu name={user.name} email={user.email} tier={user.tier} showSettings={showSettings} />
+          <AccountMenu
+            name={user.name}
+            email={user.email}
+            tier={user.tier}
+            avatarUrl={assetUrl(user.avatarUrl)}
+            showSettings={showSettings}
+          />
         </div>
       </div>
     </header>

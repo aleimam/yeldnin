@@ -1,6 +1,5 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
 import { validatePasswordStrength } from "@/lib/auth/password";
 import {
@@ -12,7 +11,6 @@ import {
   activeSuperAdminCount,
   getUserTier,
 } from "@/lib/users/users-service";
-import { MODULES } from "@/lib/modules";
 import { writeAudit } from "@/lib/audit";
 
 export interface FormState {
@@ -20,69 +18,63 @@ export interface FormState {
   ok?: boolean;
 }
 
+interface ProfilePayload {
+  name: string;
+  fullName?: string;
+  username?: string;
+  email: string;
+  tier: string;
+  primaryPhone?: string;
+  secondaryPhone?: string;
+  yeldnPhone?: string;
+  avatarId?: string | null;
+}
+export type UserResult = { ok: true; id: number } | { ok: false; error: string };
+
 export async function createUserAction(
-  _prev: FormState,
-  formData: FormData,
-): Promise<FormState> {
+  p: ProfilePayload & { password: string },
+): Promise<UserResult> {
   const access = await requireModule("user_access", "MANAGE");
-  const name = String(formData.get("name") ?? "").trim();
-  const fullName = String(formData.get("fullName") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const tier = String(formData.get("tier") ?? "MEMBER");
-  const password = String(formData.get("password") ?? "");
-
-  if (!name) return { error: "Name is required." };
-  if (!email) return { error: "Email is required." };
-  const pwErr = validatePasswordStrength(password);
-  if (pwErr) return { error: pwErr };
-  if (tier === "SUPER_ADMIN" && access.user.tier !== "SUPER_ADMIN") {
-    return { error: "Only a Super Admin can grant the Super Admin tier." };
+  if (!p.name?.trim()) return { ok: false, error: "Name is required." };
+  if (!p.email?.trim()) return { ok: false, error: "Email is required." };
+  const pwErr = validatePasswordStrength(p.password);
+  if (pwErr) return { ok: false, error: pwErr };
+  if (p.tier === "SUPER_ADMIN" && access.user.tier !== "SUPER_ADMIN") {
+    return { ok: false, error: "Only a Super Admin can grant the Super Admin tier." };
   }
-
-  let newId: number;
   try {
-    const user = await createUser({ name, fullName, email, tier, password });
-    newId = user.id;
+    const user = await createUser({ ...p, avatarUrl: p.avatarId ?? null });
+    await writeAudit(access.user.id, "user_access", "user.create", "user", user.id, { email: p.email });
+    revalidatePath("/users");
+    return { ok: true, id: user.id };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not create user." };
+    return { ok: false, error: e instanceof Error ? e.message : "Could not create user." };
   }
-  await writeAudit(access.user.id, "user_access", "user.create", "user", newId, { email, tier });
-  revalidatePath("/users");
-  redirect(`/users/${newId}`);
 }
 
 export async function saveProfileAction(
-  _prev: FormState,
-  formData: FormData,
-): Promise<FormState> {
+  p: ProfilePayload & { id: number; active: boolean },
+): Promise<UserResult> {
   const access = await requireModule("user_access", "MANAGE");
-  const id = Number(formData.get("id"));
-  const name = String(formData.get("name") ?? "").trim();
-  const fullName = String(formData.get("fullName") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const tier = String(formData.get("tier") ?? "MEMBER");
-  const active = formData.get("active") === "on";
-
-  if (!name) return { error: "Name is required." };
-  if (!email) return { error: "Email is required." };
-  if (tier === "SUPER_ADMIN" && access.user.tier !== "SUPER_ADMIN") {
-    return { error: "Only a Super Admin can grant the Super Admin tier." };
+  if (!p.name?.trim()) return { ok: false, error: "Name is required." };
+  if (!p.email?.trim()) return { ok: false, error: "Email is required." };
+  if (p.tier === "SUPER_ADMIN" && access.user.tier !== "SUPER_ADMIN") {
+    return { ok: false, error: "Only a Super Admin can grant the Super Admin tier." };
   }
-  // Don't let the last active Super Admin be demoted or deactivated (self-lockout).
-  const currentTier = await getUserTier(id);
-  if (currentTier === "SUPER_ADMIN" && (tier !== "SUPER_ADMIN" || !active)) {
+  const currentTier = await getUserTier(p.id);
+  if (currentTier === "SUPER_ADMIN" && (p.tier !== "SUPER_ADMIN" || !p.active)) {
     if ((await activeSuperAdminCount()) <= 1) {
-      return { error: "You can't demote or deactivate the last Super Admin." };
+      return { ok: false, error: "You can't demote or deactivate the last Super Admin." };
     }
   }
   try {
-    await updateUserProfile(id, { name, fullName, email, tier, active });
+    await updateUserProfile(p.id, { ...p, avatarUrl: p.avatarId ?? null });
+    await writeAudit(access.user.id, "user_access", "user.profile.update", "user", p.id, { tier: p.tier });
+    revalidatePath(`/users/${p.id}`);
+    return { ok: true, id: p.id };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Could not save." };
+    return { ok: false, error: e instanceof Error ? e.message : "Could not save." };
   }
-  await writeAudit(access.user.id, "user_access", "user.profile.update", "user", id, { tier, active });
-  revalidatePath(`/users/${id}`);
-  return { ok: true };
 }
 
 export async function setPasswordAction(
@@ -100,19 +92,14 @@ export async function setPasswordAction(
 }
 
 /** Save teams + per-module access levels in one go ("Save all"). */
-export async function saveAccessAction(formData: FormData): Promise<void> {
+export async function saveAccessAction(payload: {
+  userId: number;
+  teamKeys: string[];
+  levels: Record<string, string>;
+}): Promise<void> {
   const access = await requireModule("user_access", "MANAGE");
-  const id = Number(formData.get("id"));
-
-  const teamKeys = formData.getAll("team").map(String);
-
-  const levels: Record<string, string> = {};
-  for (const m of MODULES) {
-    levels[m.key] = String(formData.get(`level.${m.key}`) ?? "NONE");
-  }
-
-  await setUserTeams(id, teamKeys);
-  await setUserModuleLevels(id, levels);
-  await writeAudit(access.user.id, "user_access", "user.access.update", "user", id);
-  revalidatePath(`/users/${id}`);
+  await setUserTeams(payload.userId, payload.teamKeys);
+  await setUserModuleLevels(payload.userId, payload.levels);
+  await writeAudit(access.user.id, "user_access", "user.access.update", "user", payload.userId);
+  revalidatePath(`/users/${payload.userId}`);
 }

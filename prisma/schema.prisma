@@ -24,11 +24,15 @@ enum UserTier {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  uid          String?  @unique
-  name         String
-  fullName     String? // official full name (for documents); `name` is the display name
-  email        String   @unique
+  id             Int      @id @default(autoincrement())
+  uid            String?  @unique
+  name           String
+  fullName       String? // official full name (for documents); `name` is the display name
+  username       String? // optional login handle (login with username OR email); uniqueness enforced in code
+  email          String   @unique
+  primaryPhone   String?
+  secondaryPhone String?
+  yeldnPhone     String?
   passwordHash String
   tier         String   @default("MEMBER") // UserTier as string for SQLite portability
   locale       String   @default("en")

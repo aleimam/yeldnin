@@ -18,6 +18,7 @@ export interface SessionUser {
   tier: Tier;
   locale: string;
   teamKeys: string[];
+  avatarUrl: string | null; // asset id, or null
 }
 
 export interface Access {
@@ -54,6 +55,7 @@ export const getAccess = cache(async (): Promise<Access> => {
     tier,
     locale: user.locale,
     teamKeys: user.teamMembers.map((tm) => tm.team.key),
+    avatarUrl: user.avatarUrl ?? null,
   };
 
   const moduleLevel = (moduleKey: string): Level =>
