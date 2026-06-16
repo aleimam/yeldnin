@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useT } from "@/i18n/client";
 import { SHAPES, PACKAGING, SIZES } from "@/lib/pricing/pricing-logic";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { Toggle } from "@/components/Toggle";
 import { calcSupplementAction } from "./actions";
 
 type Errors = Record<string, string>;
@@ -135,10 +136,9 @@ export function SupplementCalculator({ suppliers }: { suppliers: SupplierOption[
               {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </Field>
-          <label className="flex items-center gap-2 self-end pb-2 text-sm text-ink">
-            <input type="checkbox" checked={f.maleSupport} onChange={(e) => set("maleSupport", e.target.checked)} />
-            {t("pricer.f.maleSupport")}
-          </label>
+          <div className="flex items-center self-end pb-2">
+            <Toggle checked={f.maleSupport} onChange={(v) => set("maleSupport", v)} label={t("pricer.f.maleSupport")} />
+          </div>
         </div>
 
         {/* Notes + Photos side by side on desktop */}

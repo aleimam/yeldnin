@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { Toggle } from "@/components/Toggle";
 import { calcDeviceAction } from "./actions";
 import { suppliersFor, amazonIdFor, type SupplierOption } from "./SupplementCalculator";
 
@@ -98,10 +99,8 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
           </Field>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-ink">
-          <input type="checkbox" checked={f.maleSupport} onChange={(e) => set("maleSupport", e.target.checked)} />
-          {t("pricer.f.maleSupport")}
-        </label>
+        <Toggle checked={f.maleSupport} onChange={(v) => set("maleSupport", v)} label={t("pricer.f.maleSupport")} />
+
 
         {/* Notes + Photos side by side on desktop */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
