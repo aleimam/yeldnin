@@ -9,6 +9,7 @@ import { canAccessSettings } from "@/lib/module-sections";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { AccountMenu } from "./AccountMenu";
+import { GlobalSearch } from "./GlobalSearch";
 
 const TIER_LABEL: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
@@ -80,9 +81,7 @@ export async function TopBar({
         <ModuleSwitcher modules={switcherModules} activeKey={activeModuleKey} />
 
         {/* Global search */}
-        <div className="hidden flex-1 justify-center md:flex">
-          <input className="input max-w-sm" placeholder={t("common.search")} aria-label={t("common.search")} />
-        </div>
+        <GlobalSearch />
 
         {/* Right cluster */}
         <div className="ms-auto flex items-center gap-3">

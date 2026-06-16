@@ -38,6 +38,14 @@
   "notify.notConfigured": "لم يتم إعداد إشعارات الدفع على الخادم بعد.",
   "notify.error": "حدث خطأ ما. حاول مرة أخرى.",
 
+  "search.title": "بحث",
+  "search.searching": "جارٍ البحث…",
+  "search.noResults": "لا توجد نتائج",
+  "search.seeAll": "عرض كل النتائج",
+  "search.items": "العناصر",
+  "search.resultsFor": "نتائج البحث عن",
+  "search.prompt": "اكتب للبحث في كل أنحاء النظام.",
+
   "pref.appearance": "المظهر",
   "pref.language": "اللغة",
   "pref.theme": "السمة",

@@ -38,6 +38,14 @@
   "notify.notConfigured": "Push notifications aren't configured on the server yet.",
   "notify.error": "Something went wrong. Please try again.",
 
+  "search.title": "Search",
+  "search.searching": "Searching…",
+  "search.noResults": "No results",
+  "search.seeAll": "See all results",
+  "search.items": "Items",
+  "search.resultsFor": "Results for",
+  "search.prompt": "Type to search across the app.",
+
   "pref.appearance": "Appearance",
   "pref.language": "Language",
   "pref.theme": "Theme",
