@@ -80,10 +80,20 @@ export function SupplementCalculator({ suppliers }: { suppliers: SupplierOption[
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      {/* Calculated price — shown at the top on mobile */}
+      {price !== null && (
+        <div className="card mb-4 flex items-center justify-between p-4 sm:hidden">
+          <span className="text-sm text-muted">{t("pricer.sellingPrice")}</span>
+          <span className="text-2xl font-bold text-brand">{price.toLocaleString()} EGP</span>
+        </div>
+      )}
+
       <div className="card space-y-4 p-6">
-        {/* Row 1: Product name (2x) + Imported from */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label={t("pricer.f.productName")} className="sm:col-span-2">
+        {/* Fields: 2-up on mobile, 3-up on desktop. Product name spans full.
+            The field order makes the mobile pairs fall out naturally:
+            (Imported, Supplier) (Price, Weight) (Count, Dose) (Shape, Packaging) (Size, Male). */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Field label={t("pricer.f.productName")} className="col-span-2">
             <input className="input" value={f.productName} onChange={(e) => set("productName", e.target.value)} />
           </Field>
           <Field label={t("pricer.f.importedFrom")} error={errors.importedFrom}>
@@ -91,10 +101,6 @@ export function SupplementCalculator({ suppliers }: { suppliers: SupplierOption[
               {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-        </div>
-
-        {/* Row 2: Supplier, Price, Weight */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label={t("pricer.f.supplier")}>
             <select className="input" value={f.supplierId} onChange={(e) => set("supplierId", e.target.value)}>
               <option value="">{t("pricer.f.choose")}</option>
@@ -107,10 +113,6 @@ export function SupplementCalculator({ suppliers }: { suppliers: SupplierOption[
           <Field label={t("pricer.f.weight")} error={errors.weight}>
             <input type="number" step="any" className={err("weight")} value={f.weight} onChange={(e) => set("weight", e.target.value)} />
           </Field>
-        </div>
-
-        {/* Row 3: Count, Daily dose, Shape */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label={t("pricer.f.count")} error={errors.count}>
             <input type="number" step="any" className={err("count")} value={f.count} onChange={(e) => set("count", e.target.value)} />
           </Field>
@@ -122,10 +124,6 @@ export function SupplementCalculator({ suppliers }: { suppliers: SupplierOption[
               {SHAPES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </Field>
-        </div>
-
-        {/* Row 4: Packaging, Size, Male support */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label={t("pricer.f.packaging")} error={errors.packaging}>
             <select className={err("packaging")} value={f.packaging} onChange={(e) => set("packaging", e.target.value)}>
               {PACKAGING.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -158,7 +156,7 @@ export function SupplementCalculator({ suppliers }: { suppliers: SupplierOption[
         </button>
         {Object.keys(errors).length > 0 && <p className="text-sm text-red-600">{t("pricer.fixErrors")}</p>}
         {price !== null && (
-          <div className="text-lg text-ink">
+          <div className="hidden text-lg text-ink sm:block">
             {t("pricer.sellingPrice")}:{" "}
             <span className="text-2xl font-bold text-brand">{price.toLocaleString()} EGP</span>
           </div>

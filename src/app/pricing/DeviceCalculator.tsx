@@ -57,10 +57,19 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      {/* Calculated price — shown at the top on mobile */}
+      {price !== null && (
+        <div className="card mb-4 flex items-center justify-between p-4 sm:hidden">
+          <span className="text-sm text-muted">{t("pricer.sellingPrice")}</span>
+          <span className="text-2xl font-bold text-brand">{price.toLocaleString()} EGP</span>
+        </div>
+      )}
+
       <div className="card space-y-4 p-6">
-        {/* Row 1: Product name (2x) + Imported from */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label={t("pricer.f.productName")} className="sm:col-span-2">
+        {/* Identity & sourcing: 2-up on mobile (Imported|Supplier, Price|Weight),
+            3-up on desktop. Product name spans full width. */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Field label={t("pricer.f.productName")} className="col-span-2">
             <input className="input" value={f.productName} onChange={(e) => set("productName", e.target.value)} />
           </Field>
           <Field label={t("pricer.f.importedFrom")} error={errors.importedFrom}>
@@ -68,10 +77,6 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
               {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </Field>
-        </div>
-
-        {/* Row 2: Supplier, Price, Weight (kg) */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label={t("pricer.f.supplier")}>
             <select className="input" value={f.supplierId} onChange={(e) => set("supplierId", e.target.value)}>
               <option value="">{t("pricer.f.choose")}</option>
@@ -86,8 +91,8 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
           </Field>
         </div>
 
-        {/* Row 3: Dimensions in one line */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {/* Dimensions: always 3 across (one row) on mobile and desktop */}
+        <div className="grid grid-cols-3 gap-4">
           <Field label={t("pricer.f.length")} error={errors.lengthCm}>
             <input type="number" step="any" className={err("lengthCm")} value={f.lengthCm} onChange={(e) => set("lengthCm", e.target.value)} />
           </Field>
@@ -119,7 +124,7 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
         </button>
         {Object.keys(errors).length > 0 && <p className="text-sm text-red-600">{t("pricer.fixErrors")}</p>}
         {price !== null && (
-          <div className="text-lg text-ink">
+          <div className="hidden text-lg text-ink sm:block">
             {t("pricer.sellingPrice")}:{" "}
             <span className="text-2xl font-bold text-brand">{price.toLocaleString()} EGP</span>
           </div>

@@ -96,11 +96,11 @@ export function Sidebar({
   groups?: SidebarGroup[];
 }) {
   const t = useT();
-  const { collapsed, toggleCollapsed, drawerOpen, closeDrawer } = useSidebar();
+  const { collapsed, toggleCollapsed, drawerOpen, openDrawer, closeDrawer } = useSidebar();
 
   return (
     <>
-      {/* Desktop rail */}
+      {/* Desktop rail: collapses to icons / expands to names in place */}
       <aside
         className={`sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 flex-col border-e border-line bg-surface transition-[width] md:flex ${
           collapsed ? "w-16" : "w-56"
@@ -120,18 +120,37 @@ export function Sidebar({
         </button>
       </aside>
 
-      {/* Mobile drawer */}
+      {/* Mobile: a persistent icon rail; the expand button slides the names
+          panel over the content (the drawer below). */}
+      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-16 shrink-0 flex-col border-e border-line bg-surface md:hidden">
+        <div className="flex-1 overflow-y-auto">
+          <Body sections={sections} groups={groups} collapsed={true} />
+        </div>
+        <button
+          type="button"
+          onClick={openDrawer}
+          className="m-2 flex items-center justify-center rounded-lg px-3 py-2 text-muted hover:bg-canvas"
+          aria-label="Expand"
+          title="Expand"
+        >
+          <span>»</span>
+        </button>
+      </aside>
+
+      {/* Mobile names overlay (slides over content) */}
       {drawerOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={closeDrawer} />
           <aside className="absolute bottom-0 start-0 top-0 w-64 border-e border-line bg-surface shadow-xl">
             <div className="flex h-14 items-center justify-between border-b border-line px-3">
               <span className="font-semibold text-ink">{t("common.modules")}</span>
-              <button onClick={closeDrawer} className="text-muted hover:text-ink" aria-label="Close">
-                ✕
+              <button onClick={closeDrawer} className="text-muted hover:text-ink" aria-label="Collapse">
+                «
               </button>
             </div>
-            <Body sections={sections} groups={groups} collapsed={false} onNavigate={closeDrawer} />
+            <div className="overflow-y-auto">
+              <Body sections={sections} groups={groups} collapsed={false} onNavigate={closeDrawer} />
+            </div>
           </aside>
         </div>
       )}

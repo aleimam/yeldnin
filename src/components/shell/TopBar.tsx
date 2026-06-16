@@ -8,7 +8,6 @@ import { MODULES } from "@/lib/modules";
 import { canAccessSettings } from "@/lib/module-sections";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { ModuleSwitcher } from "./ModuleSwitcher";
-import { MobileMenuButton } from "./MobileMenuButton";
 import { AccountMenu } from "./AccountMenu";
 
 const TIER_LABEL: Record<string, string> = {
@@ -53,8 +52,6 @@ export async function TopBar({
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-surface/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
-        {activeModuleKey && <MobileMenuButton />}
-
         {/* Logo + name + version */}
         <Link href="/" className="flex items-center gap-2">
           {logo ? (
