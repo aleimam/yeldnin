@@ -1,8 +1,8 @@
 import "server-only";
 import webpush from "web-push";
 import { prisma } from "@/lib/db";
-import { isAdminTier, type Tier } from "@/lib/auth/access-logic";
-import type { PushPayload } from "./notify-logic";
+import { isAdminTier, type Tier, type Level } from "@/lib/auth/access-logic";
+import { isModuleOperator, type PushPayload } from "./notify-logic";
 
 // ── VAPID config (lazy: env may be absent in dev until keys are set) ─────────
 let configured = false;
@@ -78,4 +78,31 @@ export async function adminUserIds(): Promise<number[]> {
 
 export async function notifyAdmins(payload: PushPayload): Promise<void> {
   await sendToUsers(await adminUserIds(), payload);
+}
+
+/** Active users who should hear about a module event: admins + anyone with
+ *  >= `min` (default OPERATE) on one of `moduleKeys`. */
+export async function moduleOperatorIds(moduleKeys: string[], min: Level = "OPERATE"): Promise<number[]> {
+  const users = await prisma.user.findMany({
+    where: { active: true, archivedAt: null },
+    select: {
+      id: true,
+      tier: true,
+      modulePerms: { where: { moduleKey: { in: moduleKeys } }, select: { moduleKey: true, level: true } },
+    },
+  });
+  return users
+    .filter((u) =>
+      isModuleOperator(
+        u.tier as Tier,
+        u.modulePerms.map((p) => ({ moduleKey: p.moduleKey, level: p.level as Level })),
+        moduleKeys,
+        min,
+      ),
+    )
+    .map((u) => u.id);
+}
+
+export async function notifyModuleOperators(moduleKeys: string[], payload: PushPayload): Promise<void> {
+  await sendToUsers(await moduleOperatorIds(moduleKeys), payload);
 }

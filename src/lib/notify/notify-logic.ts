@@ -1,5 +1,7 @@
-// Pure payload builders for web-push notifications. Kept free of Prisma / I/O
-// so they can be unit-tested; the service layer decides who receives them.
+// Pure payload builders + recipient predicate for web-push notifications. Kept
+// free of Prisma / I/O so they can be unit-tested; the service layer loads the
+// users and sends.
+import { isAdminTier, levelMeets, type Level, type Tier } from "@/lib/auth/access-logic";
 
 export interface PushPayload {
   title: string;
@@ -37,4 +39,19 @@ export function itemsFlaggedPayload(count: number, flag: string): PushPayload {
     url: "/history",
     tag: `flag-${flag}`,
   };
+}
+
+/**
+ * Should this user receive an alert scoped to `moduleKeys`? Admin tiers always
+ * do; otherwise the user needs at least `min` (default OPERATE) on one of the
+ * modules — i.e. an operator who can actually act on it, not a passive viewer.
+ */
+export function isModuleOperator(
+  tier: Tier,
+  perms: { moduleKey: string; level: Level }[],
+  moduleKeys: string[],
+  min: Level = "OPERATE",
+): boolean {
+  if (isAdminTier(tier)) return true;
+  return perms.some((p) => moduleKeys.includes(p.moduleKey) && levelMeets(p.level, min));
 }
