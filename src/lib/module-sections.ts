@@ -42,7 +42,11 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "requests.title", icon: "🧾", href: "/requests" },
     { labelKey: "products.title", icon: "📦", href: "/products" },
   ],
-  purchasing: [{ labelKey: "products.title", icon: "📦", href: "/products" }],
+  purchasing: [
+    { labelKey: "purchasing.pool", icon: "🪣", href: "/purchasing/pool" },
+    { labelKey: "purchasing.purchases", icon: "🛒", href: "/purchasing/purchases" },
+    { labelKey: "products.title", icon: "📦", href: "/products" },
+  ],
   logistics: [
     { labelKey: "travelers.title", icon: "🧳", href: "/travelers" },
     { labelKey: "hubs.title", icon: "🏠", href: "/hubs" },

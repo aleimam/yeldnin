@@ -203,7 +203,8 @@ model Supplier {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  products Product[]
+  products  Product[]
+  purchases Purchase[]
 }
 
 // ─── Supply chain: master data ────────────────────────────────────────────────
@@ -429,6 +430,33 @@ model RequestPhoto {
   createdAt DateTime @default(now())
 
   @@index([requestId])
+}
+
+// Purchase (Purchasing) — drawn from the pending-request pool. Its contents are
+// the Items pointing at it (containerType=PURCHASE). destinationType: HUB (TRIP
+// once the Trip container exists). status mirrors the container flow.
+model Purchase {
+  id              Int       @id @default(autoincrement())
+  uid             String?   @unique // PUR<YY><MM><seq3>
+  scope           String
+  country         String
+  supplierId      Int?
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+  supplierName    String?
+  purchasePrice   Float?
+  destinationType String    @default("HUB")
+  destinationId   Int?
+  destinationName String?
+  notes           String?
+  status          String    @default("NEW") // NEW | DISPATCHED | DELIVERED | RECEIVED
+  archivedAt      DateTime?
+  createdById     Int?
+  createdAt       DateTime  @default(now())
+  updatedById     Int?
+  updatedAt       DateTime  @updatedAt
+
+  @@index([scope])
+  @@index([status])
 }
 
 model PricingCalculation {
