@@ -4,14 +4,14 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { createTripAction } from "./actions";
 
-export function TripForm({ travelers }: { travelers: { id: number; name: string }[] }) {
+export function TripForm({ travelers, countries }: { travelers: { id: number; name: string }[]; countries: string[] }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState({
     travelerId: travelers[0] ? String(travelers[0].id) : "",
-    country: "",
+    country: countries[0] ?? "",
     maxWeight: "",
     dealPricePerKg: "",
     lastReceivingDate: "",
@@ -51,7 +51,12 @@ export function TripForm({ travelers }: { travelers: { id: number; name: string 
             {travelers.map((tr) => <option key={tr.id} value={tr.id}>{tr.name}</option>)}
           </select>
         </div>
-        <div><label className="label">{t("trip.country")}</label><input className="input" value={f.country} onChange={(e) => set("country", e.target.value)} /></div>
+        <div>
+          <label className="label">{t("trip.country")}</label>
+          <select className="input" value={f.country} onChange={(e) => set("country", e.target.value)}>
+            {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
         <div><label className="label">{t("trip.maxWeight")}</label><input type="number" step="any" className="input" value={f.maxWeight} onChange={(e) => set("maxWeight", e.target.value)} /></div>
         <div><label className="label">{t("trip.dealPrice")}</label><input type="number" step="any" className="input" value={f.dealPricePerKg} onChange={(e) => set("dealPricePerKg", e.target.value)} /></div>
         <div><label className="label">{t("trip.lastReceiving")}</label><input type="date" className="input" value={f.lastReceivingDate} onChange={(e) => set("lastReceivingDate", e.target.value)} /></div>

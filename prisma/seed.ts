@@ -110,6 +110,14 @@ async function main() {
     if (!found) await prisma.expenseAccount.create({ data: { name, sortOrder: i } });
   }
 
+  // Countries (idempotent by name). Seeds the legacy regions; admins add more.
+  const COUNTRIES = ["USA", "UK", "EU"];
+  for (let i = 0; i < COUNTRIES.length; i++) {
+    const name = COUNTRIES[i];
+    const found = await prisma.country.findFirst({ where: { name } });
+    if (!found) await prisma.country.create({ data: { name, sortOrder: i } });
+  }
+
   // Default super-admin (only if there are no users at all)
   const userCount = await prisma.user.count();
   if (userCount === 0) {

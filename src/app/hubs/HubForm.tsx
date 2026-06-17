@@ -3,7 +3,6 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
-import { COUNTRIES } from "@/lib/hubs/hubs-logic";
 import { createHubAction, saveHubAction, archiveHubAction } from "./actions";
 
 export interface HubInitial {
@@ -15,7 +14,7 @@ export interface HubInitial {
   photos: UploadedPhoto[];
 }
 
-export function HubForm({ mode, initial }: { mode: "create" | "edit"; initial: HubInitial }) {
+export function HubForm({ mode, initial, countries }: { mode: "create" | "edit"; initial: HubInitial; countries: string[] }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -24,7 +23,7 @@ export function HubForm({ mode, initial }: { mode: "create" | "edit"; initial: H
   const [active, setActive] = useState(initial.active);
   const [photos, setPhotos] = useState<UploadedPhoto[]>(initial.photos);
   const originalIds = new Set(initial.photos.map((p) => p.id));
-  const [f, setF] = useState({ name: initial.name, country: initial.country || "USA", notes: initial.notes });
+  const [f, setF] = useState({ name: initial.name, country: initial.country || countries[0] || "", notes: initial.notes });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   function submit() {
@@ -58,7 +57,7 @@ export function HubForm({ mode, initial }: { mode: "create" | "edit"; initial: H
         <div>
           <label className="label">{t("hubs.country")}</label>
           <select className="input" value={f.country} onChange={(e) => set("country", e.target.value)}>
-            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {countries.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
       </div>

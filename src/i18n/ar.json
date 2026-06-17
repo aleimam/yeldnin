@@ -103,6 +103,8 @@
   "sla.expected": "التسليم المتوقع",
   "common.selectAll": "تحديد الكل",
   "common.deleteConfirm": "حذف هذا العنصر؟ سيُخفى مع الاحتفاظ به في السجلات.",
+  "countries.title": "الدول",
+  "countries.name": "الدولة",
   "xrep.orders": "الطلبات المُسلَّمة",
   "xrep.product": "المنتج",
   "xrep.selling": "البيع",

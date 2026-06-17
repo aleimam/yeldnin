@@ -224,6 +224,19 @@ model Supplier {
   purchases Purchase[]
 }
 
+// Managed country list for trips, hubs, and purchases (admin-editable). The
+// pricing calculator's import regions (USA/UK/EU + supplier availability) are a
+// separate concept and are NOT driven by this table.
+model Country {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  enabled    Boolean   @default(true)
+  sortOrder  Int       @default(0)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
 // ─── Supply chain: master data ────────────────────────────────────────────────
 
 // Product catalog. scope: EGV | XOONX | PERSONAL.

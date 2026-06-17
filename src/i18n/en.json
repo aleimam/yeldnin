@@ -103,6 +103,8 @@
   "sla.expected": "Expected delivery",
   "common.selectAll": "Select all",
   "common.deleteConfirm": "Delete this item? It will be hidden but kept in records.",
+  "countries.title": "Countries",
+  "countries.name": "Country",
   "xrep.orders": "Delivered orders",
   "xrep.product": "Product",
   "xrep.selling": "Selling",

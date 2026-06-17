@@ -2,7 +2,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
-import { COUNTRIES } from "@/lib/hubs/hubs-logic";
 import type { Scope } from "@/lib/products/products-logic";
 import { createPurchaseAction } from "./actions";
 
@@ -19,19 +18,21 @@ export function PurchaseForm({
   suppliers,
   hubs,
   trips,
+  countries,
 }: {
   allowedScopes: Scope[];
   pool: PoolRow[];
   suppliers: { id: number; label: string }[];
   hubs: { id: number; name: string; country: string }[];
   trips: { id: number; name: string }[];
+  countries: string[];
 }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<string>(allowedScopes[0] ?? "EGV");
-  const [country, setCountry] = useState<string>("USA");
+  const [country, setCountry] = useState<string>(countries[0] ?? "");
   const [supplierId, setSupplierId] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [destinationType, setDestinationType] = useState("HUB");
@@ -78,7 +79,7 @@ export function PurchaseForm({
         <div>
           <label className="label">{t("purchasing.country")}</label>
           <select className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
-            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            {countries.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div>

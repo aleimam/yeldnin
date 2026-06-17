@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getHub } from "@/lib/hubs/hubs-service";
+import { listCountryOptions } from "@/lib/countries/countries-service";
 import { HubForm } from "../HubForm";
 
 export default async function EditHubPage({ params }: { params: Promise<{ id: string }> }) {
@@ -11,11 +12,12 @@ export default async function EditHubPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const h = await getHub(Number(id));
   if (!h) notFound();
-  const t = await getT();
+  const [t, countries] = await Promise.all([getT(), listCountryOptions()]);
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={h.name} backHref="/hubs">
       <HubForm
         mode="edit"
+        countries={countries}
         initial={{
           id: h.id,
           name: h.name,

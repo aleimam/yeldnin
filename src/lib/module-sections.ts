@@ -118,6 +118,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     labelKey: "settings.group.logistics",
     items: [
       { labelKey: "suppliers.title", icon: "🚚", href: "/settings/logistics", module: "settings", capability: "manageModules" },
+      { labelKey: "countries.title", icon: "🌍", href: "/settings/countries", module: "settings", capability: "manageModules" },
       { labelKey: "sla.title", icon: "⏱️", href: "/settings/sla", module: "settings", capability: "manageModules", adminOnly: true },
     ],
   },
