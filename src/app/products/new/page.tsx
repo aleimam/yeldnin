@@ -18,9 +18,9 @@ export default async function NewProductPage() {
       <ProductForm
         mode="create"
         allowedScopes={manageable}
-        suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s) }))}
+        suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s), regions: [s.availableUSA && "USA", s.availableUK && "UK", s.availableEU && "EU"].filter(Boolean) as string[] }))}
         initial={{
-          name: "", sku: "", scope: "", type: "SUPPLEMENT", defaultSupplierId: "",
+          name: "", sku: "", scope: "", type: "SUPPLEMENT", originRegion: "", defaultSupplierId: "",
           weightG: "", purchasePrice: "", sellingPrice: "", size: "", grade: "", url: "", notes: "", isMaleSupport: false, active: true, photos: [],
         }}
       />

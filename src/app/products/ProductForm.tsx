@@ -10,6 +10,7 @@ import { createProductAction, saveProductAction, archiveProductAction } from "./
 export interface SupplierOpt {
   id: number;
   label: string;
+  regions: string[]; // USA | UK | EU availability
 }
 export interface ProductInitial {
   id?: number;
@@ -17,6 +18,7 @@ export interface ProductInitial {
   sku: string;
   scope: string;
   type: string;
+  originRegion: string; // "" | USA | UK | EU
   defaultSupplierId: string; // "" or number-as-string
   weightG: string;
   purchasePrice: string;
@@ -54,6 +56,7 @@ export function ProductForm({
     sku: initial.sku,
     scope: initial.scope || allowedScopes[0] || "",
     type: initial.type,
+    originRegion: initial.originRegion,
     defaultSupplierId: initial.defaultSupplierId,
     weightG: initial.weightG,
     purchasePrice: initial.purchasePrice,
@@ -65,6 +68,15 @@ export function ProductForm({
     isMaleSupport: initial.isMaleSupport,
   });
   const set = (k: keyof typeof f, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
+  // Default Supplier choices are gated by the product's origin region. Changing
+  // the origin clears a supplier that no longer serves it.
+  const availableSuppliers = f.originRegion ? suppliers.filter((s) => s.regions.includes(f.originRegion)) : suppliers;
+  const setOrigin = (v: string) =>
+    setF((p) => {
+      const sel = suppliers.find((s) => String(s.id) === p.defaultSupplierId);
+      const keep = !v || !sel || sel.regions.includes(v);
+      return { ...p, originRegion: v, defaultSupplierId: keep ? p.defaultSupplierId : "" };
+    });
 
   function submit() {
     setError(null);
@@ -74,6 +86,7 @@ export function ProductForm({
       sku: f.sku || undefined,
       scope: f.scope,
       type: f.type,
+      originRegion: f.originRegion || null,
       defaultSupplierId: f.defaultSupplierId ? Number(f.defaultSupplierId) : null,
       weightG: f.weightG ? Number(f.weightG) : null,
       purchasePrice: f.purchasePrice ? Number(f.purchasePrice) : null,
@@ -126,10 +139,16 @@ export function ProductForm({
             {PRODUCT_TYPES.map((ty) => <option key={ty} value={ty}>{t(`ptype.${ty}`)}</option>)}
           </select>
         </Field>
+        <Field label={t("products.origin")}>
+          <select className="input" value={f.originRegion} onChange={(e) => setOrigin(e.target.value)}>
+            <option value="">{t("products.originAny")}</option>
+            {["USA", "UK", "EU"].map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </Field>
         <Field label={t("products.supplier")}>
           <select className="input" value={f.defaultSupplierId} onChange={(e) => set("defaultSupplierId", e.target.value)}>
             <option value="">{t("pricer.f.choose")}</option>
-            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {availableSuppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </Field>
         <Field label={t("products.weight")}><input type="number" step="any" className="input" value={f.weightG} onChange={(e) => set("weightG", e.target.value)} /></Field>

@@ -23,13 +23,14 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       <ProductForm
         mode="edit"
         allowedScopes={manageable}
-        suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s) }))}
+        suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s), regions: [s.availableUSA && "USA", s.availableUK && "UK", s.availableEU && "EU"].filter(Boolean) as string[] }))}
         initial={{
           id: product.id,
           name: product.name,
           sku: product.sku ?? "",
           scope: product.scope,
           type: product.type,
+          originRegion: product.originRegion ?? "",
           defaultSupplierId: product.defaultSupplierId ? String(product.defaultSupplierId) : "",
           weightG: product.weightG != null ? String(product.weightG) : "",
           purchasePrice: product.purchasePrice != null ? String(product.purchasePrice) : "",

@@ -10,6 +10,7 @@ export interface ProductInput {
   sku?: string | null;
   scope: Scope;
   type: ProductType;
+  originRegion?: string | null;
   defaultSupplierId?: number | null;
   weightG?: number | null;
   purchasePrice?: number | null;
@@ -147,6 +148,7 @@ function dataFrom(input: ProductInput) {
     sku: clean(input.sku),
     scope: input.scope,
     type: input.type,
+    originRegion: clean(input.originRegion),
     defaultSupplierId: input.defaultSupplierId ?? null,
     weightG: input.weightG ?? null,
     purchasePrice: input.purchasePrice ?? null,

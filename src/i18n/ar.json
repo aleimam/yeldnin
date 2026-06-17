@@ -415,6 +415,8 @@
   "products.uid": "المعرّف",
   "products.name": "الاسم",
   "products.sku": "SKU",
+  "products.origin": "المنشأ",
+  "products.originAny": "كل المناشئ",
   "products.scope": "النطاق",
   "products.type": "النوع",
   "products.supplier": "المورّد الافتراضي",

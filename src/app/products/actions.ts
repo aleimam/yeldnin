@@ -15,6 +15,7 @@ export interface ProductPayload {
   sku?: string;
   scope: string;
   type: string;
+  originRegion?: string | null;
   defaultSupplierId?: number | null;
   weightG?: number | null;
   size?: string;

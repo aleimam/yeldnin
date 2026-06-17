@@ -271,6 +271,7 @@ model Product {
   sku               String?
   scope             String
   type              String
+  originRegion      String?   // USA | UK | EU — gates the Default Supplier choices
   defaultSupplierId Int?
   defaultSupplier   Supplier? @relation(fields: [defaultSupplierId], references: [id])
   weightG           Float?

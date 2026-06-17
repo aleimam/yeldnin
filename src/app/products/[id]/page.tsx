@@ -35,6 +35,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             {product.uid && <div><span className="text-muted">{t("products.uid")}: </span><span className="font-mono text-ink">{product.uid}</span></div>}
             <div><span className="text-muted">{t("products.scope")}: </span><span className="text-ink">{t(`scope.${product.scope}`)}</span></div>
             <div><span className="text-muted">{t("products.type")}: </span><span className="text-ink">{t(`ptype.${product.type}`)}</span></div>
+            {product.originRegion && <div><span className="text-muted">{t("products.origin")}: </span><span className="text-ink">{product.originRegion}</span></div>}
             {product.defaultSupplier && <div><span className="text-muted">{t("products.supplier")}: </span><span className="text-ink">{product.defaultSupplier.name}</span></div>}
             {product.sku && <div><span className="text-muted">{t("products.sku")}: </span><span className="text-ink">{product.sku}</span></div>}
             {product.weightG != null && <div><span className="text-muted">{t("products.weight")}: </span><span className="text-ink">{product.weightG}</span></div>}

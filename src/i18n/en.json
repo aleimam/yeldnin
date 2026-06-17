@@ -415,6 +415,8 @@
   "products.uid": "UID",
   "products.name": "Name",
   "products.sku": "SKU",
+  "products.origin": "Origin",
+  "products.originAny": "Any origin",
   "products.scope": "Scope",
   "products.type": "Type",
   "products.supplier": "Default supplier",
