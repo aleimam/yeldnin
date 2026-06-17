@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { categoryLabel } from "@/lib/expenses/category-label";
 import { createTransactionAction, updateTransactionAction } from "./actions";
 
 export function ExpenseForm({
@@ -57,7 +58,7 @@ export function ExpenseForm({
         <label className="label">{t("exp.category")}</label>
         <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>{categoryLabel(t, c.name)}</option>
           ))}
         </select>
       </div>

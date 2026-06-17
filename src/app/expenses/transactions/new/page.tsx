@@ -3,6 +3,7 @@ import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCategories, listTransactions } from "@/lib/expenses/expenses-service";
+import { categoryLabel } from "@/lib/expenses/category-label";
 import { ExpenseForm } from "../../ExpenseForm";
 
 export default async function NewTransactionPage() {
@@ -23,7 +24,7 @@ export default async function NewTransactionPage() {
             {recent.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2 text-sm">
                 <Link href={`/expenses/transactions/${r.id}`} className="text-brand hover:underline">
-                  {r.categoryNameSnapshot}
+                  {categoryLabel(t, r.categoryNameSnapshot)}
                 </Link>
                 <span className="text-muted">{Math.round(r.amount).toLocaleString()} EGP</span>
               </li>

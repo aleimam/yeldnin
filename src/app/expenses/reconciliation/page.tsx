@@ -44,7 +44,7 @@ export default async function ReconciliationPage({
         <div className="flex justify-between border-t border-line pt-3"><span className="text-muted">{t("exp.difference")}</span><span className="font-bold">{egp(result.difference)}</span></div>
         <div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${RECON_COLOR[result.status]}`}>
-            {result.status}
+            {t(`reconstatus.${result.status}`)}
           </span>
         </div>
       </div>

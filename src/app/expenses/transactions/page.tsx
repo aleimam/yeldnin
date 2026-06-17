@@ -3,6 +3,7 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listTransactions } from "@/lib/expenses/expenses-service";
+import { categoryLabel } from "@/lib/expenses/category-label";
 import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TransactionsPage() {
@@ -36,7 +37,7 @@ export default async function TransactionsPage() {
                   </Link>
                 </td>
                 <td className="td">
-                  {r.categoryNameSnapshot}
+                  {categoryLabel(t, r.categoryNameSnapshot)}
                   {r.attachments.length > 0 && <span className="ms-2 text-xs text-muted">📎{r.attachments.length}</span>}
                 </td>
                 <td className="td">

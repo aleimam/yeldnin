@@ -30,7 +30,7 @@ export default async function PatchDetailPage({ params }: { params: Promise<{ id
               <div><span className="text-muted">{t("patches.tracking")}: </span><span className="text-ink">{patch.tracking ?? "—"}</span></div>
               <div><span className="text-muted">{t("patches.courier")}: </span><span className="text-ink">{patch.courier ?? "—"}</span></div>
               <div><span className="text-muted">{t("fx.handlingFee")}: </span><HandlingFeeDisplay fee={patch.handlingFee} currency={patch.handlingFeeCurrency} /></div>
-              <div><span className="text-muted">{t("patches.status")}: </span><span className="text-ink">{patch.status}</span></div>
+              <div><span className="text-muted">{t("patches.status")}: </span><span className="text-ink">{t(`patchstatus.${patch.status}`)}</span></div>
             </div>
             {canManage && <PatchStatusButtons id={patch.id} status={patch.status} />}
           </div>

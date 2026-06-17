@@ -151,10 +151,10 @@ async function main() {
       (await prisma.user.findFirst({ select: { id: true } }))?.id;
     if (adminId) {
       const starters = [
-        { slug: "about", titleEn: "About Yeldn Health" },
-        { slug: "contact", titleEn: "Contact Us" },
-        { slug: "privacy", titleEn: "Privacy Policy" },
-        { slug: "terms", titleEn: "Terms of Service" },
+        { slug: "about", titleEn: "About Yeldn Health", titleAr: "عن يلدن هيلث" },
+        { slug: "contact", titleEn: "Contact Us", titleAr: "اتصل بنا" },
+        { slug: "privacy", titleEn: "Privacy Policy", titleAr: "سياسة الخصوصية" },
+        { slug: "terms", titleEn: "Terms of Service", titleAr: "شروط الخدمة" },
       ];
       for (let i = 0; i < starters.length; i++) {
         const s = starters[i];
@@ -162,9 +162,9 @@ async function main() {
           data: {
             slug: s.slug,
             titleEn: s.titleEn,
-            titleAr: "",
+            titleAr: s.titleAr,
             bodyEn: `# ${s.titleEn}\n\n_Draft — edit this page in Settings → Pages, then publish._`,
-            bodyAr: "",
+            bodyAr: `# ${s.titleAr}\n\n_مسودة — حرّر هذه الصفحة من الإعدادات ← الصفحات ثم انشرها._`,
             visibility: "PUBLIC",
             published: false, // drafts; publish to show in the footer
             showInFooter: true,

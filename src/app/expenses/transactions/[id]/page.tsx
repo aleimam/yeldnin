@@ -5,6 +5,7 @@ import { getT } from "@/i18n/server";
 import { prisma } from "@/lib/db";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getTransaction, listCategories } from "@/lib/expenses/expenses-service";
+import { categoryLabel } from "@/lib/expenses/category-label";
 import { canEditExpense } from "@/lib/expenses/expenses-logic";
 import { ExpenseForm } from "../../ExpenseForm";
 import { deleteTransactionAction, deleteAttachmentAction } from "../../actions";
@@ -35,7 +36,7 @@ export default async function TransactionDetailPage({
   const mimeOf = new Map(assets.map((a) => [a.id, a.mimeType]));
 
   return (
-    <AppShell access={access} moduleKey="expenses" pageTitle={`#${tx.id} · ${tx.categoryNameSnapshot}`} backHref="/expenses/transactions">
+    <AppShell access={access} moduleKey="expenses" pageTitle={`#${tx.id} · ${categoryLabel(t, tx.categoryNameSnapshot)}`} backHref="/expenses/transactions">
 
       <div className="grid gap-6 lg:grid-cols-2">
         {editable ? (
@@ -46,7 +47,7 @@ export default async function TransactionDetailPage({
           />
         ) : (
           <div className="card space-y-3 p-6">
-            <div><span className="text-muted">{t("exp.category")}: </span>{tx.categoryNameSnapshot}</div>
+            <div><span className="text-muted">{t("exp.category")}: </span>{categoryLabel(t, tx.categoryNameSnapshot)}</div>
             <div><span className="text-muted">{t("exp.amount")}: </span>{Math.round(tx.amount).toLocaleString()} EGP</div>
             {tx.note && <div><span className="text-muted">{t("exp.note")}: </span>{tx.note}</div>}
             <p className="text-sm text-amber-600">{t("exp.editWindowOver")}</p>

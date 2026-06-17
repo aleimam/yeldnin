@@ -36,7 +36,7 @@ export default async function PatchesPage() {
                 <td className="td text-muted">{p.supplierName ?? "—"} · {p.country}</td>
                 <td className="td text-muted">{p.destinationName ?? "—"}</td>
                 <td className="td text-muted">{p.tracking ?? "—"}</td>
-                <td className="td">{p.status}</td>
+                <td className="td">{t(`patchstatus.${p.status}`)}</td>
               </tr>
             ))}
             {rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("patches.empty")}</td></tr>}

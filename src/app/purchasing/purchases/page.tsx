@@ -38,7 +38,7 @@ export default async function PurchasesPage() {
                 <td className="td text-muted">{t(`scope.${p.scope}`)}</td>
                 <td className="td text-muted">{p.supplierName ?? "—"} · {p.country}</td>
                 <td className="td text-muted">{p.destinationName ?? "—"}</td>
-                <td className="td">{p.status}</td>
+                <td className="td">{t(`purchasestatus.${p.status}`)}</td>
               </tr>
             ))}
             {rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("purchasing.noPurchases")}</td></tr>}
