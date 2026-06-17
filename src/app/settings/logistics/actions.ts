@@ -3,9 +3,11 @@ import { revalidatePath } from "next/cache";
 import { requireCapability } from "@/lib/auth/access";
 import { saveSupplierBatch } from "@/lib/suppliers/suppliers-service";
 import { writeAudit } from "@/lib/audit";
+import { SLA_CLASSES } from "@/lib/sla/sla-logic";
 
 const on = (fd: FormData, k: string) => fd.get(k) === "on";
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
+const slaCls = (v: string): string | null => ((SLA_CLASSES as readonly string[]).includes(v) ? v : null);
 
 /** Save All for suppliers: parse rows, hand the batch to the service. */
 export async function saveSuppliersAction(fd: FormData): Promise<void> {
@@ -21,6 +23,7 @@ export async function saveSuppliersAction(fd: FormData): Promise<void> {
     availableUK: on(fd, `uk_${id}`),
     availableEU: on(fd, `eu_${id}`),
     active: on(fd, `active_${id}`),
+    slaClass: slaCls(str(fd, `slaClass_${id}`)),
   }));
 
   const newName = str(fd, "new_name");
@@ -31,6 +34,7 @@ export async function saveSuppliersAction(fd: FormData): Promise<void> {
         availableUSA: on(fd, "new_usa"),
         availableUK: on(fd, "new_uk"),
         availableEU: on(fd, "new_eu"),
+        slaClass: slaCls(str(fd, "new_slaClass")),
       }
     : null;
 

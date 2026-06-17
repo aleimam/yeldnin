@@ -116,7 +116,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
     // Interim: Suppliers lives under Settings until the real Logistics module exists.
     labelKey: "settings.group.logistics",
-    items: [{ labelKey: "suppliers.title", icon: "🚚", href: "/settings/logistics", module: "settings", capability: "manageModules" }],
+    items: [
+      { labelKey: "suppliers.title", icon: "🚚", href: "/settings/logistics", module: "settings", capability: "manageModules" },
+      { labelKey: "sla.title", icon: "⏱️", href: "/settings/sla", module: "settings", capability: "manageModules", adminOnly: true },
+    ],
   },
   {
     labelKey: "settings.group.xoonx",

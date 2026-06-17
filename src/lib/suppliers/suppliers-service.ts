@@ -32,6 +32,7 @@ export interface SupplierRow {
   availableUK: boolean;
   availableEU: boolean;
   active: boolean;
+  slaClass: string | null;
 }
 export interface NewSupplier {
   name: string;
@@ -39,6 +40,7 @@ export interface NewSupplier {
   availableUSA: boolean;
   availableUK: boolean;
   availableEU: boolean;
+  slaClass: string | null;
 }
 
 /** Apply a "Save All" batch: update/archive existing rows + optionally add one. */
@@ -58,6 +60,7 @@ export async function saveSupplierBatch(rows: SupplierRow[], add: NewSupplier | 
             availableUK: r.availableUK,
             availableEU: r.availableEU,
             active: r.active,
+            slaClass: r.slaClass,
           },
         }),
       );

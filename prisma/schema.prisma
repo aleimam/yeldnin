@@ -215,6 +215,7 @@ model Supplier {
   availableEU  Boolean   @default(false)
   contact      String?
   active       Boolean   @default(true)
+  slaClass     String?   // delivery SLA class: STANDARD (30d) | FAST (20d); null = unset
   archivedAt   DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -525,6 +526,7 @@ model Item {
   purchasePrice       Float?
   purchaseCurrency    String? // XOONX: USD|GBP|EUR for the purchase cost (EGP when null)
   receivedAt          DateTime? // set when status → HUB; drives the timers
+  promisedDeliveryAt  DateTime? // special order: delivery guarantee (createdAt + grace), frozen at creation
   transitAt           DateTime? // scheduled auto-advance → TRANSIT
   globalShippingAt    DateTime? // scheduled auto-advance → GLOBAL_SHIPPING
   notes               String?
@@ -735,6 +737,15 @@ model AccessPolicy {
 model WorkflowConfig {
   id        Int      @id @default(1)
   overrides String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
+// Singleton holding the special-order delivery SLA config: grace days per source
+// class (injection / standard / fast retailer) for each scope (EGV, XOONX) and
+// the risk window. `config` is JSON shaped as SlaSettings (lib/sla/sla-logic).
+model SlaConfig {
+  id        Int      @id @default(1)
+  config    String   @default("{}")
   updatedAt DateTime @updatedAt
 }
 

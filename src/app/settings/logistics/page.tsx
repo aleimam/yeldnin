@@ -8,7 +8,7 @@ export default async function LogisticsSettingsPage() {
   const access = await requireCapability("settings", "manageModules");
   const [t, suppliers] = await Promise.all([getT(), listSuppliers()]);
 
-  const cols = "sm:grid-cols-[1fr_1fr_150px_70px_70px]";
+  const cols = "sm:grid-cols-[1fr_1fr_150px_120px_70px_70px]";
 
   return (
     <AppShell access={access} moduleKey="settings" pageTitle={t("suppliers.title")} backHref="/settings">
@@ -19,6 +19,7 @@ export default async function LogisticsSettingsPage() {
           <span>{t("suppliers.name")}</span>
           <span>{t("suppliers.contact")}</span>
           <span>{t("suppliers.countries")}</span>
+          <span>{t("sla.class")}</span>
           <span>{t("suppliers.active")}</span>
           <span>{t("common.delete")}</span>
         </div>
@@ -32,6 +33,11 @@ export default async function LogisticsSettingsPage() {
               <label className="flex items-center gap-1"><input type="checkbox" name={`uk_${s.id}`} defaultChecked={s.availableUK} /> UK</label>
               <label className="flex items-center gap-1"><input type="checkbox" name={`eu_${s.id}`} defaultChecked={s.availableEU} /> EU</label>
             </div>
+            <select name={`slaClass_${s.id}`} defaultValue={s.slaClass ?? ""} className="input">
+              <option value="">—</option>
+              <option value="STANDARD">{t("sla.standard")}</option>
+              <option value="FAST">{t("sla.fast")}</option>
+            </select>
             <label className="flex sm:justify-center"><input type="checkbox" name={`active_${s.id}`} defaultChecked={s.active} /></label>
             <label className="flex sm:justify-center"><input type="checkbox" name={`remove_${s.id}`} /></label>
           </div>
@@ -46,6 +52,11 @@ export default async function LogisticsSettingsPage() {
             <label className="flex items-center gap-1"><input type="checkbox" name="new_uk" /> UK</label>
             <label className="flex items-center gap-1"><input type="checkbox" name="new_eu" /> EU</label>
           </div>
+          <select name="new_slaClass" defaultValue="" className="input">
+            <option value="">—</option>
+            <option value="STANDARD">{t("sla.standard")}</option>
+            <option value="FAST">{t("sla.fast")}</option>
+          </select>
         </div>
 
         <div className="pt-3">
