@@ -133,6 +133,8 @@
   "settings.group.pricing": "Pricing",
   "settings.group.expenses": "Expenses",
   "settings.group.logistics": "Logistics",
+  "settings.group.xoonx": "XOONX",
+  "settings.xoonx": "XOONX finance",
 
   "pricer.supplements": "Supplements",
   "pricer.devices": "Devices",

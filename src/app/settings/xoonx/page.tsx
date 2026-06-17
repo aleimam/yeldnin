@@ -1,12 +1,12 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireAdmin } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listExpenseCategories, getFxRates, getStaffShares } from "@/lib/xoonx/xoonx-finance-service";
 import { monthKey, FX_CURRENCIES } from "@/lib/xoonx/xoonx-finance-logic";
 import { AdminPanel } from "./AdminPanel";
 
-export default async function XoonxAdminPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
-  const access = await requireModule("xoonx", "MANAGE");
+export default async function XoonxSettingsPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+  const access = await requireAdmin();
   const sp = await searchParams;
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") ? sp.m! : monthKey(new Date());
 
@@ -18,7 +18,7 @@ export default async function XoonxAdminPage({ searchParams }: { searchParams: P
   ]);
 
   return (
-    <AppShell access={access} moduleKey="xoonx" pageTitle={t("xoonx.admin")}>
+    <AppShell access={access} moduleKey="settings" pageTitle={t("settings.xoonx")} backHref="/settings">
       <AdminPanel
         month={month}
         currencies={[...FX_CURRENCIES]}

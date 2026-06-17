@@ -133,6 +133,8 @@
   "settings.group.pricing": "التسعير",
   "settings.group.expenses": "المصروفات",
   "settings.group.logistics": "اللوجستيات",
+  "settings.group.xoonx": "XOONX",
+  "settings.xoonx": "إعدادات XOONX المالية",
 
   "pricer.supplements": "المكملات",
   "pricer.devices": "الأجهزة",

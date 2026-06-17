@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireAdmin } from "@/lib/auth/access";
 import {
   createExpenseCategory,
   renameExpenseCategory,
@@ -12,11 +12,23 @@ import {
 
 export type Result = { ok: true } | { ok: false; error: string };
 const fail = (e: unknown): Result => ({ ok: false, error: e instanceof Error ? e.message : "Something went wrong." });
-const guard = () => requireModule("xoonx", "MANAGE");
+const guard = () => requireAdmin();
 
 function revalidate() {
-  revalidatePath("/xoonx/admin");
+  revalidatePath("/settings/xoonx");
   revalidatePath("/xoonx/expenses");
+}
+
+/** Save all FX rates for the month at once (blanks / non-positive are skipped). */
+export async function setFxRatesAction(month: string, rates: { currency: string; rate: number }[]): Promise<Result> {
+  const a = await guard();
+  try {
+    for (const r of rates) if (r.rate > 0) await setFxRate(month, r.currency, r.rate, a.user.id);
+  } catch (e) {
+    return fail(e);
+  }
+  revalidatePath("/settings/xoonx");
+  return { ok: true };
 }
 
 export async function createCategoryAction(name: string): Promise<Result> {
@@ -61,16 +73,6 @@ export async function deleteCategoryAction(id: number): Promise<Result> {
   revalidate();
   return { ok: true };
 }
-export async function setFxRateAction(month: string, currency: string, rate: number): Promise<Result> {
-  const a = await guard();
-  try {
-    await setFxRate(month, currency, rate, a.user.id);
-  } catch (e) {
-    return fail(e);
-  }
-  revalidatePath("/xoonx/admin");
-  return { ok: true };
-}
 export async function setStaffSharesAction(shares: { userId: number; sharePct: number }[]): Promise<Result> {
   const a = await guard();
   try {
@@ -78,6 +80,6 @@ export async function setStaffSharesAction(shares: { userId: number; sharePct: n
   } catch (e) {
     return fail(e);
   }
-  revalidatePath("/xoonx/admin");
+  revalidatePath("/settings/xoonx");
   return { ok: true };
 }

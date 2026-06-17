@@ -46,7 +46,6 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "customers.title", icon: "🙋", href: "/customers?m=xoonx" },
     { labelKey: "xoonx.expenses", icon: "💵", href: "/xoonx/expenses" },
     { labelKey: "xoonx.reports", icon: "📈", href: "/xoonx/reports" },
-    { labelKey: "xoonx.admin", icon: "⚙️", href: "/xoonx/admin", minLevel: "MANAGE" },
   ],
   // Logistics holds the merged Purchasing + Logistics nav. Pool/Purchases are
   // gated by the (separate) `purchasing` permission; Patches…Hubs by `logistics`.
@@ -118,6 +117,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     // Interim: Suppliers lives under Settings until the real Logistics module exists.
     labelKey: "settings.group.logistics",
     items: [{ labelKey: "suppliers.title", icon: "🚚", href: "/settings/logistics", module: "settings", capability: "manageModules" }],
+  },
+  {
+    labelKey: "settings.group.xoonx",
+    items: [{ labelKey: "settings.xoonx", icon: "🌐", href: "/settings/xoonx", module: "settings", capability: "manageModules", adminOnly: true }],
   },
 ];
 
