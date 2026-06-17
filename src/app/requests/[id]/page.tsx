@@ -8,6 +8,8 @@ import { getRequest, getRequestItems } from "@/lib/requests/request-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { DeliverButton } from "../DeliverButton";
+import { slaForRequestItems } from "@/lib/sla/sla-service";
+import { SlaBadge } from "@/components/SlaBadge";
 
 export default async function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -18,6 +20,10 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   if (!req || !visible.includes(req.scope as never)) notFound();
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getRequestItems(req.id), getWorkflow()]);
   const canDeliver = req.scope === "XOONX" && access.canModule("xoonx", "OPERATE");
+  const isSpecial = req.type === "SPECIAL_ORDER";
+  const slaMap = await slaForRequestItems(items, req.deliveredAt);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
     <AppShell access={access} moduleKey={primaryRequestModule(access)} pageTitle={req.uid ?? `#${req.id}`} backHref="/requests">
@@ -64,15 +70,30 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.items")} ({items.length})</h2>
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-line"><th className="th">{t("requests.uid")}</th><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
+            <thead>
+              <tr className="border-b border-line">
+                <th className="th">{t("requests.uid")}</th>
+                <th className="th">{t("requests.product")}</th>
+                <th className="th">{t("requests.status")}</th>
+                {isSpecial && <th className="th">{t("sla.promised")}</th>}
+                {isSpecial && <th className="th">{t("sla.expected")}</th>}
+                {isSpecial && <th className="th">SLA</th>}
+              </tr>
+            </thead>
             <tbody className="divide-y divide-line">
-              {items.map((it) => (
-                <tr key={it.id}>
-                  <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
-                  <td className="td">{it.product.name}</td>
-                  <td className="td">{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
-                </tr>
-              ))}
+              {items.map((it) => {
+                const s = slaMap.get(it.id);
+                return (
+                  <tr key={it.id}>
+                    <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
+                    <td className="td">{it.product.name}</td>
+                    <td className="td">{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
+                    {isSpecial && <td className="td text-muted">{s ? fmt(s.promised) : "—"}</td>}
+                    {isSpecial && <td className="td text-muted">{s ? fmt(s.expected) : "—"}</td>}
+                    {isSpecial && <td className="td">{s ? <SlaBadge status={s.status} label={t(`sla.${s.status.toLowerCase()}`)} /> : "—"}</td>}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

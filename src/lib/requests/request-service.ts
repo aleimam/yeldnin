@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { createItems } from "@/lib/items/items-service";
 import { createCustomer } from "@/lib/customers/customers-service";
+import { getSla } from "@/lib/sla/sla-config-service";
+import { graceDays, sourceClass, promisedDate } from "@/lib/sla/sla-logic";
 
 export interface CreateRequestInput {
   type: string;
@@ -47,13 +49,31 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
       photos: photoAssetIds.length ? { create: photoAssetIds.map((assetId) => ({ assetId })) } : undefined,
     },
   });
+  // Special orders: snapshot each item's delivery promise (createdAt + grace).
+  const isSpecial = input.type === "SPECIAL_ORDER";
+  const promisedByProduct = new Map<number, Date>();
+  if (isSpecial) {
+    const [sla, prods] = await Promise.all([
+      getSla(),
+      prisma.product.findMany({
+        where: { id: { in: lines.map((l) => l.productId) } },
+        select: { id: true, type: true, defaultSupplier: { select: { slaClass: true } } },
+      }),
+    ]);
+    const now = new Date();
+    for (const p of prods) {
+      const grace = graceDays(input.scope, sourceClass(p.type, p.defaultSupplier?.slaClass ?? null), sla);
+      promisedByProduct.set(p.id, promisedDate(now, grace));
+    }
+  }
   for (const l of lines) {
     await createItems({
       productId: l.productId,
       scope: input.scope,
       count: l.count,
       requestId: request.id,
-      isSpecialOrder: input.type === "SPECIAL_ORDER",
+      isSpecialOrder: isSpecial,
+      promisedDeliveryAt: isSpecial ? promisedByProduct.get(l.productId) ?? null : null,
       sellingPrice: l.sellingPrice ?? null,
       purchasePrice: l.purchasePrice ?? null,
       purchaseCurrency: l.purchaseCurrency ?? null,
@@ -91,7 +111,7 @@ export function getRequestItems(requestId: number) {
   return prisma.item.findMany({
     where: { requestId },
     orderBy: { id: "asc" },
-    include: { product: { select: { name: true } } },
+    include: { product: { select: { name: true, type: true, defaultSupplier: { select: { slaClass: true } } } } },
   });
 }
 
