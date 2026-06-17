@@ -7,6 +7,7 @@ import { getEffectiveTheme, getColorMode } from "@/lib/prefs";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { EnterSubmit } from "@/components/EnterSubmit";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getPlatformSettings();
@@ -51,6 +52,7 @@ export default async function RootLayout({
       <body className="min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
         <ServiceWorkerRegister />
+        <EnterSubmit />
         <I18nProvider locale={locale}>{children}</I18nProvider>
       </body>
     </html>
