@@ -2,6 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { getSla } from "./sla-config-service";
 import { computeItemSla, type SlaSettings, type SlaStatus } from "./sla-logic";
+import { notifyModuleOperators } from "@/lib/notify/notify-service";
+import { slaAlertPayload } from "@/lib/notify/notify-logic";
 
 interface ItemRow {
   id: number;
@@ -94,4 +96,43 @@ export async function worstSlaByRequest(
     if (!cur || RANK[s] > RANK[cur]) out.set(it.requestId, s);
   }
   return out;
+}
+
+const ALERT_RANK: Record<string, number> = { RISK: 1, DELAYED: 2 };
+const arank = (s?: string | null) => (s ? (ALERT_RANK[s] ?? 0) : 0);
+
+/**
+ * Sweep special-order items and notify the order's module operators when an item
+ * first turns RISK and again when it turns DELAYED. `slaAlertedStatus` dedups so
+ * only a worsening transition re-alerts; recovery to HEALTHY resets it. Returns
+ * the number of alerts sent. Safe to run repeatedly (drive from the cron).
+ */
+export async function runSlaAlerts(now: Date = new Date()): Promise<number> {
+  const items = await prisma.item.findMany({
+    where: { isSpecialOrder: true },
+    select: { ...SLA_ITEM_SELECT, slaAlertedStatus: true },
+  });
+  if (!items.length) return 0;
+  const reqIds = [...new Set(items.map((i) => i.requestId).filter((x): x is number => x != null))];
+  const reqs = await prisma.request.findMany({
+    where: { id: { in: reqIds } },
+    select: { id: true, uid: true, deliveredAt: true, archivedAt: true },
+  });
+  const reqMap = new Map(reqs.map((r) => [r.id, r]));
+  const [sla, td] = await Promise.all([getSla(), tripDates(items as ItemRow[])]);
+  let alerted = 0;
+  for (const it of items) {
+    const req = it.requestId != null ? reqMap.get(it.requestId) : null;
+    if (!req || req.archivedAt) continue;
+    const status = compute(it as ItemRow, td, req.deliveredAt ?? null, now, sla).status;
+    if ((status === "RISK" || status === "DELAYED") && arank(status) > arank(it.slaAlertedStatus)) {
+      const modules = it.scope === "XOONX" ? ["xoonx"] : ["order_requests"];
+      await notifyModuleOperators(modules, slaAlertPayload({ uid: req.uid, status, requestId: req.id })).catch(() => {});
+      await prisma.item.update({ where: { id: it.id }, data: { slaAlertedStatus: status } });
+      alerted++;
+    } else if (status === "HEALTHY" && it.slaAlertedStatus) {
+      await prisma.item.update({ where: { id: it.id }, data: { slaAlertedStatus: null } });
+    }
+  }
+  return alerted;
 }

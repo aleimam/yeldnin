@@ -26,6 +26,12 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     rows.map((r) => r.id),
     new Map(rows.map((r) => [r.id, r.deliveredAt])),
   );
+  let slaRisk = 0;
+  let slaDelayed = 0;
+  for (const s of slaByReq.values()) {
+    if (s === "RISK") slaRisk++;
+    else if (s === "DELAYED") slaDelayed++;
+  }
 
   return (
     <AppShell
@@ -42,6 +48,13 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
           </div>
         ))}
       </div>
+
+      {(slaRisk > 0 || slaDelayed > 0) && (
+        <div className="mb-6 flex gap-3">
+          <div className="card flex-1 p-3 text-center"><div className="text-2xl font-bold text-amber-600">{slaRisk}</div><div className="text-xs text-muted">{t("sla.risk")}</div></div>
+          <div className="card flex-1 p-3 text-center"><div className="text-2xl font-bold text-red-600">{slaDelayed}</div><div className="text-xs text-muted">{t("sla.delayed")}</div></div>
+        </div>
+      )}
 
       <div className="card overflow-x-auto">
         <table className="w-full">

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAccess } from "@/lib/auth/access";
 import { advanceDueItems } from "@/lib/items/items-service";
+import { runSlaAlerts } from "@/lib/sla/sla-service";
 
 /**
  * Auto-advance sweep (HUB→Transit→Global Shipping). Drive it on a schedule with
@@ -19,7 +20,8 @@ async function handle(req: Request) {
   }
   if (!authed) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const advanced = await advanceDueItems();
-  return NextResponse.json({ advanced });
+  const slaAlerts = await runSlaAlerts();
+  return NextResponse.json({ advanced, slaAlerts });
 }
 
 export const GET = handle;

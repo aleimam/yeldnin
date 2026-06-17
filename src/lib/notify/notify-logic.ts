@@ -41,6 +41,19 @@ export function itemsFlaggedPayload(count: number, flag: string): PushPayload {
   };
 }
 
+export function slaAlertPayload(args: { uid?: string | null; status: "RISK" | "DELAYED"; requestId: number }): PushPayload {
+  const ref = args.uid ? `${args.uid} — ` : "";
+  return {
+    title: args.status === "DELAYED" ? "Special order delayed" : "Special order at risk",
+    body:
+      args.status === "DELAYED"
+        ? `${ref}delivery is past its promised date.`
+        : `${ref}delivery is approaching its promised date.`,
+    url: `/requests/${args.requestId}`,
+    tag: `sla-${args.requestId}`,
+  };
+}
+
 /**
  * Should this user receive an alert scoped to `moduleKeys`? Admin tiers always
  * do; otherwise the user needs at least `min` (default OPERATE) on one of the

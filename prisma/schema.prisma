@@ -522,6 +522,7 @@ model Item {
   sourceContainerType String?
   sourceContainerId   Int?
   isSpecialOrder      Boolean   @default(false)
+  slaAlertedStatus    String?   // last special-order SLA status we alerted on (RISK|DELAYED); dedup
   sellingPrice        Float?
   purchasePrice       Float?
   purchaseCurrency    String? // XOONX: USD|GBP|EUR for the purchase cost (EGP when null)
