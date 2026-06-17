@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nextStatus, isForward, dueAutoAdvance, poolKey, isExceptionFlag } from "./items-logic";
+import { nextStatus, isForward, dueAutoAdvance, poolKey, isExceptionFlag, itemBucket } from "./items-logic";
 
 describe("status progression", () => {
   it("advances along the canonical line and stops at the end", () => {
@@ -39,5 +39,20 @@ describe("pools & flags", () => {
   it("validates exception flags", () => {
     expect(isExceptionFlag("DELAYED")).toBe(true);
     expect(isExceptionFlag("NOPE")).toBe(false);
+  });
+});
+
+describe("dashboard buckets", () => {
+  it("maps statuses to buckets", () => {
+    expect(itemBucket("REQUESTED", null)).toBe("requested");
+    expect(itemBucket("ORDERED", null)).toBe("onOrder");
+    expect(itemBucket("DELIVERED", null)).toBe("onOrder");
+    expect(itemBucket("HUB", null)).toBe("inStock");
+    expect(itemBucket("OFFICE", null)).toBe("inStock");
+    expect(itemBucket("WEBSITE", null)).toBe("onWebsite");
+  });
+  it("an exception flag always wins → problems", () => {
+    expect(itemBucket("REQUESTED", "DELAYED")).toBe("problems");
+    expect(itemBucket("WEBSITE", "LOST")).toBe("problems");
   });
 });

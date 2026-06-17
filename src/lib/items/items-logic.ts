@@ -49,6 +49,28 @@ export function dueAutoAdvance(item: TimedItem, now: Date): ItemStatus | null {
   return null;
 }
 
+// Dashboard buckets for the Requests overview (item-level rollup).
+export const ITEM_BUCKETS = ["requested", "onOrder", "inStock", "onWebsite", "problems"] as const;
+export type ItemBucket = (typeof ITEM_BUCKETS)[number];
+
+/** Which dashboard bucket an item falls in (exception flag wins → problems). */
+export function itemBucket(status: string, exceptionFlag: string | null | undefined): ItemBucket {
+  if (exceptionFlag) return "problems";
+  switch (status) {
+    case "REQUESTED":
+      return "requested";
+    case "ORDERED":
+    case "SHIPPED":
+    case "DELIVERED":
+      return "onOrder";
+    case "PHOTOS_SENT":
+    case "WEBSITE":
+      return "onWebsite";
+    default: // HUB, TRANSIT, GLOBAL_SHIPPING, CUSTOMS, OUT_FOR_DELIVERY, OFFICE
+      return "inStock";
+  }
+}
+
 /** Pool an item currently sits in: its exception flag wins, else its container. */
 export function poolKey(item: { exceptionFlag?: string | null; containerType?: string | null }): string {
   if (item.exceptionFlag) return `EXC:${item.exceptionFlag}`;

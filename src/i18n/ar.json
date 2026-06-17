@@ -100,6 +100,12 @@
   "xreq.undeliver": "تراجع",
   "xreq.buyCurrency": "عملة الشراء",
 
+  "rdash.requested": "مطلوب",
+  "rdash.onOrder": "قيد الطلب",
+  "rdash.inStock": "في المخزون",
+  "rdash.onWebsite": "على الموقع",
+  "rdash.problems": "مشاكل",
+
   "pref.appearance": "المظهر",
   "pref.language": "اللغة",
   "pref.theme": "السمة",

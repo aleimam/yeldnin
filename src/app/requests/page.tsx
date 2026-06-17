@@ -5,13 +5,15 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
 import { listRequests } from "@/lib/requests/request-service";
+import { itemStatusSummary } from "@/lib/items/items-service";
+import { ITEM_BUCKETS } from "@/lib/items/items-logic";
 
 export default async function RequestsPage() {
   const access = await requireUser();
   const visible = requestScopes(access, "VIEW");
   if (!visible.length) redirect("/");
   const canManage = requestScopes(access, "OPERATE").length > 0;
-  const [t, rows] = await Promise.all([getT(), listRequests({ scopes: visible })]);
+  const [t, rows, summary] = await Promise.all([getT(), listRequests({ scopes: visible }), itemStatusSummary(visible)]);
 
   return (
     <AppShell
@@ -20,6 +22,15 @@ export default async function RequestsPage() {
       pageTitle={t("requests.title")}
       actions={canManage ? <Link href="/requests/new" className="btn-primary">+ {t("requests.new")}</Link> : null}
     >
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        {ITEM_BUCKETS.map((b) => (
+          <div key={b} className="card p-3 text-center">
+            <div className={`text-2xl font-bold ${b === "problems" && summary[b] > 0 ? "text-red-600" : "text-ink"}`}>{summary[b]}</div>
+            <div className="text-xs text-muted">{t(`rdash.${b}`)}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="card overflow-x-auto">
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">

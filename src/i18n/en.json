@@ -100,6 +100,12 @@
   "xreq.undeliver": "Undo",
   "xreq.buyCurrency": "Purchase currency",
 
+  "rdash.requested": "Requested",
+  "rdash.onOrder": "On order",
+  "rdash.inStock": "In stock",
+  "rdash.onWebsite": "On website",
+  "rdash.problems": "Problems",
+
   "pref.appearance": "Appearance",
   "pref.language": "Language",
   "pref.theme": "Theme",

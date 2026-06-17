@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { autoAdvanceSchedule } from "@/lib/workflow/workflow-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
-import { dueAutoAdvance } from "./items-logic";
+import { dueAutoAdvance, itemBucket, ITEM_BUCKETS } from "./items-logic";
 import { notifyModuleOperators } from "@/lib/notify/notify-service";
 import { itemsFlaggedPayload } from "@/lib/notify/notify-logic";
 
@@ -115,6 +115,15 @@ export async function flagItems(itemIds: number[], flag: string, userId: number)
     });
   }
   if (items.length) await notifyModuleOperators(["purchasing", "logistics", "operations"], itemsFlaggedPayload(items.length, flag)).catch(() => {});
+}
+
+/** Item-status rollup for the Requests dashboard (counts per bucket, scope-filtered). */
+export async function itemStatusSummary(scopes: string[]): Promise<Record<string, number>> {
+  const counts: Record<string, number> = Object.fromEntries(ITEM_BUCKETS.map((b) => [b, 0]));
+  if (!scopes.length) return counts;
+  const items = await prisma.item.findMany({ where: { scope: { in: scopes } }, select: { status: true, exceptionFlag: true } });
+  for (const it of items) counts[itemBucket(it.status, it.exceptionFlag)]++;
+  return counts;
 }
 
 /** Clear an exception flag (e.g. delayed item rejoining the flow). */
