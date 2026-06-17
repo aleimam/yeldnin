@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listTrips } from "@/lib/trips/trip-service";
 import { TripApproveButtons } from "./TripApproveButtons";
+import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TripsPage() {
   const access = await requireModule("logistics", "VIEW");
@@ -35,7 +36,7 @@ export default async function TripsPage() {
                 </td>
                 <td className="td">{tr.traveler.name}</td>
                 <td className="td text-muted">{tr.country}</td>
-                <td className="td text-muted">{tr.lastReceivingDate ? tr.lastReceivingDate.toISOString().slice(0, 10) : "—"}</td>
+                <td className="td text-muted">{formatBizDate(tr.lastReceivingDate)}</td>
                 <td className="td">
                   {tr.status === "NEW" && access.isAdmin
                     ? <TripApproveButtons id={tr.id} />

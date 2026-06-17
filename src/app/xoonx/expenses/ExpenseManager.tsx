@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { formatBizDate } from "@/lib/format/dates";
 import { createExpenseAction, updateExpenseAction, deleteExpenseAction } from "./actions";
 
 interface Row {
@@ -152,7 +153,7 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
           <tbody className="divide-y divide-line">
             {expenses.map((r) => (
               <tr key={r.id} className="hover:bg-canvas/60">
-                <td className="td whitespace-nowrap text-xs text-muted">{new Date(r.date).toLocaleDateString()}</td>
+                <td className="td whitespace-nowrap text-xs text-muted">{formatBizDate(r.date)}</td>
                 <td className="td">{r.category}</td>
                 <td className="td text-end font-medium text-ink">{egp(r.amount)}</td>
                 <td className="td text-muted">{r.note ?? "—"}</td>

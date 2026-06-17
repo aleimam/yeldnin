@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { createTripAction } from "./actions";
+import { PRODUCT_TYPES } from "@/lib/products/products-logic";
 
 export function TripForm({ travelers, countries }: { travelers: { id: number; name: string }[]; countries: string[] }) {
   const t = useT();
@@ -19,6 +20,8 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
     notes: "",
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const [types, setTypes] = useState<string[]>([]);
+  const toggleType = (ty: string) => setTypes((p) => (p.includes(ty) ? p.filter((x) => x !== ty) : [...p, ty]));
 
   function submit() {
     setError(null);
@@ -30,6 +33,7 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
         dealPricePerKg: f.dealPricePerKg ? Number(f.dealPricePerKg) : null,
         lastReceivingDate: f.lastReceivingDate || null,
         deliveryDateInEgypt: f.deliveryDateInEgypt || null,
+        allowedProductTypes: types,
         notes: f.notes || undefined,
       });
       if (res.ok) router.push(`/trips/${res.id}`);
@@ -61,6 +65,22 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
         <div><label className="label">{t("trip.dealPrice")}</label><input type="number" step="any" className="input" value={f.dealPricePerKg} onChange={(e) => set("dealPricePerKg", e.target.value)} /></div>
         <div><label className="label">{t("trip.lastReceiving")}</label><input type="date" className="input" value={f.lastReceivingDate} onChange={(e) => set("lastReceivingDate", e.target.value)} /></div>
         <div><label className="label">{t("trip.deliveryEgypt")}</label><input type="date" className="input" value={f.deliveryDateInEgypt} onChange={(e) => set("deliveryDateInEgypt", e.target.value)} /></div>
+      </div>
+      <div>
+        <label className="label">{t("travelers.allowedTypes")}</label>
+        <div className="flex flex-wrap gap-3">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-ink">
+            <input type="checkbox" checked={types.length === PRODUCT_TYPES.length} onChange={(e) => setTypes(e.target.checked ? [...PRODUCT_TYPES] : [])} />
+            {t("common.selectAll")}
+          </label>
+          {PRODUCT_TYPES.map((ty) => (
+            <label key={ty} className="flex items-center gap-1.5 text-sm text-ink">
+              <input type="checkbox" checked={types.includes(ty)} onChange={() => toggleType(ty)} />
+              {t(`ptype.${ty}`)}
+            </label>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">{t("trip.typesHint")}</p>
       </div>
       <div><label className="label">{t("trip.notes")}</label><textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : t("trip.create")}</button>

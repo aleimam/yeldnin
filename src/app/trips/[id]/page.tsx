@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { formatBizDate } from "@/lib/format/dates";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
@@ -41,7 +42,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
               <div><span className="text-muted">{t("trip.traveler")}: </span><span className="text-ink">{trip.traveler.name}</span></div>
               <div><span className="text-muted">{t("trip.country")}: </span><span className="text-ink">{trip.country}</span></div>
-              <div><span className="text-muted">{t("trip.lastReceiving")}: </span><span className="text-ink">{trip.lastReceivingDate ? trip.lastReceivingDate.toISOString().slice(0, 10) : "—"}</span></div>
+              <div><span className="text-muted">{t("trip.lastReceiving")}: </span><span className="text-ink">{formatBizDate(trip.lastReceivingDate)}</span></div>
               <div><span className="text-muted">{t("trip.status")}: </span><span className="text-ink">{t(`tripstatus.${trip.status}`)}</span></div>
             </div>
             <div className="flex items-center gap-3">

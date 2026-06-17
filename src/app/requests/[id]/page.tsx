@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { formatBizDate } from "@/lib/format/dates";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
@@ -23,8 +24,6 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const canDeliver = req.scope === "XOONX" && access.canModule("xoonx", "OPERATE");
   const isSpecial = req.type === "SPECIAL_ORDER";
   const slaMap = await slaForRequestItems(items, req.deliveredAt);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
   return (
     <AppShell access={access} moduleKey={primaryRequestModule(access)} pageTitle={req.uid ?? `#${req.id}`} backHref="/requests">
@@ -89,8 +88,8 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                     <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
                     <td className="td"><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
                     <td className="td">{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
-                    {isSpecial && <td className="td text-muted">{s ? fmt(s.promised) : "—"}</td>}
-                    {isSpecial && <td className="td text-muted">{s ? fmt(s.expected) : "—"}</td>}
+                    {isSpecial && <td className="td text-muted">{s ? formatBizDate(s.promised) : "—"}</td>}
+                    {isSpecial && <td className="td text-muted">{s ? formatBizDate(s.expected) : "—"}</td>}
                     {isSpecial && <td className="td">{s ? <SlaBadge status={s.status} label={t(`sla.${s.status.toLowerCase()}`)} /> : "—"}</td>}
                   </tr>
                 );

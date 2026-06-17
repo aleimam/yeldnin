@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { formatBizDate } from "@/lib/format/dates";
 import { markDeliveredAction } from "./actions";
 
 export function DeliverButton({ id, deliveredAt }: { id: number; deliveredAt: string | null }) {
@@ -23,7 +24,7 @@ export function DeliverButton({ id, deliveredAt }: { id: number; deliveredAt: st
     <div className="flex flex-wrap items-center gap-3">
       {deliveredAt ? (
         <>
-          <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600">✓ {t("xreq.delivered")} · {new Date(deliveredAt).toLocaleDateString()}</span>
+          <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600">✓ {t("xreq.delivered")} · {formatBizDate(deliveredAt)}</span>
           <button onClick={() => toggle(false)} disabled={pending} className="text-xs text-muted hover:underline">{t("xreq.undeliver")}</button>
         </>
       ) : (

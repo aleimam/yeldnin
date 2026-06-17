@@ -121,6 +121,7 @@
   "trip.deny": "رفض",
   "trip.denyConfirm": "إلغاء هذه الرحلة؟ لا يمكن التراجع.",
   "trip.autoShipNote": "يبدأ الشحن عند تسجيل أول عملية شراء.",
+  "trip.typesHint": "اتركها فارغة لاستخدام أنواع المسافر المسموح بها.",
   "tripstatus.CANCELLED": "ملغاة",
   "xrep.orders": "الطلبات المُسلَّمة",
   "xrep.product": "المنتج",

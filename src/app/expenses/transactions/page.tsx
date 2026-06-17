@@ -3,6 +3,7 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listTransactions } from "@/lib/expenses/expenses-service";
+import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TransactionsPage() {
   const access = await requireModule("expenses", "VIEW");
@@ -31,7 +32,7 @@ export default async function TransactionsPage() {
               <tr key={r.id} className="hover:bg-canvas/60">
                 <td className="td whitespace-nowrap text-muted">
                   <Link href={`/expenses/transactions/${r.id}`} className="text-brand hover:underline">
-                    {new Date(r.createdAt).toLocaleDateString()}
+                    {formatBizDate(r.createdAt)}
                   </Link>
                 </td>
                 <td className="td">

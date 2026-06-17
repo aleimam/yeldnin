@@ -1,6 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
+import { formatBizDate } from "@/lib/format/dates";
+import { joinTypes } from "@/lib/travelers/travelers-logic";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
 import { nextTripStatus, TRIP_TO_ITEM_STATUS, isTripPurchaseEligible, canManuallyAdvance, type TripStatus } from "./trip-logic";
 
@@ -12,6 +14,7 @@ export interface CreateTripInput {
   lastReceivingDate?: string | null;
   deliveryDateInEgypt?: string | null;
   notes?: string | null;
+  allowedProductTypes?: string[];
 }
 
 /** Create a trip, inheriting allowed types / male-support / notes from the traveler. */
@@ -28,7 +31,7 @@ export async function createTrip(input: CreateTripInput, userId: number) {
       dealPricePerKg: input.dealPricePerKg ?? null,
       lastReceivingDate: input.lastReceivingDate ? new Date(input.lastReceivingDate) : null,
       deliveryDateInEgypt: input.deliveryDateInEgypt ? new Date(input.deliveryDateInEgypt) : null,
-      allowedProductTypes: traveler.allowedProductTypes,
+      allowedProductTypes: input.allowedProductTypes?.length ? joinTypes(input.allowedProductTypes) : traveler.allowedProductTypes,
       maleSupport: traveler.carriesMaleSupport,
       notes: input.notes?.trim() || traveler.notes,
       createdById: userId,
@@ -103,6 +106,6 @@ export async function eligibleTripsForPurchase() {
     .filter((tr) => isTripPurchaseEligible(tr, now))
     .map((tr) => ({
       id: tr.id,
-      name: `${tr.traveler.name} · ${tr.country}${tr.lastReceivingDate ? " · " + tr.lastReceivingDate.toISOString().slice(0, 10) : ""}`,
+      name: `${tr.traveler.name} · ${tr.country}${tr.lastReceivingDate ? " · " + formatBizDate(tr.lastReceivingDate) : ""}`,
     }));
 }

@@ -121,6 +121,7 @@
   "trip.deny": "Deny",
   "trip.denyConfirm": "Cancel this trip? This can't be undone.",
   "trip.autoShipNote": "Starts shipping when the first purchase is placed.",
+  "trip.typesHint": "Leave empty to use the traveler's allowed types.",
   "tripstatus.CANCELLED": "Cancelled",
   "xrep.orders": "Delivered orders",
   "xrep.product": "Product",
