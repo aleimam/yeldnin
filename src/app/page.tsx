@@ -5,6 +5,7 @@ import { MAIN_MODULES, ADMIN_MODULES, childModules, type ModuleDef } from "@/lib
 import { requireUser } from "@/lib/auth/access";
 import { canAccessSettings } from "@/lib/module-sections";
 import { SiteFooter } from "@/components/shell/SiteFooter";
+import { ModuleGlyph } from "@/components/shell/ModuleGlyph";
 import type { TFunction } from "@/i18n";
 
 function ModuleCard({ m, t }: { m: ModuleDef; t: TFunction }) {
@@ -13,8 +14,8 @@ function ModuleCard({ m, t }: { m: ModuleDef; t: TFunction }) {
       href={m.route}
       className="card group flex items-start gap-4 p-5 transition hover:shadow-md hover:ring-1 hover:ring-brand/30"
     >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-canvas text-2xl">
-        {m.icon}
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-canvas text-2xl text-ink">
+        <ModuleGlyph moduleKey={m.key} icon={m.icon} className="h-7 w-7" />
       </span>
       <span className="min-w-0">
         <span className="block font-semibold text-ink group-hover:text-brand">

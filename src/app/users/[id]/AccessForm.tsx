@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useT } from "@/i18n/client";
 import { LEVELS, type Level } from "@/lib/auth/access-logic";
 import { saveAccessAction } from "../actions";
+import { ModuleGlyph } from "@/components/shell/ModuleGlyph";
 
 export interface TeamOpt { key: string; name: string }
 export interface ModuleOpt { key: string; name: string; icon: string }
@@ -77,7 +78,7 @@ export function AccessForm({
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {modules.map((m) => (
             <div key={m.key} className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2">
-              <span className="flex items-center gap-2 text-sm text-ink"><span>{m.icon}</span>{m.name}</span>
+              <span className="flex items-center gap-2 text-sm text-ink"><span className="grid h-4 w-4 place-items-center"><ModuleGlyph moduleKey={m.key} icon={m.icon} className="h-4 w-4" /></span>{m.name}</span>
               <select
                 value={levels[m.key]}
                 onChange={(e) => setLevels((prev) => ({ ...prev, [m.key]: e.target.value }))}

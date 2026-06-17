@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useT } from "@/i18n/client";
 import { useDropdown } from "@/lib/use-dropdown";
+import { ModuleGlyph } from "./ModuleGlyph";
 
 export interface SwitcherModule {
   key: string;
@@ -47,7 +48,7 @@ export function ModuleSwitcher({
                     active ? "bg-brand text-brand-fg" : "text-ink hover:bg-canvas"
                   }`}
                 >
-                  <span className="text-base">{m.icon}</span>
+                  <span className="grid h-5 w-5 place-items-center text-base"><ModuleGlyph moduleKey={m.key} icon={m.icon} className="h-4 w-4" /></span>
                   <span className="truncate">{m.label}</span>
                 </Link>
               );
