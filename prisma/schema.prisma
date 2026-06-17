@@ -537,6 +537,7 @@ model Item {
   sourceContainerType String?
   sourceContainerId   Int?
   isSpecialOrder      Boolean   @default(false)
+  isGift              Boolean   @default(false) // free item received from a supplier (no value)
   slaAlertedStatus    String?   // last special-order SLA status we alerted on (RISK|DELAYED); dedup
   sellingPrice        Float?
   purchasePrice       Float?

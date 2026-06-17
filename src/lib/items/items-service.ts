@@ -20,6 +20,7 @@ export interface CreateItemsInput {
   containerId?: number | null;
   status?: string;
   promisedDeliveryAt?: Date | null;
+  isGift?: boolean;
   userId: number;
 }
 
@@ -40,6 +41,7 @@ export async function createItems(input: CreateItemsInput): Promise<number[]> {
         containerId: input.containerId ?? null,
         requestId: input.requestId ?? null,
         isSpecialOrder: input.isSpecialOrder ?? false,
+        isGift: input.isGift ?? false,
         promisedDeliveryAt: input.promisedDeliveryAt ?? null,
         sellingPrice: input.sellingPrice ?? null,
         purchasePrice: input.purchasePrice ?? null,

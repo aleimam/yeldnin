@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
-import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
+import { moveItems, itemsInContainerHistory, createItems } from "@/lib/items/items-service";
 import { statusIndex } from "@/lib/items/items-logic";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { clampLinesToPool, nextPurchaseStatus, type PurchaseLineInput } from "./purchasing-logic";
@@ -207,4 +207,48 @@ export async function receivePurchaseAtOffice(id: number, userId: number) {
     );
   }
   await prisma.purchase.update({ where: { id }, data: { status: "RECEIVED", updatedById: userId } });
+}
+
+export interface UpdatePurchaseInput {
+  country: string;
+  supplierId?: number | null;
+  purchasePrice?: number | null;
+  notes?: string | null;
+}
+
+/** Edit a purchase's metadata — allowed only until any unit reaches the website. */
+export async function updatePurchase(id: number, input: UpdatePurchaseInput, userId: number) {
+  const purchase = await prisma.purchase.findUnique({ where: { id } });
+  if (!purchase || (await purchaseOnWebsite(id))) return;
+  const supplier = input.supplierId
+    ? await prisma.supplier.findUnique({ where: { id: input.supplierId }, select: { name: true } })
+    : null;
+  await prisma.purchase.update({
+    where: { id },
+    data: {
+      country: input.country,
+      supplierId: input.supplierId ?? null,
+      supplierName: supplier?.name ?? null,
+      purchasePrice: input.purchasePrice ?? null,
+      notes: input.notes?.trim() || null,
+      updatedById: userId,
+    },
+  });
+}
+
+/** Add free gift units (no value) received from a supplier to a purchase — until on website. */
+export async function addGiftItems(purchaseId: number, productId: number, count: number, userId: number) {
+  const purchase = await prisma.purchase.findUnique({ where: { id: purchaseId } });
+  if (!purchase || (await purchaseOnWebsite(purchaseId))) return;
+  await createItems({
+    productId,
+    scope: purchase.scope,
+    count: Math.max(1, Math.floor(count)),
+    containerType: "PURCHASE",
+    containerId: purchaseId,
+    status: "ORDERED",
+    isGift: true,
+    purchasePrice: 0,
+    userId,
+  });
 }

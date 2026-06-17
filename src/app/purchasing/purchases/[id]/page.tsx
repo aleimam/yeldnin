@@ -5,10 +5,12 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { productScopes } from "@/lib/products/products-logic";
 import { getPurchase, getPurchaseItems } from "@/lib/purchasing/purchasing-service";
+import { listScopedProducts } from "@/lib/requests/request-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { statusIndex } from "@/lib/items/items-logic";
 import { PurchaseActions } from "../../PurchaseActions";
+import { AddGiftForm } from "../../AddGiftForm";
 
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("purchasing", "VIEW");
@@ -16,7 +18,13 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const purchase = await getPurchase(Number(id));
   if (!purchase || !scopes.includes(purchase.scope as never)) notFound();
-  const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getPurchaseItems(purchase.id), getWorkflow()]);
+  const [t, locale, items, wf, giftProducts] = await Promise.all([
+    getT(),
+    getLocale(),
+    getPurchaseItems(purchase.id),
+    getWorkflow(),
+    listScopedProducts([purchase.scope]),
+  ]);
   const loc = locale === "ar" ? "ar" : "en";
   const canManage = access.canModule("purchasing", "OPERATE") || access.canModule("logistics", "OPERATE");
   const onWebsite = items.some((it) => statusIndex(it.status as ItemStatus) >= statusIndex("WEBSITE"));
@@ -35,7 +43,14 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               <div><span className="text-muted">{t("purchasing.price")}: </span><span className="text-ink">{purchase.purchasePrice ?? "—"}</span></div>
               <div><span className="text-muted">{t("purchasing.status")}: </span><span className="text-ink">{t(`purchasestatus.${purchase.status}`)}</span></div>
             </div>
-            {canManage && <PurchaseActions id={purchase.id} status={purchase.status} hasOrdered={hasOrdered} locked={onWebsite} />}
+            {canManage && (
+              <div className="flex flex-wrap items-center gap-2">
+                {!onWebsite && (
+                  <Link href={`/purchasing/purchases/${purchase.id}/edit`} className="btn-secondary px-3 py-1.5 text-sm">{t("common.edit")}</Link>
+                )}
+                <PurchaseActions id={purchase.id} status={purchase.status} hasOrdered={hasOrdered} locked={onWebsite} />
+              </div>
+            )}
           </div>
           {purchase.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{purchase.notes}</p>}
         </div>
@@ -48,12 +63,21 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               {items.map((it) => (
                 <tr key={it.id}>
                   <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
-                  <td className="td"><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
+                  <td className="td">
+                    <Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link>
+                    {it.isGift && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">{t("purchasing.gift")}</span>}
+                  </td>
                   <td className="td">{wf.label(it.status as ItemStatus, loc)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {canManage && !onWebsite && (
+            <div className="mt-4 border-t border-line pt-4">
+              <p className="label mb-2">{t("purchasing.addGift")}</p>
+              <AddGiftForm purchaseId={purchase.id} products={giftProducts.map((p) => ({ id: p.id, name: p.name }))} />
+            </div>
+          )}
         </div>
       </div>
     </AppShell>
