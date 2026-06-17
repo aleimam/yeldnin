@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
 import { clampLinesToPool, type PurchaseLineInput } from "./purchasing-logic";
+import { isTripPurchaseEligible } from "@/lib/trips/trip-logic";
+import { startTripShippingIfApproved } from "@/lib/trips/trip-service";
 
 export interface PoolRow {
   scope: string;
@@ -89,9 +91,12 @@ export async function createPurchase(input: CreatePurchaseInput, userId: number)
   } else if (input.destinationId && input.destinationType === "TRIP") {
     const trip = await prisma.trip.findUnique({
       where: { id: input.destinationId },
-      select: { traveler: { select: { name: true } }, country: true },
+      select: { traveler: { select: { name: true } }, country: true, status: true, lastReceivingDate: true },
     });
-    destinationName = trip ? `${trip.traveler.name} · ${trip.country}` : null;
+    if (!trip || !isTripPurchaseEligible(trip, new Date())) {
+      throw new Error("Selected trip is not open for purchases (must be Approved/Started Shipping with a future last-receiving date).");
+    }
+    destinationName = `${trip.traveler.name} · ${trip.country}`;
   }
 
   const uid = await nextUid("PUR");
@@ -122,6 +127,11 @@ export async function createPurchase(input: CreatePurchaseInput, userId: number)
       { status: "ORDERED", containerType: "PURCHASE", containerId: purchase.id, action: "purchase" },
       userId,
     );
+  }
+
+  // First purchase to an Approved trip starts its shipping automatically.
+  if (input.destinationType === "TRIP" && input.destinationId) {
+    await startTripShippingIfApproved(input.destinationId, userId);
   }
   return purchase;
 }

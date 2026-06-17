@@ -9,6 +9,7 @@ import { teamsUserCanMark, REVIEW_TEAMS } from "@/lib/review/review-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { TripAdvanceButton } from "../TripAdvanceButton";
+import { TripApproveButtons } from "../TripApproveButtons";
 import { TripOpsButtons } from "@/app/operations/TripOpsButtons";
 import { TripReview } from "@/app/operations/TripReview";
 
@@ -43,6 +44,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
               <div><span className="text-muted">{t("trip.status")}: </span><span className="text-ink">{t(`tripstatus.${trip.status}`)}</span></div>
             </div>
             <div className="flex items-center gap-3">
+              {trip.status === "NEW" && access.isAdmin && <TripApproveButtons id={trip.id} />}
+              {trip.status === "APPROVED" && <span className="text-sm text-muted">{t("trip.autoShipNote")}</span>}
               {canManage && <TripAdvanceButton id={trip.id} status={trip.status} />}
               {canOps && <TripOpsButtons tripId={trip.id} status={trip.status} />}
             </div>

@@ -19,6 +19,21 @@ export function nextTripStatus(s: string): TripStatus | null {
   return i >= 0 && i < TRIP_STATUSES.length - 1 ? TRIP_STATUSES[i + 1] : null;
 }
 
+// Statuses an operator may advance by hand. NEW uses admin Approve/Deny;
+// APPROVED → STARTED_SHIPPING happens automatically on the first purchase;
+// CANCELLED and READY_TO_PICKUP are terminal.
+const MANUAL_ADVANCE_FROM: ReadonlySet<string> = new Set([
+  "STARTED_SHIPPING",
+  "COMPLETED_SHIPPING",
+  "COMPLETED_RECEIVING",
+  "WAITING_TRIP",
+  "TRAVELING",
+  "IN_EGYPT",
+]);
+export function canManuallyAdvance(status: string): boolean {
+  return MANUAL_ADVANCE_FROM.has(status) && nextTripStatus(status) !== null;
+}
+
 /** Trip status → item status it cascades (only these steps move items). */
 export const TRIP_TO_ITEM_STATUS: Partial<Record<TripStatus, string>> = {
   IN_EGYPT: "CUSTOMS",

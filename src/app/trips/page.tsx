@@ -3,6 +3,7 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listTrips } from "@/lib/trips/trip-service";
+import { TripApproveButtons } from "./TripApproveButtons";
 
 export default async function TripsPage() {
   const access = await requireModule("logistics", "VIEW");
@@ -35,7 +36,11 @@ export default async function TripsPage() {
                 <td className="td">{tr.traveler.name}</td>
                 <td className="td text-muted">{tr.country}</td>
                 <td className="td text-muted">{tr.lastReceivingDate ? tr.lastReceivingDate.toISOString().slice(0, 10) : "—"}</td>
-                <td className="td">{t(`tripstatus.${tr.status}`)}</td>
+                <td className="td">
+                  {tr.status === "NEW" && access.isAdmin
+                    ? <TripApproveButtons id={tr.id} />
+                    : t(`tripstatus.${tr.status}`)}
+                </td>
               </tr>
             ))}
             {rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("trip.empty")}</td></tr>}

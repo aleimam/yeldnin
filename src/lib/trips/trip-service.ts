@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
-import { nextTripStatus, TRIP_TO_ITEM_STATUS, isTripPurchaseEligible, type TripStatus } from "./trip-logic";
+import { nextTripStatus, TRIP_TO_ITEM_STATUS, isTripPurchaseEligible, canManuallyAdvance, type TripStatus } from "./trip-logic";
 
 export interface CreateTripInput {
   travelerId: number;
@@ -39,7 +39,7 @@ export async function createTrip(input: CreateTripInput, userId: number) {
 /** Advance a trip to the next status; cascade item statuses where the map says so. */
 export async function advanceTrip(id: number, userId: number) {
   const trip = await prisma.trip.findUnique({ where: { id } });
-  if (!trip) return;
+  if (!trip || !canManuallyAdvance(trip.status)) return;
   const next = nextTripStatus(trip.status);
   if (!next) return;
   await prisma.trip.update({ where: { id }, data: { status: next, updatedById: userId } });
@@ -51,6 +51,26 @@ export async function advanceTrip(id: number, userId: number) {
     });
     await moveItems(items.map((i) => i.id), { status: itemStatus, action: `trip:${next}` }, userId);
   }
+}
+
+/** Admin gate on a NEW trip: approve (→ Approved) or deny (→ Cancelled). */
+export async function approveTrip(id: number, userId: number) {
+  const trip = await prisma.trip.findUnique({ where: { id }, select: { status: true } });
+  if (trip?.status !== "NEW") return;
+  await prisma.trip.update({ where: { id }, data: { status: "APPROVED", updatedById: userId } });
+}
+export async function denyTrip(id: number, userId: number) {
+  const trip = await prisma.trip.findUnique({ where: { id }, select: { status: true } });
+  if (trip?.status !== "NEW") return;
+  await prisma.trip.update({ where: { id }, data: { status: "CANCELLED", updatedById: userId } });
+}
+
+/** First purchase placed to an Approved trip auto-advances it to Started Shipping. */
+export async function startTripShippingIfApproved(tripId: number, userId: number) {
+  await prisma.trip.updateMany({
+    where: { id: tripId, status: "APPROVED" },
+    data: { status: "STARTED_SHIPPING", updatedById: userId },
+  });
 }
 
 export function listTrips() {

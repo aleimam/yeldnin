@@ -1,8 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireModule, requireAdmin } from "@/lib/auth/access";
 import { validateTrip } from "@/lib/trips/trip-logic";
-import { createTrip, advanceTrip } from "@/lib/trips/trip-service";
+import { createTrip, advanceTrip, approveTrip, denyTrip } from "@/lib/trips/trip-service";
 import { writeAudit } from "@/lib/audit";
 
 export interface TripPayload {
@@ -45,6 +45,24 @@ export async function advanceTripAction(id: number): Promise<void> {
   const access = await requireModule("logistics", "OPERATE");
   await advanceTrip(id, access.user.id);
   await writeAudit(access.user.id, "logistics", "trip.advance", "trip", id);
+  revalidatePath(`/trips/${id}`);
+  revalidatePath("/trips");
+}
+
+/** Admin approves a NEW trip → Approved. */
+export async function approveTripAction(id: number): Promise<void> {
+  const access = await requireAdmin();
+  await approveTrip(id, access.user.id);
+  await writeAudit(access.user.id, "logistics", "trip.approve", "trip", id);
+  revalidatePath(`/trips/${id}`);
+  revalidatePath("/trips");
+}
+
+/** Admin denies a NEW trip → Cancelled. */
+export async function denyTripAction(id: number): Promise<void> {
+  const access = await requireAdmin();
+  await denyTrip(id, access.user.id);
+  await writeAudit(access.user.id, "logistics", "trip.deny", "trip", id);
   revalidatePath(`/trips/${id}`);
   revalidatePath("/trips");
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nextTripStatus, TRIP_TO_ITEM_STATUS, isTripPurchaseEligible, validateTrip } from "./trip-logic";
+import { nextTripStatus, TRIP_TO_ITEM_STATUS, isTripPurchaseEligible, validateTrip, canManuallyAdvance } from "./trip-logic";
 
 describe("trip status flow", () => {
   it("advances linearly and stops at READY_TO_PICKUP", () => {
@@ -11,6 +11,14 @@ describe("trip status flow", () => {
     expect(TRIP_TO_ITEM_STATUS.IN_EGYPT).toBe("CUSTOMS");
     expect(TRIP_TO_ITEM_STATUS.READY_TO_PICKUP).toBe("OUT_FOR_DELIVERY");
     expect(TRIP_TO_ITEM_STATUS.NEW).toBeUndefined();
+  });
+  it("manual advance excludes NEW, APPROVED, and terminal statuses", () => {
+    expect(canManuallyAdvance("NEW")).toBe(false);
+    expect(canManuallyAdvance("APPROVED")).toBe(false);
+    expect(canManuallyAdvance("STARTED_SHIPPING")).toBe(true);
+    expect(canManuallyAdvance("IN_EGYPT")).toBe(true);
+    expect(canManuallyAdvance("READY_TO_PICKUP")).toBe(false);
+    expect(canManuallyAdvance("CANCELLED")).toBe(false);
   });
 });
 
