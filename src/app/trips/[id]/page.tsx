@@ -14,6 +14,7 @@ import { TripAdvanceButton } from "../TripAdvanceButton";
 import { TripApproveButtons } from "../TripApproveButtons";
 import { TripOpsButtons } from "@/app/operations/TripOpsButtons";
 import { TripReview } from "@/app/operations/TripReview";
+import { HandlingFeeDisplay } from "@/components/HandlingFeeDisplay";
 
 export default async function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -44,6 +45,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
               <div><span className="text-muted">{t("trip.traveler")}: </span><span className="text-ink">{trip.traveler.name}</span></div>
               <div><span className="text-muted">{t("trip.country")}: </span><span className="text-ink">{trip.country}</span></div>
               <div><span className="text-muted">{t("trip.lastReceiving")}: </span><span className="text-ink">{formatBizDate(trip.lastReceivingDate)}</span></div>
+              <div><span className="text-muted">{t("fx.handlingFee")}: </span><HandlingFeeDisplay fee={trip.handlingFee} currency={trip.handlingFeeCurrency} /></div>
               <div><span className="text-muted">{t("trip.status")}: </span><span className="text-ink">{t(`tripstatus.${trip.status}`)}</span></div>
             </div>
             <div className="flex items-center gap-3">

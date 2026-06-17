@@ -11,6 +11,8 @@ export interface PatchPayload {
   tracking?: string;
   courierId?: number | null;
   notes?: string;
+  handlingFee?: number | null;
+  handlingFeeCurrency?: string | null;
   photoIds?: string[];
 }
 export type PatchResult = { ok: true; id: number } | { ok: false; error: string };
@@ -21,7 +23,7 @@ export async function createPatchAction(p: PatchPayload): Promise<PatchResult> {
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   try {
     const patch = await createPatch(
-      { purchaseId: p.purchaseId, itemIds: p.itemIds, tracking: p.tracking ?? null, courierId: p.courierId ?? null, notes: p.notes ?? null },
+      { purchaseId: p.purchaseId, itemIds: p.itemIds, tracking: p.tracking ?? null, courierId: p.courierId ?? null, notes: p.notes ?? null, handlingFee: p.handlingFee ?? null, handlingFeeCurrency: p.handlingFeeCurrency ?? null },
       p.photoIds ?? [],
       access.user.id,
     );

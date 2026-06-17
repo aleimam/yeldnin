@@ -126,6 +126,8 @@
   "purchasestatus.DISPATCHED": "تم الإرسال",
   "purchasestatus.DELIVERED": "تم التوصيل",
   "purchasestatus.RECEIVED": "تم الاستلام",
+  "fx.handlingFee": "رسوم المناولة",
+  "fx.rateUnavailable": "سعر الصرف غير متاح",
   "purchasing.gift": "هدية",
   "purchasing.addGift": "إضافة هدية",
   "purchasing.giftProduct": "منتج الهدية",

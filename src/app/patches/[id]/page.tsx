@@ -8,6 +8,7 @@ import { getPatch, getPatchItems } from "@/lib/patches/patch-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { PatchStatusButtons } from "../PatchStatusButtons";
+import { HandlingFeeDisplay } from "@/components/HandlingFeeDisplay";
 
 export default async function PatchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("logistics", "VIEW");
@@ -28,6 +29,7 @@ export default async function PatchDetailPage({ params }: { params: Promise<{ id
               <div><span className="text-muted">{t("patches.destination")}: </span><span className="text-ink">{patch.destinationName ?? "—"}</span></div>
               <div><span className="text-muted">{t("patches.tracking")}: </span><span className="text-ink">{patch.tracking ?? "—"}</span></div>
               <div><span className="text-muted">{t("patches.courier")}: </span><span className="text-ink">{patch.courier ?? "—"}</span></div>
+              <div><span className="text-muted">{t("fx.handlingFee")}: </span><HandlingFeeDisplay fee={patch.handlingFee} currency={patch.handlingFeeCurrency} /></div>
               <div><span className="text-muted">{t("patches.status")}: </span><span className="text-ink">{patch.status}</span></div>
             </div>
             {canManage && <PatchStatusButtons id={patch.id} status={patch.status} />}

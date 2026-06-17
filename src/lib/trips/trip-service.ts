@@ -15,6 +15,8 @@ export interface CreateTripInput {
   deliveryDateInEgypt?: string | null;
   notes?: string | null;
   allowedProductTypes?: string[];
+  handlingFee?: number | null;
+  handlingFeeCurrency?: string | null;
 }
 
 /** Create a trip, inheriting allowed types / male-support / notes from the traveler. */
@@ -34,6 +36,8 @@ export async function createTrip(input: CreateTripInput, userId: number) {
       allowedProductTypes: input.allowedProductTypes?.length ? joinTypes(input.allowedProductTypes) : traveler.allowedProductTypes,
       maleSupport: traveler.carriesMaleSupport,
       notes: input.notes?.trim() || traveler.notes,
+      handlingFee: input.handlingFee ?? null,
+      handlingFeeCurrency: input.handlingFeeCurrency ?? null,
       createdById: userId,
     },
   });

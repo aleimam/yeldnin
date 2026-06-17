@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useT } from "@/i18n/client";
 import type { Scope } from "@/lib/products/products-logic";
+import { HandlingFeeInput } from "@/components/HandlingFeeInput";
+import { FX_BASE } from "@/lib/fx/fx-logic";
 import { createPurchaseAction } from "./actions";
 
 interface PoolRow {
@@ -40,6 +42,8 @@ export function PurchaseForm({
   const [destinationType, setDestinationType] = useState("HUB");
   const [destinationId, setDestinationId] = useState("");
   const [notes, setNotes] = useState("");
+  const [handlingFee, setHandlingFee] = useState("");
+  const [handlingFeeCurrency, setHandlingFeeCurrency] = useState(FX_BASE);
   const [qty, setQty] = useState<Record<number, string>>({});
   const [priceTouched, setPriceTouched] = useState(false);
 
@@ -69,6 +73,8 @@ export function PurchaseForm({
       destinationType,
       destinationId: destinationId ? Number(destinationId) : null,
       notes: notes || undefined,
+      handlingFee: handlingFee ? Number(handlingFee) : null,
+      handlingFeeCurrency: handlingFee ? handlingFeeCurrency : null,
       lines,
     };
     start(async () => {
@@ -154,6 +160,10 @@ export function PurchaseForm({
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="sm:max-w-xs">
+        <HandlingFeeInput fee={handlingFee} currency={handlingFeeCurrency} onFee={setHandlingFee} onCurrency={setHandlingFeeCurrency} />
       </div>
 
       <div><label className="label">{t("purchasing.notes")}</label><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>

@@ -3,6 +3,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { HandlingFeeInput } from "@/components/HandlingFeeInput";
+import { FX_BASE } from "@/lib/fx/fx-logic";
 import { createPatchAction } from "./actions";
 
 export interface PatchPurchaseOption {
@@ -28,6 +30,8 @@ export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchase
   const [tracking, setTracking] = useState("");
   const [courierId, setCourierId] = useState("");
   const [notes, setNotes] = useState("");
+  const [handlingFee, setHandlingFee] = useState("");
+  const [handlingFeeCurrency, setHandlingFeeCurrency] = useState(FX_BASE);
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
 
   function changePurchase(id: string) {
@@ -46,6 +50,8 @@ export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchase
         tracking: tracking || undefined,
         courierId: courierId ? Number(courierId) : null,
         notes: notes || undefined,
+        handlingFee: handlingFee ? Number(handlingFee) : null,
+        handlingFeeCurrency: handlingFee ? handlingFeeCurrency : null,
         photoIds: photos.map((p) => p.id),
       });
       if (res.ok) router.push(`/patches/${res.id}`);
@@ -91,6 +97,9 @@ export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchase
             {couriers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
+      </div>
+      <div className="sm:max-w-xs">
+        <HandlingFeeInput fee={handlingFee} currency={handlingFeeCurrency} onFee={setHandlingFee} onCurrency={setHandlingFeeCurrency} />
       </div>
       <div><label className="label">{t("patches.notes")}</label><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
       <div><label className="label">{t("patches.photos")}</label><PhotoUpload photos={photos} onChange={setPhotos} /></div>

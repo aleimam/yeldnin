@@ -126,6 +126,8 @@
   "purchasestatus.DISPATCHED": "Dispatched",
   "purchasestatus.DELIVERED": "Delivered",
   "purchasestatus.RECEIVED": "Received",
+  "fx.handlingFee": "Handling fee",
+  "fx.rateUnavailable": "rate unavailable",
   "purchasing.gift": "Gift",
   "purchasing.addGift": "Add gift",
   "purchasing.giftProduct": "Gift product",

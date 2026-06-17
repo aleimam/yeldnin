@@ -33,6 +33,8 @@ export default async function EditPurchasePage({ params }: { params: Promise<{ i
           supplierId: purchase.supplierId,
           purchasePrice: purchase.purchasePrice,
           notes: purchase.notes ?? "",
+          handlingFee: purchase.handlingFee,
+          handlingFeeCurrency: purchase.handlingFeeCurrency,
         }}
         suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s) }))}
         countries={countries}

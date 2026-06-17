@@ -34,6 +34,8 @@ export interface CreatePatchInput {
   tracking?: string | null;
   courierId?: number | null;
   notes?: string | null;
+  handlingFee?: number | null;
+  handlingFeeCurrency?: string | null;
 }
 const clean = (s?: string | null) => s?.trim() || null;
 
@@ -69,6 +71,8 @@ export async function createPatch(input: CreatePatchInput, photoAssetIds: string
       courierId: input.courierId ?? null,
       courier: courierName,
       notes: clean(input.notes),
+      handlingFee: input.handlingFee ?? null,
+      handlingFeeCurrency: input.handlingFeeCurrency ?? null,
       createdById: userId,
       photos: photoAssetIds.length ? { create: photoAssetIds.map((assetId) => ({ assetId })) } : undefined,
     },

@@ -81,6 +81,8 @@ export interface CreatePurchaseInput {
   destinationType: string;
   destinationId?: number | null;
   notes?: string | null;
+  handlingFee?: number | null;
+  handlingFeeCurrency?: string | null;
   lines: PurchaseLineInput[];
 }
 
@@ -129,6 +131,8 @@ export async function createPurchase(input: CreatePurchaseInput, userId: number)
       destinationId: input.destinationId ?? null,
       destinationName,
       notes: input.notes?.trim() || null,
+      handlingFee: input.handlingFee ?? null,
+      handlingFeeCurrency: input.handlingFeeCurrency ?? null,
       createdById: userId,
     },
   });
@@ -214,6 +218,8 @@ export interface UpdatePurchaseInput {
   supplierId?: number | null;
   purchasePrice?: number | null;
   notes?: string | null;
+  handlingFee?: number | null;
+  handlingFeeCurrency?: string | null;
 }
 
 /** Edit a purchase's metadata — allowed only until any unit reaches the website. */
@@ -231,6 +237,8 @@ export async function updatePurchase(id: number, input: UpdatePurchaseInput, use
       supplierName: supplier?.name ?? null,
       purchasePrice: input.purchasePrice ?? null,
       notes: input.notes?.trim() || null,
+      handlingFee: input.handlingFee ?? null,
+      handlingFeeCurrency: input.handlingFeeCurrency ?? null,
       updatedById: userId,
     },
   });

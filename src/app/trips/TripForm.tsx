@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { createTripAction } from "./actions";
 import { PRODUCT_TYPES } from "@/lib/products/products-logic";
+import { HandlingFeeInput } from "@/components/HandlingFeeInput";
+import { FX_BASE } from "@/lib/fx/fx-logic";
 
 export function TripForm({ travelers, countries }: { travelers: { id: number; name: string }[]; countries: string[] }) {
   const t = useT();
@@ -18,6 +20,8 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
     lastReceivingDate: "",
     deliveryDateInEgypt: "",
     notes: "",
+    handlingFee: "",
+    handlingFeeCurrency: FX_BASE,
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
   const [types, setTypes] = useState<string[]>([]);
@@ -35,6 +39,8 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
         deliveryDateInEgypt: f.deliveryDateInEgypt || null,
         allowedProductTypes: types,
         notes: f.notes || undefined,
+        handlingFee: f.handlingFee ? Number(f.handlingFee) : null,
+        handlingFeeCurrency: f.handlingFee ? f.handlingFeeCurrency : null,
       });
       if (res.ok) router.push(`/trips/${res.id}`);
       else setError(res.error);
@@ -81,6 +87,9 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
           ))}
         </div>
         <p className="mt-1 text-xs text-muted">{t("trip.typesHint")}</p>
+      </div>
+      <div className="sm:max-w-xs">
+        <HandlingFeeInput fee={f.handlingFee} currency={f.handlingFeeCurrency} onFee={(v) => set("handlingFee", v)} onCurrency={(v) => set("handlingFeeCurrency", v)} />
       </div>
       <div><label className="label">{t("trip.notes")}</label><textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : t("trip.create")}</button>

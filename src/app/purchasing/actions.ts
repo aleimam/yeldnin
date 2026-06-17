@@ -14,6 +14,8 @@ export interface PurchasePayload {
   destinationType: string;
   destinationId?: number | null;
   notes?: string;
+  handlingFee?: number | null;
+  handlingFeeCurrency?: string | null;
   lines: { productId: number; count: number }[];
 }
 export type PurchaseResult = { ok: true; id: number } | { ok: false; error: string };
@@ -35,6 +37,8 @@ export async function createPurchaseAction(p: PurchasePayload): Promise<Purchase
         destinationType: p.destinationType,
         destinationId: p.destinationId ?? null,
         notes: p.notes ?? null,
+        handlingFee: p.handlingFee ?? null,
+        handlingFeeCurrency: p.handlingFeeCurrency ?? null,
         lines: p.lines,
       },
       access.user.id,
@@ -77,7 +81,14 @@ export async function receivePurchaseAtOfficeAction(id: number): Promise<void> {
 /** Edit a purchase's metadata (until it's on the website). */
 export async function updatePurchaseAction(
   id: number,
-  p: { country: string; supplierId?: number | null; purchasePrice?: number | null; notes?: string },
+  p: {
+    country: string;
+    supplierId?: number | null;
+    purchasePrice?: number | null;
+    notes?: string;
+    handlingFee?: number | null;
+    handlingFeeCurrency?: string | null;
+  },
 ): Promise<PurchaseResult> {
   const access = await requirePurchaseManage();
   if (!p.country?.trim()) return { ok: false, error: "Country is required." };
@@ -88,6 +99,8 @@ export async function updatePurchaseAction(
       supplierId: p.supplierId ?? null,
       purchasePrice: p.purchasePrice ?? null,
       notes: p.notes ?? null,
+      handlingFee: p.handlingFee ?? null,
+      handlingFeeCurrency: p.handlingFeeCurrency ?? null,
     },
     access.user.id,
   );

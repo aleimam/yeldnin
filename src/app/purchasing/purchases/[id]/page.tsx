@@ -11,6 +11,7 @@ import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { statusIndex } from "@/lib/items/items-logic";
 import { PurchaseActions } from "../../PurchaseActions";
 import { AddGiftForm } from "../../AddGiftForm";
+import { HandlingFeeDisplay } from "@/components/HandlingFeeDisplay";
 
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("purchasing", "VIEW");
@@ -41,6 +42,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               <div><span className="text-muted">{t("purchasing.supplier")}: </span><span className="text-ink">{purchase.supplierName ?? "—"}</span></div>
               <div><span className="text-muted">{t("purchasing.destination")}: </span><span className="text-ink">{purchase.destinationName ?? "—"}</span></div>
               <div><span className="text-muted">{t("purchasing.price")}: </span><span className="text-ink">{purchase.purchasePrice ?? "—"}</span></div>
+              <div><span className="text-muted">{t("fx.handlingFee")}: </span><HandlingFeeDisplay fee={purchase.handlingFee} currency={purchase.handlingFeeCurrency} /></div>
               <div><span className="text-muted">{t("purchasing.status")}: </span><span className="text-ink">{t(`purchasestatus.${purchase.status}`)}</span></div>
             </div>
             {canManage && (

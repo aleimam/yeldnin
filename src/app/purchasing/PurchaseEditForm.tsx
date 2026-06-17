@@ -2,6 +2,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { HandlingFeeInput } from "@/components/HandlingFeeInput";
+import { FX_BASE } from "@/lib/fx/fx-logic";
 import { updatePurchaseAction } from "./actions";
 
 /** Edit a purchase's metadata (country, supplier, price, notes) — only while it's not on the website. */
@@ -12,7 +14,7 @@ export function PurchaseEditForm({
   countries,
 }: {
   id: number;
-  initial: { country: string; supplierId: number | null; purchasePrice: number | null; notes: string };
+  initial: { country: string; supplierId: number | null; purchasePrice: number | null; notes: string; handlingFee: number | null; handlingFeeCurrency: string | null };
   suppliers: { id: number; label: string }[];
   countries: string[];
 }) {
@@ -23,6 +25,8 @@ export function PurchaseEditForm({
   const [supplierId, setSupplierId] = useState(initial.supplierId ? String(initial.supplierId) : "");
   const [purchasePrice, setPurchasePrice] = useState(initial.purchasePrice != null ? String(initial.purchasePrice) : "");
   const [notes, setNotes] = useState(initial.notes);
+  const [handlingFee, setHandlingFee] = useState(initial.handlingFee != null ? String(initial.handlingFee) : "");
+  const [handlingFeeCurrency, setHandlingFeeCurrency] = useState(initial.handlingFeeCurrency || FX_BASE);
   const [error, setError] = useState("");
 
   function save() {
@@ -33,6 +37,8 @@ export function PurchaseEditForm({
         supplierId: supplierId ? Number(supplierId) : null,
         purchasePrice: purchasePrice.trim() === "" ? null : Number(purchasePrice),
         notes,
+        handlingFee: handlingFee.trim() === "" ? null : Number(handlingFee),
+        handlingFeeCurrency: handlingFee.trim() === "" ? null : handlingFeeCurrency,
       });
       if (!res.ok) {
         setError(res.error);
@@ -63,6 +69,7 @@ export function PurchaseEditForm({
         <label className="label">{t("purchasing.price")}</label>
         <input type="number" step="0.01" className="input" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} />
       </div>
+      <HandlingFeeInput fee={handlingFee} currency={handlingFeeCurrency} onFee={setHandlingFee} onCurrency={setHandlingFeeCurrency} />
       <div>
         <label className="label">{t("purchasing.notes")}</label>
         <textarea className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />

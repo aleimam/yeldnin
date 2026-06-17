@@ -14,6 +14,8 @@ export interface TripPayload {
   deliveryDateInEgypt?: string | null;
   notes?: string;
   allowedProductTypes?: string[];
+  handlingFee?: number | null;
+  handlingFeeCurrency?: string | null;
 }
 export type TripResult = { ok: true; id: number } | { ok: false; error: string };
 
@@ -32,6 +34,8 @@ export async function createTripAction(p: TripPayload): Promise<TripResult> {
         deliveryDateInEgypt: p.deliveryDateInEgypt ?? null,
         notes: p.notes ?? null,
         allowedProductTypes: p.allowedProductTypes ?? [],
+        handlingFee: p.handlingFee ?? null,
+        handlingFeeCurrency: p.handlingFeeCurrency ?? null,
       },
       access.user.id,
     );

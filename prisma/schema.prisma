@@ -237,6 +237,14 @@ model Country {
   updatedAt  DateTime  @updatedAt
 }
 
+// Daily-cached FX rates for handling-fee conversion to EGP (live, best-effort).
+// One row per foreign currency; `rate` is 1 unit of `currency` in EGP.
+model FxRateCache {
+  currency  String   @id // USD | GBP | EUR
+  rate      Float
+  fetchedAt DateTime
+}
+
 // ─── Supply chain: master data ────────────────────────────────────────────────
 
 // Product catalog. scope: EGV | XOONX | PERSONAL.
@@ -355,6 +363,8 @@ model Trip {
   allowedProductTypes String    @default("")
   maleSupport         Boolean   @default(false)
   notes               String?
+  handlingFee         Float?
+  handlingFeeCurrency String?
   status              String    @default("NEW")
   archivedAt          DateTime?
   createdById         Int?
@@ -641,6 +651,8 @@ model Purchase {
   destinationId   Int?
   destinationName String?
   notes           String?
+  handlingFee         Float?
+  handlingFeeCurrency String?
   status          String    @default("NEW") // NEW | DISPATCHED | DELIVERED | RECEIVED
   archivedAt      DateTime?
   createdById     Int?
@@ -677,6 +689,8 @@ model Patch {
   deliveredAt     DateTime?
   receivedAt      DateTime?
   notes           String?
+  handlingFee         Float?
+  handlingFeeCurrency String?
   archivedAt      DateTime?
   createdById     Int?
   createdAt       DateTime  @default(now())
