@@ -69,6 +69,21 @@ export function SlaEditor({ initial }: { initial: SlaSettings }) {
           />
         </label>
       </div>
+      <div className="max-w-xs">
+        <label className="block">
+          <span className="label">{t("sla.depositPct")}</span>
+          <input
+            type="number"
+            min={0}
+            className="input"
+            value={sla.depositPct}
+            onChange={(e) => {
+              setSaved(false);
+              setSla((p) => ({ ...p, depositPct: Math.max(0, Number(e.target.value) || 0) }));
+            }}
+          />
+        </label>
+      </div>
       <div className="flex items-center gap-3">
         <button type="button" onClick={save} disabled={pending} className="btn-primary">
           {t("sla.save")}

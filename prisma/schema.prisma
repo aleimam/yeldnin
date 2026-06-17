@@ -612,6 +612,7 @@ model Request {
   customerId  Int?
   customer    Customer? @relation(fields: [customerId], references: [id])
   notes       String?
+  deposit     Float?    // special order: agreed deposit (EGP), per request
   deliveredAt DateTime? // XOONX: set when the order is delivered → revenue recognised that month
   archivedAt  DateTime?
   createdById Int?

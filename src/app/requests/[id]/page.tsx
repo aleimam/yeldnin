@@ -35,6 +35,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
             <div><span className="text-muted">{t("requests.type")}: </span><span className="text-ink">{t(`reqtype.${req.type}`)}</span></div>
             <div><span className="text-muted">{t("requests.scope")}: </span><span className="text-ink">{t(`scope.${req.scope}`)}</span></div>
             {req.customer && <div><span className="text-muted">{t("requests.customer")}: </span><span className="text-ink">{req.customer.name}</span></div>}
+            {isSpecial && req.deposit != null && <div><span className="text-muted">{t("requests.deposit")}: </span><span className="text-ink">{req.deposit.toLocaleString()} EGP</span></div>}
           </div>
           {req.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{req.notes}</p>}
           {req.photos.length > 0 && (

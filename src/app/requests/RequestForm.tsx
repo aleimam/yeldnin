@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
-import { REQUEST_TYPES, requiresCustomer, allowsPhotos } from "@/lib/requests/request-logic";
+import { REQUEST_TYPES, requiresCustomer, allowsPhotos, expectedDeposit } from "@/lib/requests/request-logic";
 import type { Scope } from "@/lib/products/products-logic";
 import { createRequestAction } from "./actions";
 
@@ -21,10 +21,12 @@ export function RequestForm({
   allowedScopes,
   products,
   customers,
+  depositPct,
 }: {
   allowedScopes: Scope[];
   products: { id: number; name: string; scope: string; sellingPrice: number | null; purchasePrice: number | null }[];
   customers: { id: number; name: string; scope: string }[];
+  depositPct: number;
 }) {
   const t = useT();
   const router = useRouter();
@@ -36,10 +38,15 @@ export function RequestForm({
   const [newMode, setNewMode] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", contactNumber: "" });
   const [notes, setNotes] = useState("");
+  const [deposit, setDeposit] = useState("");
   const [lines, setLines] = useState<Line[]>([blankLine()]);
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
 
   const isSpecial = requiresCustomer(type);
+  const expected = expectedDeposit(
+    depositPct,
+    lines.map((l) => ({ count: Number(l.count) || 0, sellingPrice: l.sellingPrice ? Number(l.sellingPrice) : null })),
+  );
   const scopeProducts = products.filter((p) => p.scope === scope);
   const scopeCustomers = customers.filter((c) => c.scope === scope);
   const setLine = (i: number, k: keyof Line, v: string) =>
@@ -69,6 +76,7 @@ export function RequestForm({
       customerId: isSpecial && !newMode && customerId ? Number(customerId) : null,
       newCustomer: isSpecial && newMode && newCust.name.trim() ? { name: newCust.name, contactNumber: newCust.contactNumber || undefined } : null,
       notes: notes || undefined,
+      deposit: isSpecial && deposit ? Number(deposit) : null,
       lines: lines
         .filter((l) => l.productId)
         .map((l) => ({
@@ -161,6 +169,18 @@ export function RequestForm({
           ))}
         </div>
       </div>
+
+      {isSpecial && (
+        <div className="sm:max-w-xs">
+          <label className="label">{t("requests.deposit")}</label>
+          <input type="number" step="any" min="0" className="input" value={deposit} onChange={(e) => setDeposit(e.target.value)} />
+          {expected > 0 && (
+            <button type="button" onClick={() => setDeposit(String(expected))} className="mt-1 text-xs text-brand hover:underline">
+              {t("requests.expectedDeposit")}: {expected.toLocaleString()} EGP · {t("requests.useEstimate")}
+            </button>
+          )}
+        </div>
+      )}
 
       <div><label className="label">{t("requests.notes")}</label><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
 

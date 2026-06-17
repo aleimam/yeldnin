@@ -12,6 +12,7 @@ export interface CreateRequestInput {
   customerId?: number | null;
   newCustomer?: { name: string; contactNumber?: string | null } | null;
   notes?: string | null;
+  deposit?: number | null;
   lines: { productId: number; count: number; sellingPrice?: number | null; purchasePrice?: number | null; purchaseCurrency?: string | null; notes?: string | null }[];
 }
 const clean = (s?: string | null) => s?.trim() || null;
@@ -35,6 +36,7 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
       scope: input.scope,
       customerId,
       notes: clean(input.notes),
+      deposit: input.deposit ?? null,
       createdById: userId,
       lines: {
         create: lines.map((l) => ({

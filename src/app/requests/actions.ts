@@ -13,6 +13,7 @@ export interface RequestPayload {
   customerId?: number | null;
   newCustomer?: { name: string; contactNumber?: string } | null;
   notes?: string;
+  deposit?: number | null;
   lines: { productId: number; count: number; sellingPrice?: number | null; purchasePrice?: number | null; purchaseCurrency?: string | null; notes?: string }[];
   photoIds?: string[];
 }
@@ -38,6 +39,7 @@ export async function createRequestAction(p: RequestPayload): Promise<RequestRes
       customerId: p.customerId ?? null,
       newCustomer: p.newCustomer ?? null,
       notes: p.notes ?? null,
+      deposit: p.deposit ?? null,
       lines: p.lines,
     },
     p.photoIds ?? [],

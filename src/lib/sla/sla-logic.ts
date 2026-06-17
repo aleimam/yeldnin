@@ -31,6 +31,8 @@ export interface SlaSettings {
   egv: ScopeGrace;
   xoonx: ScopeGrace;
   riskWindowDays: number;
+  /** Special-order deposit as a % of the order's total selling value. */
+  depositPct: number;
 }
 
 /** What may be stored (any subset, possibly stale) — merged over defaults. */
@@ -38,12 +40,14 @@ export interface SlaSettingsInput {
   egv?: Partial<ScopeGrace>;
   xoonx?: Partial<ScopeGrace>;
   riskWindowDays?: number;
+  depositPct?: number;
 }
 
 export const DEFAULT_SLA: SlaSettings = {
   egv: { injection: 40, standard: 30, fast: 20 },
   xoonx: { injection: 40, standard: 30, fast: 20 },
   riskWindowDays: 5,
+  depositPct: 25,
 };
 
 const DAY_MS = 86_400_000;
@@ -66,6 +70,7 @@ export function resolveSla(raw?: SlaSettingsInput | null): SlaSettings {
     egv: mergeGrace(raw?.egv, DEFAULT_SLA.egv),
     xoonx: mergeGrace(raw?.xoonx, DEFAULT_SLA.xoonx),
     riskWindowDays: num(raw?.riskWindowDays, DEFAULT_SLA.riskWindowDays),
+    depositPct: num(raw?.depositPct, DEFAULT_SLA.depositPct),
   };
 }
 

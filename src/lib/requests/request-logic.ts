@@ -56,3 +56,13 @@ export function validateRequest(input: {
   if (!lines.length) e.lines = "Add at least one product line.";
   return e;
 }
+
+/**
+ * Suggested special-order deposit: a percentage of the order's total selling
+ * value (Σ count × selling price), rounded to whole EGP. Lines without a
+ * selling price contribute 0.
+ */
+export function expectedDeposit(pct: number, lines: { count: number; sellingPrice: number | null }[]): number {
+  const total = lines.reduce((sum, l) => sum + (l.count || 0) * (l.sellingPrice ?? 0), 0);
+  return Math.round((total * (pct || 0)) / 100);
+}

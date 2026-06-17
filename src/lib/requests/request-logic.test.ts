@@ -5,6 +5,7 @@ import {
   requestScopes,
   primaryRequestModule,
   validateRequest,
+  expectedDeposit,
 } from "./request-logic";
 import type { AccessLike } from "@/lib/products/products-logic";
 
@@ -47,5 +48,17 @@ describe("validateRequest", () => {
     expect(validateRequest({ type: "SPECIAL_ORDER", scope: "EGV", lines: line })).toHaveProperty("customer");
     expect(validateRequest({ type: "SPECIAL_ORDER", scope: "EGV", customerId: 5, lines: line })).toEqual({});
     expect(validateRequest({ type: "SPECIAL_ORDER", scope: "EGV", newCustomerName: "Ada", lines: line })).toEqual({});
+  });
+});
+
+describe("expectedDeposit", () => {
+  const lines = [{ count: 2, sellingPrice: 100 }, { count: 1, sellingPrice: 50 }]; // total 250
+  it("is the pct of total selling value, rounded to whole EGP", () => {
+    expect(expectedDeposit(25, lines)).toBe(63); // 62.5 → 63
+    expect(expectedDeposit(100, lines)).toBe(250);
+    expect(expectedDeposit(0, lines)).toBe(0);
+  });
+  it("treats a missing selling price as zero", () => {
+    expect(expectedDeposit(50, [{ count: 3, sellingPrice: null }])).toBe(0);
   });
 });
