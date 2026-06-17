@@ -12,6 +12,8 @@ export interface ProductInput {
   type: ProductType;
   defaultSupplierId?: number | null;
   weightG?: number | null;
+  purchasePrice?: number | null;
+  sellingPrice?: number | null;
   size?: string | null;
   grade?: string | null;
   url?: string | null;
@@ -147,6 +149,8 @@ function dataFrom(input: ProductInput) {
     type: input.type,
     defaultSupplierId: input.defaultSupplierId ?? null,
     weightG: input.weightG ?? null,
+    purchasePrice: input.purchasePrice ?? null,
+    sellingPrice: input.sellingPrice ?? null,
     size: clean(input.size),
     grade: clean(input.grade),
     url: clean(input.url),

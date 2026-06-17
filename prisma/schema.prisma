@@ -251,6 +251,8 @@ model Product {
   defaultSupplierId Int?
   defaultSupplier   Supplier? @relation(fields: [defaultSupplierId], references: [id])
   weightG           Float?
+  purchasePrice     Float?
+  sellingPrice      Float?
   size              String?
   grade             String?
   url               String?

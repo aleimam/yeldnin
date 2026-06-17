@@ -117,6 +117,8 @@
   "container.HUB": "Hub",
   "container.SHIPMENT": "Shipment",
   "container.ORDER": "Order",
+  "products.purchasePrice": "Purchase price",
+  "products.sellingPrice": "Selling price",
   "trip.approve": "Approve",
   "trip.deny": "Deny",
   "trip.denyConfirm": "Cancel this trip? This can't be undone.",

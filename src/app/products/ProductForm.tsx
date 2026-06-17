@@ -19,6 +19,8 @@ export interface ProductInitial {
   type: string;
   defaultSupplierId: string; // "" or number-as-string
   weightG: string;
+  purchasePrice: string;
+  sellingPrice: string;
   size: string;
   grade: string;
   url: string;
@@ -54,6 +56,8 @@ export function ProductForm({
     type: initial.type,
     defaultSupplierId: initial.defaultSupplierId,
     weightG: initial.weightG,
+    purchasePrice: initial.purchasePrice,
+    sellingPrice: initial.sellingPrice,
     size: initial.size,
     grade: initial.grade,
     url: initial.url,
@@ -72,6 +76,8 @@ export function ProductForm({
       type: f.type,
       defaultSupplierId: f.defaultSupplierId ? Number(f.defaultSupplierId) : null,
       weightG: f.weightG ? Number(f.weightG) : null,
+      purchasePrice: f.purchasePrice ? Number(f.purchasePrice) : null,
+      sellingPrice: f.sellingPrice ? Number(f.sellingPrice) : null,
       size: f.size || undefined,
       grade: f.grade || undefined,
       url: f.url || undefined,
@@ -127,6 +133,8 @@ export function ProductForm({
           </select>
         </Field>
         <Field label={t("products.weight")}><input type="number" step="any" className="input" value={f.weightG} onChange={(e) => set("weightG", e.target.value)} /></Field>
+        <Field label={t("products.purchasePrice")}><input type="number" step="any" className="input" value={f.purchasePrice} onChange={(e) => set("purchasePrice", e.target.value)} /></Field>
+        <Field label={t("products.sellingPrice")}><input type="number" step="any" className="input" value={f.sellingPrice} onChange={(e) => set("sellingPrice", e.target.value)} /></Field>
         <Field label={t("products.size")}><input className="input" value={f.size} onChange={(e) => set("size", e.target.value)} /></Field>
         <Field label={t("products.grade")}><input className="input" value={f.grade} onChange={(e) => set("grade", e.target.value)} /></Field>
         <Field label={t("products.url")} className="sm:col-span-2"><input className="input" value={f.url} onChange={(e) => set("url", e.target.value)} /></Field>

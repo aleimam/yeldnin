@@ -21,7 +21,7 @@ export default async function NewProductPage() {
         suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s) }))}
         initial={{
           name: "", sku: "", scope: "", type: "SUPPLEMENT", defaultSupplierId: "",
-          weightG: "", size: "", grade: "", url: "", notes: "", isMaleSupport: false, active: true, photos: [],
+          weightG: "", purchasePrice: "", sellingPrice: "", size: "", grade: "", url: "", notes: "", isMaleSupport: false, active: true, photos: [],
         }}
       />
     </AppShell>

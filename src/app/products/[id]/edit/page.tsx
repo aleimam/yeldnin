@@ -32,6 +32,8 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           type: product.type,
           defaultSupplierId: product.defaultSupplierId ? String(product.defaultSupplierId) : "",
           weightG: product.weightG != null ? String(product.weightG) : "",
+          purchasePrice: product.purchasePrice != null ? String(product.purchasePrice) : "",
+          sellingPrice: product.sellingPrice != null ? String(product.sellingPrice) : "",
           size: product.size ?? "",
           grade: product.grade ?? "",
           url: product.url ?? "",
