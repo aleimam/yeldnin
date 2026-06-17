@@ -3,6 +3,7 @@ import {
   issueOpenedPayload,
   tripAwaitingApprovalPayload,
   itemsFlaggedPayload,
+  unitUpdatePayload,
   isModuleOperator,
 } from "./notify-logic";
 
@@ -30,6 +31,17 @@ describe("notify-logic payloads", () => {
   it("flag payload pluralizes by count", () => {
     expect(itemsFlaggedPayload(1, "DELAYED").body).toBe("1 item flagged as DELAYED.");
     expect(itemsFlaggedPayload(3, "DAMAGED").body).toBe("3 items flagged as DAMAGED.");
+  });
+
+  it("unit-update payload links to the order and tags per (order, status)", () => {
+    const p = unitUpdatePayload({ uid: "REQ2606007", statusLabel: "Shipped", requestId: 7 });
+    expect(p.body).toBe("REQ2606007 — now Shipped.");
+    expect(p.url).toBe("/requests/7");
+    expect(p.tag).toBe("unit-7-Shipped");
+  });
+
+  it("unit-update payload tolerates a missing UID", () => {
+    expect(unitUpdatePayload({ statusLabel: "Listed on website", requestId: 9 }).body).toBe("now Listed on website.");
   });
 });
 

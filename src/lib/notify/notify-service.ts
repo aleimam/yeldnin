@@ -2,7 +2,9 @@ import "server-only";
 import webpush from "web-push";
 import { prisma } from "@/lib/db";
 import { isAdminTier, type Tier, type Level } from "@/lib/auth/access-logic";
-import { isModuleOperator, type PushPayload } from "./notify-logic";
+import { getWorkflow } from "@/lib/workflow/workflow-config-service";
+import type { ItemStatus } from "@/lib/workflow/workflow-logic";
+import { isModuleOperator, unitUpdatePayload, type PushPayload } from "./notify-logic";
 
 // ── VAPID config (lazy: env may be absent in dev until keys are set) ─────────
 let configured = false;
@@ -105,4 +107,34 @@ export async function moduleOperatorIds(moduleKeys: string[], min: Level = "OPER
 
 export async function notifyModuleOperators(moduleKeys: string[], payload: PushPayload): Promise<void> {
   await sendToUsers(await moduleOperatorIds(moduleKeys), payload);
+}
+
+/**
+ * Notify the creator of each affected order that its units reached a new
+ * milestone. De-duped per (order, status); skips the actor so people aren't
+ * pinged for their own actions. Best-effort — never throws.
+ */
+export async function notifyUnitMilestones(
+  transitions: { requestId: number; toStatus: string }[],
+  actorId: number,
+): Promise<void> {
+  if (transitions.length === 0) return;
+  const ids = [...new Set(transitions.map((t) => t.requestId))];
+  const [requests, wf] = await Promise.all([
+    prisma.request.findMany({ where: { id: { in: ids } }, select: { id: true, uid: true, createdById: true } }),
+    getWorkflow(),
+  ]);
+  const byId = new Map(requests.map((r) => [r.id, r]));
+  const seen = new Set<string>();
+  for (const tr of transitions) {
+    const key = `${tr.requestId}:${tr.toStatus}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const r = byId.get(tr.requestId);
+    if (!r?.createdById || r.createdById === actorId) continue;
+    await sendToUsers(
+      [r.createdById],
+      unitUpdatePayload({ uid: r.uid, statusLabel: wf.label(tr.toStatus as ItemStatus, "en"), requestId: r.id }),
+    ).catch(() => {});
+  }
 }

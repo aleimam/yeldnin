@@ -55,6 +55,24 @@ export function slaAlertPayload(args: { uid?: string | null; status: "RISK" | "D
 }
 
 /**
+ * Default unit-status milestones that notify the order's creator. The admin
+ * event→recipient matrix (#27) will later let admins override which statuses
+ * notify whom; until then these are the sales-meaningful checkpoints.
+ */
+export const UNIT_NOTIFY_STATUSES = ["ORDERED", "SHIPPED", "OFFICE", "WEBSITE"];
+
+/** "Your order moved to <status>" — sent to the order's creator. */
+export function unitUpdatePayload(args: { uid?: string | null; statusLabel: string; requestId: number }): PushPayload {
+  const ref = args.uid ? `${args.uid} — ` : "";
+  return {
+    title: "Order update",
+    body: `${ref}now ${args.statusLabel}.`,
+    url: `/requests/${args.requestId}`,
+    tag: `unit-${args.requestId}-${args.statusLabel}`,
+  };
+}
+
+/**
  * Should this user receive an alert scoped to `moduleKeys`? Admin tiers always
  * do; otherwise the user needs at least `min` (default OPERATE) on one of the
  * modules — i.e. an operator who can actually act on it, not a passive viewer.

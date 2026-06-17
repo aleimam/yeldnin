@@ -4,8 +4,8 @@ import { nextUid } from "@/lib/uid";
 import { autoAdvanceSchedule } from "@/lib/workflow/workflow-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import { dueAutoAdvance, itemBucket, ITEM_BUCKETS } from "./items-logic";
-import { notifyModuleOperators } from "@/lib/notify/notify-service";
-import { itemsFlaggedPayload } from "@/lib/notify/notify-logic";
+import { notifyModuleOperators, notifyUnitMilestones } from "@/lib/notify/notify-service";
+import { itemsFlaggedPayload, UNIT_NOTIFY_STATUSES } from "@/lib/notify/notify-logic";
 
 export interface CreateItemsInput {
   productId: number;
@@ -77,6 +77,7 @@ export async function moveItems(
   if (!itemIds.length) return;
   const items = await prisma.item.findMany({ where: { id: { in: itemIds } } });
   const wf = await getWorkflow();
+  const milestones: { requestId: number; toStatus: string }[] = [];
   for (const it of items) {
     const toStatus = to.status ?? it.status;
     const data: ItemUpdate = {
@@ -103,7 +104,11 @@ export async function moveItems(
         byUserId: userId,
       },
     });
+    if (toStatus !== it.status && it.requestId && UNIT_NOTIFY_STATUSES.includes(toStatus)) {
+      milestones.push({ requestId: it.requestId, toStatus });
+    }
   }
+  if (milestones.length) await notifyUnitMilestones(milestones, userId).catch(() => {});
 }
 
 /** Flag items as an exception (Lost/Damaged/Errant/Delayed), remembering their source. */
