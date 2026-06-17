@@ -11,6 +11,7 @@ interface PoolRow {
   productId: number;
   productName: string;
   count: number;
+  purchasePrice: number | null;
 }
 
 export function PurchaseForm({
@@ -40,8 +41,20 @@ export function PurchaseForm({
   const [destinationId, setDestinationId] = useState("");
   const [notes, setNotes] = useState("");
   const [qty, setQty] = useState<Record<number, string>>({});
+  const [priceTouched, setPriceTouched] = useState(false);
 
   const scopePool = pool.filter((p) => p.scope === scope);
+  // #13: total purchase price auto-fills as sum(qty x product price); editable.
+  const computeTotal = (q: Record<number, string>) =>
+    scopePool.reduce((sum, p) => sum + (Number(q[p.productId]) || 0) * (p.purchasePrice ?? 0), 0);
+  const setQtyFor = (productId: number, v: string) => {
+    const next = { ...qty, [productId]: v };
+    setQty(next);
+    if (!priceTouched) {
+      const total = computeTotal(next);
+      setPurchasePrice(total ? String(total) : "");
+    }
+  };
 
   function submit() {
     setError(null);
@@ -96,7 +109,7 @@ export function PurchaseForm({
       <div className="grid gap-4 sm:grid-cols-3">
         <div>
           <label className="label">{t("purchasing.price")}</label>
-          <input type="number" step="any" className="input" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} />
+          <input type="number" step="any" className="input" value={purchasePrice} onChange={(e) => { setPriceTouched(true); setPurchasePrice(e.target.value); }} />
         </div>
         <div>
           <label className="label">{t("purchasing.destType")}</label>
@@ -133,7 +146,7 @@ export function PurchaseForm({
                       type="number" min={0} max={p.count}
                       className="input ms-auto h-8 w-20 py-1 text-end"
                       value={qty[p.productId] ?? ""}
-                      onChange={(e) => setQty((q) => ({ ...q, [p.productId]: e.target.value }))}
+                      onChange={(e) => setQtyFor(p.productId, e.target.value)}
                     />
                   </td>
                 </tr>

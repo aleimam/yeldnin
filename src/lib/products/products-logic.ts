@@ -49,6 +49,11 @@ export function primaryProductModule(a: AccessLike): string {
   return "logistics"; // admins (canModule true everywhere) land here too
 }
 
+/** Selling prices are a Sales/XOONX concern; logistics/purchasing don't see them. */
+export function canSeeSellingPrice(a: AccessLike): boolean {
+  return a.isAdmin || a.canModule("order_requests") || a.canModule("xoonx");
+}
+
 export function validateProduct(input: { name?: string; scope?: string; type?: string }): Record<string, string> {
   const e: Record<string, string> = {};
   if (!input.name?.trim()) e.name = "Name is required.";

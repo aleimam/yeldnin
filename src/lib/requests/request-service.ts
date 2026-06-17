@@ -127,7 +127,7 @@ export async function listScopedProducts(scopes: string[]) {
   const rows = await prisma.product.findMany({
     where: { archivedAt: null, active: true, scope: { in: scopes } },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, scope: true },
+    select: { id: true, name: true, scope: true, sellingPrice: true, purchasePrice: true },
   });
   return rows;
 }

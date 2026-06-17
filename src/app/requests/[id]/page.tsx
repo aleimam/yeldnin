@@ -12,6 +12,7 @@ import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { DeliverButton } from "../DeliverButton";
 import { slaForRequestItems } from "@/lib/sla/sla-service";
 import { SlaBadge } from "@/components/SlaBadge";
+import { canSeeSellingPrice } from "@/lib/products/products-logic";
 
 export default async function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -22,6 +23,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   if (!req || !visible.includes(req.scope as never)) notFound();
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getRequestItems(req.id), getWorkflow()]);
   const canDeliver = req.scope === "XOONX" && access.canModule("xoonx", "OPERATE");
+  const canSeeSelling = canSeeSellingPrice(access);
   const isSpecial = req.type === "SPECIAL_ORDER";
   const slaMap = await slaForRequestItems(items, req.deliveredAt);
 
@@ -53,13 +55,13 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.products")}</h2>
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("requests.count")}</th><th className="th text-end">{t("requests.sell")}</th><th className="th text-end">{t("requests.buy")}</th></tr></thead>
+            <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("requests.count")}</th>{canSeeSelling && <th className="th text-end">{t("requests.sell")}</th>}<th className="th text-end">{t("requests.buy")}</th></tr></thead>
             <tbody className="divide-y divide-line">
               {req.lines.map((l) => (
                 <tr key={l.id}>
                   <td className="td"><Link href={`/products/${l.product.id}`} className="text-brand hover:underline">{l.product.name}</Link></td>
                   <td className="td text-end">{l.count}</td>
-                  <td className="td text-end text-muted">{l.sellingPrice ?? "—"}</td>
+                  {canSeeSelling && <td className="td text-end text-muted">{l.sellingPrice ?? "—"}</td>}
                   <td className="td text-end text-muted">{l.purchasePrice ?? "—"}</td>
                 </tr>
               ))}

@@ -23,7 +23,7 @@ export function RequestForm({
   customers,
 }: {
   allowedScopes: Scope[];
-  products: { id: number; name: string; scope: string }[];
+  products: { id: number; name: string; scope: string; sellingPrice: number | null; purchasePrice: number | null }[];
   customers: { id: number; name: string; scope: string }[];
 }) {
   const t = useT();
@@ -44,6 +44,22 @@ export function RequestForm({
   const scopeCustomers = customers.filter((c) => c.scope === scope);
   const setLine = (i: number, k: keyof Line, v: string) =>
     setLines((p) => p.map((l, idx) => (idx === i ? { ...l, [k]: v } : l)));
+  // Selecting a product copies its default selling/purchase price into the line.
+  const pickProduct = (i: number, productId: string) => {
+    const p = scopeProducts.find((sp) => String(sp.id) === productId);
+    setLines((prev) =>
+      prev.map((l, idx) =>
+        idx === i
+          ? {
+              ...l,
+              productId,
+              sellingPrice: p?.sellingPrice != null ? String(p.sellingPrice) : l.sellingPrice,
+              purchasePrice: p?.purchasePrice != null ? String(p.purchasePrice) : l.purchasePrice,
+            }
+          : l,
+      ),
+    );
+  };
 
   function submit() {
     setError(null);
@@ -123,7 +139,7 @@ export function RequestForm({
         <div className="space-y-2">
           {lines.map((l, i) => (
             <div key={i} className="grid grid-cols-2 gap-2 rounded-lg border border-line p-2 sm:grid-cols-12">
-              <select className="input col-span-2 sm:col-span-4" value={l.productId} onChange={(e) => setLine(i, "productId", e.target.value)}>
+              <select className="input col-span-2 sm:col-span-4" value={l.productId} onChange={(e) => pickProduct(i, e.target.value)}>
                 <option value="">{t("requests.product")}…</option>
                 {scopeProducts.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>

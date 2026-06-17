@@ -14,6 +14,7 @@ export interface PoolRow {
   productName: string;
   count: number; // total pending (sum of byType)
   byType: Record<string, number>; // pending split by origin request type
+  purchasePrice: number | null; // product's default purchase price (for auto-fill)
 }
 
 /** Items still awaiting purchase (REQUESTED, in a REQUEST container), grouped by
@@ -38,7 +39,7 @@ export async function pendingPool(scopes: string[]): Promise<PoolRow[]> {
     const key = `${it.scope}:${it.productId}`;
     let row = rows.get(key);
     if (!row) {
-      row = { scope: it.scope, productId: it.productId, productName: "—", count: 0, byType: {} };
+      row = { scope: it.scope, productId: it.productId, productName: "—", count: 0, byType: {}, purchasePrice: null };
       rows.set(key, row);
     }
     row.count += 1;
@@ -48,9 +49,13 @@ export async function pendingPool(scopes: string[]): Promise<PoolRow[]> {
   }
 
   const productIds = [...new Set(items.map((i) => i.productId))];
-  const products = await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true } });
-  const nameOf = new Map(products.map((p) => [p.id, p.name]));
-  for (const row of rows.values()) row.productName = nameOf.get(row.productId) ?? "—";
+  const products = await prisma.product.findMany({ where: { id: { in: productIds } }, select: { id: true, name: true, purchasePrice: true } });
+  const prodOf = new Map(products.map((p) => [p.id, p]));
+  for (const row of rows.values()) {
+    const p = prodOf.get(row.productId);
+    row.productName = p?.name ?? "—";
+    row.purchasePrice = p?.purchasePrice ?? null;
+  }
 
   return [...rows.values()].sort((a, b) => a.productName.localeCompare(b.productName));
 }
