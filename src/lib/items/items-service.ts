@@ -15,6 +15,7 @@ export interface CreateItemsInput {
   isSpecialOrder?: boolean;
   sellingPrice?: number | null;
   purchasePrice?: number | null;
+  purchaseCurrency?: string | null;
   containerType?: string | null;
   containerId?: number | null;
   status?: string;
@@ -40,6 +41,7 @@ export async function createItems(input: CreateItemsInput): Promise<number[]> {
         isSpecialOrder: input.isSpecialOrder ?? false,
         sellingPrice: input.sellingPrice ?? null,
         purchasePrice: input.purchasePrice ?? null,
+        purchaseCurrency: input.purchaseCurrency ?? null,
         createdById: input.userId,
         events: { create: { toStatus: status, containerType, containerId: input.containerId ?? null, action: "created", byUserId: input.userId } },
       },

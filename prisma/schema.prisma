@@ -523,6 +523,7 @@ model Item {
   isSpecialOrder      Boolean   @default(false)
   sellingPrice        Float?
   purchasePrice       Float?
+  purchaseCurrency    String? // XOONX: USD|GBP|EUR for the purchase cost (EGP when null)
   receivedAt          DateTime? // set when status → HUB; drives the timers
   transitAt           DateTime? // scheduled auto-advance → TRANSIT
   globalShippingAt    DateTime? // scheduled auto-advance → GLOBAL_SHIPPING
@@ -566,6 +567,7 @@ model Request {
   customerId  Int?
   customer    Customer? @relation(fields: [customerId], references: [id])
   notes       String?
+  deliveredAt DateTime? // XOONX: set when the order is delivered → revenue recognised that month
   archivedAt  DateTime?
   createdById Int?
   createdAt   DateTime  @default(now())
@@ -588,6 +590,7 @@ model RequestLine {
   count         Int      @default(1)
   sellingPrice  Float?
   purchasePrice Float?
+  purchaseCurrency String? // XOONX: USD|GBP|EUR (EGP when null)
   notes         String?
 
   @@index([requestId])

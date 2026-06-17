@@ -7,6 +7,7 @@ import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logi
 import { getRequest, getRequestItems } from "@/lib/requests/request-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
+import { DeliverButton } from "../DeliverButton";
 
 export default async function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -16,6 +17,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const req = await getRequest(Number(id));
   if (!req || !visible.includes(req.scope as never)) notFound();
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getRequestItems(req.id), getWorkflow()]);
+  const canDeliver = req.scope === "XOONX" && access.canModule("xoonx", "OPERATE");
 
   return (
     <AppShell access={access} moduleKey={primaryRequestModule(access)} pageTitle={req.uid ?? `#${req.id}`} backHref="/requests">
@@ -33,6 +35,11 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 // eslint-disable-next-line @next/next/no-img-element
                 <a key={p.id} href={assetUrl(p.assetId)!} target="_blank" rel="noreferrer"><img src={assetUrl(p.assetId)!} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" /></a>
               ))}
+            </div>
+          )}
+          {canDeliver && (
+            <div className="mt-4 border-t border-line/60 pt-3">
+              <DeliverButton id={req.id} deliveredAt={req.deliveredAt ? req.deliveredAt.toISOString() : null} />
             </div>
           )}
         </div>

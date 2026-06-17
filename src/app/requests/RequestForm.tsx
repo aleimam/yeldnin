@@ -12,9 +12,10 @@ interface Line {
   count: string;
   sellingPrice: string;
   purchasePrice: string;
+  purchaseCurrency: string;
   notes: string;
 }
-const blankLine = (): Line => ({ productId: "", count: "1", sellingPrice: "", purchasePrice: "", notes: "" });
+const blankLine = (): Line => ({ productId: "", count: "1", sellingPrice: "", purchasePrice: "", purchaseCurrency: "", notes: "" });
 
 export function RequestForm({
   allowedScopes,
@@ -59,6 +60,7 @@ export function RequestForm({
           count: Number(l.count) || 1,
           sellingPrice: l.sellingPrice ? Number(l.sellingPrice) : null,
           purchasePrice: l.purchasePrice ? Number(l.purchasePrice) : null,
+          purchaseCurrency: l.purchaseCurrency || null,
           notes: l.notes || undefined,
         })),
       photoIds: isSpecial && allowsPhotos(type) ? photos.map((p) => p.id) : [],
@@ -128,6 +130,14 @@ export function RequestForm({
               <input type="number" min={1} className="input sm:col-span-2" placeholder={t("requests.count")} value={l.count} onChange={(e) => setLine(i, "count", e.target.value)} />
               <input type="number" step="any" className="input sm:col-span-2" placeholder={t("requests.sell")} value={l.sellingPrice} onChange={(e) => setLine(i, "sellingPrice", e.target.value)} />
               <input type="number" step="any" className="input sm:col-span-2" placeholder={t("requests.buy")} value={l.purchasePrice} onChange={(e) => setLine(i, "purchasePrice", e.target.value)} />
+              {scope === "XOONX" && (
+                <select className="input sm:col-span-2" value={l.purchaseCurrency} onChange={(e) => setLine(i, "purchaseCurrency", e.target.value)} title={t("xreq.buyCurrency")}>
+                  <option value="">EGP</option>
+                  <option value="USD">USD</option>
+                  <option value="GBP">GBP</option>
+                  <option value="EUR">EUR</option>
+                </select>
+              )}
               <button type="button" onClick={() => setLines((p) => p.filter((_, idx) => idx !== i))} disabled={lines.length === 1} className="text-sm text-red-600 hover:underline disabled:opacity-30 sm:col-span-2">
                 {t("requests.removeLine")}
               </button>

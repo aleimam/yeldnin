@@ -10,7 +10,7 @@ export interface CreateRequestInput {
   customerId?: number | null;
   newCustomer?: { name: string; contactNumber?: string | null } | null;
   notes?: string | null;
-  lines: { productId: number; count: number; sellingPrice?: number | null; purchasePrice?: number | null; notes?: string | null }[];
+  lines: { productId: number; count: number; sellingPrice?: number | null; purchasePrice?: number | null; purchaseCurrency?: string | null; notes?: string | null }[];
 }
 const clean = (s?: string | null) => s?.trim() || null;
 
@@ -40,6 +40,7 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
           count: l.count,
           sellingPrice: l.sellingPrice ?? null,
           purchasePrice: l.purchasePrice ?? null,
+          purchaseCurrency: l.purchaseCurrency ?? null,
           notes: clean(l.notes),
         })),
       },
@@ -55,6 +56,7 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
       isSpecialOrder: input.type === "SPECIAL_ORDER",
       sellingPrice: l.sellingPrice ?? null,
       purchasePrice: l.purchasePrice ?? null,
+      purchaseCurrency: l.purchaseCurrency ?? null,
       containerType: "REQUEST",
       containerId: request.id,
       status: "REQUESTED",
