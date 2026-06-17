@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import type { Scope, ProductType } from "./products-logic";
+import type { ProductImportRow } from "./products-import-logic";
 
 export interface ProductInput {
   name: string;
@@ -94,4 +95,14 @@ export async function updateProduct(
 
 export async function archiveProduct(id: number) {
   return prisma.product.update({ where: { id }, data: { archivedAt: new Date(), active: false } });
+}
+
+/** Bulk-create products from parsed import rows (all in one scope). Returns the count. */
+export async function importProducts(rows: ProductImportRow[], scope: Scope, userId: number): Promise<number> {
+  let created = 0;
+  for (const r of rows) {
+    await createProduct({ ...r, scope, defaultSupplierId: null, isMaleSupport: false }, [], userId);
+    created++;
+  }
+  return created;
 }

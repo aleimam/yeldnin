@@ -106,6 +106,14 @@
   "rdash.onWebsite": "على الموقع",
   "rdash.problems": "مشاكل",
 
+  "products.import": "استيراد",
+  "pimport.title": "استيراد المنتجات",
+  "pimport.hint": "ارفع ملف .xlsx برأس أعمدة. الأعمدة المتعرَّف عليها: الاسم (مطلوب)، النوع، SKU، الوزن (جم)، المقاس، الدرجة، الرابط، ملاحظات. تُتجاهَل الصفوف بلا اسم.",
+  "pimport.file": "جدول بيانات (.xlsx)",
+  "pimport.import": "استيراد",
+  "pimport.created": "تم الإنشاء",
+  "pimport.skipped": "تم التخطي",
+
   "pref.appearance": "المظهر",
   "pref.language": "اللغة",
   "pref.theme": "السمة",

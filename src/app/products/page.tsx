@@ -18,7 +18,14 @@ export default async function ProductsPage() {
       access={access}
       moduleKey={primaryProductModule(access)}
       pageTitle={t("products.title")}
-      actions={canManage ? <Link href="/products/new" className="btn-primary">+ {t("products.new")}</Link> : null}
+      actions={
+        canManage ? (
+          <div className="flex gap-2">
+            <Link href="/products/import" className="btn-secondary">{t("products.import")}</Link>
+            <Link href="/products/new" className="btn-primary">+ {t("products.new")}</Link>
+          </div>
+        ) : null
+      }
     >
       <div className="card overflow-x-auto">
         <table className="w-full">

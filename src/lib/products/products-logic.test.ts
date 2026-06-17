@@ -25,8 +25,8 @@ describe("productScopes", () => {
 });
 
 describe("primaryProductModule", () => {
-  it("prefers purchasing, then sales, then xoonx", () => {
-    expect(primaryProductModule(mk(["purchasing", "xoonx"]))).toBe("purchasing");
+  it("purchasing folds into logistics; else sales, then xoonx", () => {
+    expect(primaryProductModule(mk(["purchasing", "xoonx"]))).toBe("logistics");
     expect(primaryProductModule(mk(["order_requests"]))).toBe("order_requests");
     expect(primaryProductModule(mk(["xoonx"]))).toBe("xoonx");
   });

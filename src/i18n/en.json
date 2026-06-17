@@ -106,6 +106,14 @@
   "rdash.onWebsite": "On website",
   "rdash.problems": "Problems",
 
+  "products.import": "Import",
+  "pimport.title": "Import products",
+  "pimport.hint": "Upload an .xlsx with a header row. Recognized columns: Name (required), Type, SKU, Weight (g), Size, Grade, URL, Notes. Rows without a name are skipped.",
+  "pimport.file": "Spreadsheet (.xlsx)",
+  "pimport.import": "Import",
+  "pimport.created": "Created",
+  "pimport.skipped": "Skipped",
+
   "pref.appearance": "Appearance",
   "pref.language": "Language",
   "pref.theme": "Theme",

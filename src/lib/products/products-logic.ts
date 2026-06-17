@@ -39,12 +39,14 @@ export function productScopes(a: AccessLike, level: Level): Scope[] {
   return SCOPES.filter((x) => s.has(x));
 }
 
-/** Which module's shell to show around the shared /products page. */
+/** Which module's shell to show around the shared /products page.
+ *  Purchasing is folded into Logistics, so purchasing-access users (and admins)
+ *  render under the logistics shell where Products lives as a shortcut. */
 export function primaryProductModule(a: AccessLike): string {
-  if (a.canModule("purchasing")) return "purchasing";
+  if (a.canModule("purchasing")) return "logistics";
   if (a.canModule("order_requests")) return "order_requests";
   if (a.canModule("xoonx")) return "xoonx";
-  return "purchasing"; // admins (canModule true everywhere) land here too
+  return "logistics"; // admins (canModule true everywhere) land here too
 }
 
 export function validateProduct(input: { name?: string; scope?: string; type?: string }): Record<string, string> {
