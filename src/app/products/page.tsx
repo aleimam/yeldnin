@@ -37,7 +37,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("products.uid")}</th>
+              <th className="th">{t("products.sku")}</th>
               <th className="th">{t("products.name")}</th>
               <th className="th">{t("products.scope")}</th>
               <th className="th">{t("products.type")}</th>
@@ -47,7 +47,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           <tbody className="divide-y divide-line">
             {rows.map((p) => (
               <tr key={p.id} className="hover:bg-canvas/60">
-                <td className="td font-mono text-xs text-muted">{p.uid ?? "—"}</td>
+                <td className="td font-mono text-xs text-muted">{p.sku ?? "—"}</td>
                 <td className="td">
                   <Link href={`/products/${p.id}`} className="font-medium text-brand hover:underline">
                     {p.name}

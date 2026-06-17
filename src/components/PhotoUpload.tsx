@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface UploadedPhoto {
   id: string;
@@ -33,26 +33,57 @@ export function PhotoUpload({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Latest photos, so async appends (paste/drop) don't drop earlier ones via a stale closure.
+  const photosRef = useRef(photos);
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
-  const accepts = (f: File) =>
-    f.type.startsWith("image/") || (allowPdf && f.type === "application/pdf");
+  const accepts = (f: File) => f.type.startsWith("image/") || (allowPdf && f.type === "application/pdf");
 
-  async function handleFiles(files: FileList | File[]) {
+  async function handleFiles(files: File[]) {
+    const ok = files.filter(accepts);
+    if (!ok.length) return;
     setError(null);
     setBusy(true);
     try {
       const added: UploadedPhoto[] = [];
-      for (const f of Array.from(files)) {
-        if (!accepts(f)) continue;
-        added.push(await uploadFile(f));
-      }
-      if (added.length) onChange([...photos, ...added]);
+      for (const f of ok) added.push(await uploadFile(f));
+      if (added.length) onChange([...photosRef.current, ...added]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed.");
     } finally {
       setBusy(false);
     }
   }
+
+  // Paste anywhere on the page: pull image/file data from the clipboard. Covers
+  // both clipboardData.files and the items[].getAsFile() path that screenshots
+  // and web-copied images use. Pastes without file data (plain text) pass through.
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const cd = e.clipboardData;
+      if (!cd) return;
+      // Prefer clipboardData.files; fall back to items[].getAsFile() only when
+      // files is empty (some web-copied images live only in items). Merging both
+      // would double-upload, since a normal paste populates each with the same file.
+      let files = Array.from(cd.files);
+      if (!files.length) {
+        files = Array.from(cd.items)
+          .filter((it) => it.kind === "file")
+          .map((it) => it.getAsFile())
+          .filter((f): f is File => f != null);
+      }
+      const ok = files.filter(accepts);
+      if (!ok.length) return;
+      e.preventDefault();
+      void handleFiles(ok);
+    }
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+    // handleFiles/accepts only vary with allowPdf; latest photos come from the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowPdf]);
 
   return (
     <div>
@@ -61,11 +92,7 @@ export function PhotoUpload({
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
-          if (e.dataTransfer.files.length) void handleFiles(e.dataTransfer.files);
-        }}
-        onPaste={(e) => {
-          const ok = Array.from(e.clipboardData.files).filter(accepts);
-          if (ok.length) void handleFiles(ok);
+          if (e.dataTransfer.files.length) void handleFiles(Array.from(e.dataTransfer.files));
         }}
         className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-line px-4 py-6 text-center text-sm text-muted hover:border-brand/50"
         tabIndex={0}
@@ -78,7 +105,7 @@ export function PhotoUpload({
           accept={accept}
           multiple
           className="hidden"
-          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+          onChange={(e) => e.target.files && handleFiles(Array.from(e.target.files))}
         />
       </div>
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
