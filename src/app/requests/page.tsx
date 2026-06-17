@@ -7,18 +7,24 @@ import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logi
 import { listRequests } from "@/lib/requests/request-service";
 import { itemStatusSummary } from "@/lib/items/items-service";
 import { ITEM_BUCKETS } from "@/lib/items/items-logic";
+import { moduleContextScopes } from "@/lib/module-context";
 
-export default async function RequestsPage() {
+export default async function RequestsPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const access = await requireUser();
   const visible = requestScopes(access, "VIEW");
   if (!visible.length) redirect("/");
+  const sp = await searchParams;
+  const ctx = typeof sp.m === "string" && access.canModule(sp.m, "VIEW") ? sp.m : null;
+  const moduleKey = ctx ?? primaryRequestModule(access);
+  const ctxScopes = ctx ? moduleContextScopes(ctx) : null;
+  const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
   const canManage = requestScopes(access, "OPERATE").length > 0;
-  const [t, rows, summary] = await Promise.all([getT(), listRequests({ scopes: visible }), itemStatusSummary(visible)]);
+  const [t, rows, summary] = await Promise.all([getT(), listRequests({ scopes }), itemStatusSummary(scopes)]);
 
   return (
     <AppShell
       access={access}
-      moduleKey={primaryRequestModule(access)}
+      moduleKey={moduleKey}
       pageTitle={t("requests.title")}
       actions={canManage ? <Link href="/requests/new" className="btn-primary">+ {t("requests.new")}</Link> : null}
     >

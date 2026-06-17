@@ -41,9 +41,9 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "customers.title", icon: "🙋", href: "/customers" },
   ],
   xoonx: [
-    { labelKey: "requests.title", icon: "🧾", href: "/requests" },
-    { labelKey: "products.title", icon: "📦", href: "/products" },
-    { labelKey: "customers.title", icon: "🙋", href: "/customers" },
+    { labelKey: "requests.title", icon: "🧾", href: "/requests?m=xoonx" },
+    { labelKey: "products.title", icon: "📦", href: "/products?m=xoonx" },
+    { labelKey: "customers.title", icon: "🙋", href: "/customers?m=xoonx" },
     { labelKey: "xoonx.expenses", icon: "💵", href: "/xoonx/expenses" },
     { labelKey: "xoonx.reports", icon: "📈", href: "/xoonx/reports" },
     { labelKey: "xoonx.admin", icon: "⚙️", href: "/xoonx/admin", minLevel: "MANAGE" },

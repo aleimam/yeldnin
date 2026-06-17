@@ -5,17 +5,23 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCustomers } from "@/lib/customers/customers-service";
 import { customerScopes, primaryCustomerModule } from "@/lib/customers/customers-logic";
+import { moduleContextScopes } from "@/lib/module-context";
 
-export default async function CustomersPage() {
+export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const access = await requireUser();
-  const scopes = customerScopes(access, "VIEW");
-  if (!scopes.length) redirect("/");
+  const visible = customerScopes(access, "VIEW");
+  if (!visible.length) redirect("/");
+  const sp = await searchParams;
+  const ctx = typeof sp.m === "string" && access.canModule(sp.m, "VIEW") ? sp.m : null;
+  const moduleKey = ctx ?? primaryCustomerModule(access);
+  const ctxScopes = ctx ? moduleContextScopes(ctx) : null;
+  const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
   const canManage = customerScopes(access, "OPERATE").length > 0;
   const [t, rows] = await Promise.all([getT(), listCustomers({ scopes })]);
   return (
     <AppShell
       access={access}
-      moduleKey={primaryCustomerModule(access)}
+      moduleKey={moduleKey}
       pageTitle={t("customers.title")}
       actions={canManage ? <Link href="/customers/new" className="btn-primary">+ {t("customers.new")}</Link> : null}
     >

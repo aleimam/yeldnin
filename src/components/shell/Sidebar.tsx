@@ -11,7 +11,8 @@ export interface SidebarSection {
 }
 
 function isActive(path: string, href: string): boolean {
-  return path === href || path.startsWith(href + "/");
+  const base = href.split("?")[0]; // ignore query (e.g. ?m=xoonx) for active matching
+  return path === base || path.startsWith(base + "/");
 }
 
 function NavList({

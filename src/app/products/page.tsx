@@ -5,18 +5,24 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { productScopes, primaryProductModule } from "@/lib/products/products-logic";
 import { listProducts } from "@/lib/products/products-service";
+import { moduleContextScopes } from "@/lib/module-context";
 
-export default async function ProductsPage() {
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const access = await requireUser();
   const visible = productScopes(access, "VIEW");
   if (!visible.length) redirect("/");
+  const sp = await searchParams;
+  const ctx = typeof sp.m === "string" && access.canModule(sp.m, "VIEW") ? sp.m : null;
+  const moduleKey = ctx ?? primaryProductModule(access);
+  const ctxScopes = ctx ? moduleContextScopes(ctx) : null;
+  const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
   const canManage = productScopes(access, "OPERATE").length > 0;
-  const [t, rows] = await Promise.all([getT(), listProducts({ scopes: visible })]);
+  const [t, rows] = await Promise.all([getT(), listProducts({ scopes })]);
 
   return (
     <AppShell
       access={access}
-      moduleKey={primaryProductModule(access)}
+      moduleKey={moduleKey}
       pageTitle={t("products.title")}
       actions={
         canManage ? (
