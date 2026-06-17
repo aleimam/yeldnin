@@ -369,3 +369,13 @@ export async function saveAccountBatch(rows: AccountRow[], add: { name: string }
   if (add?.name) ops.push(prisma.expenseAccount.create({ data: { name: add.name } }));
   if (ops.length) await prisma.$transaction(ops);
 }
+
+/** Soft-delete a single category (kept in records via deletedAt). */
+export async function deleteCategory(id: number) {
+  await prisma.expenseCategory.update({ where: { id }, data: { deletedAt: new Date() } });
+}
+
+/** Soft-delete a single account. */
+export async function deleteAccount(id: number) {
+  await prisma.expenseAccount.update({ where: { id }, data: { deletedAt: new Date() } });
+}

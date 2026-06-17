@@ -100,6 +100,14 @@ export function TravelerForm({
       <div>
         <label className="label">{t("travelers.allowedTypes")}</label>
         <div className="flex flex-wrap gap-3">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={types.length === PRODUCT_TYPES.length}
+              onChange={(e) => setTypes(e.target.checked ? [...PRODUCT_TYPES] : [])}
+            />
+            {t("common.selectAll")}
+          </label>
           {PRODUCT_TYPES.map((ty) => (
             <label key={ty} className="flex items-center gap-1.5 text-sm text-ink">
               <input type="checkbox" checked={types.includes(ty)} onChange={() => toggleType(ty)} />

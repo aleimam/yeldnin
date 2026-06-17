@@ -38,9 +38,19 @@ export function isTripPurchaseEligible(
   return d.getTime() > endOfToday.getTime();
 }
 
-export function validateTrip(input: { travelerId?: number | null; country?: string }): Record<string, string> {
+export function validateTrip(input: {
+  travelerId?: number | null;
+  country?: string;
+  lastReceivingDate?: string | null;
+  deliveryDateInEgypt?: string | null;
+}): Record<string, string> {
   const e: Record<string, string> = {};
   if (!input.travelerId) e.traveler = "Choose a traveler.";
   if (!input.country?.trim()) e.country = "Country is required.";
+  if (input.lastReceivingDate && input.deliveryDateInEgypt) {
+    if (new Date(input.deliveryDateInEgypt).getTime() <= new Date(input.lastReceivingDate).getTime()) {
+      e.deliveryDateInEgypt = "Delivery date in Egypt must be after the last receiving date.";
+    }
+  }
   return e;
 }

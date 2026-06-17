@@ -101,6 +101,8 @@
   "sla.delivered": "Delivered",
   "sla.promised": "Promised delivery",
   "sla.expected": "Expected delivery",
+  "common.selectAll": "Select all",
+  "common.deleteConfirm": "Delete this item? It will be hidden but kept in records.",
   "xrep.orders": "Delivered orders",
   "xrep.product": "Product",
   "xrep.selling": "Selling",

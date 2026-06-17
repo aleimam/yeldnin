@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireCapability } from "@/lib/auth/access";
-import { saveCategoryBatch, saveAccountBatch } from "@/lib/expenses/expenses-service";
+import { saveCategoryBatch, saveAccountBatch, deleteCategory, deleteAccount } from "@/lib/expenses/expenses-service";
 import { writeAudit } from "@/lib/audit";
 
 const on = (fd: FormData, k: string) => fd.get(k) === "on";
@@ -36,5 +36,21 @@ export async function saveAccountsAction(fd: FormData): Promise<void> {
   const newName = str(fd, "new_name");
   await saveAccountBatch(rows, newName ? { name: newName } : null);
   await writeAudit(access.user.id, "expenses", "expense.accounts.save", "expenseAccount", "batch", { rows: rows.length });
+  revalidatePath("/settings/expenses/accounts");
+}
+
+/** Soft-delete a single expense category. */
+export async function deleteCategoryAction(id: number): Promise<void> {
+  const access = await requireCapability("expenses", "manageReference");
+  await deleteCategory(id);
+  await writeAudit(access.user.id, "expenses", "expense.category.delete", "expenseCategory", id);
+  revalidatePath("/settings/expenses/categories");
+}
+
+/** Soft-delete a single expense account. */
+export async function deleteAccountAction(id: number): Promise<void> {
+  const access = await requireCapability("expenses", "manageReference");
+  await deleteAccount(id);
+  await writeAudit(access.user.id, "expenses", "expense.account.delete", "expenseAccount", id);
   revalidatePath("/settings/expenses/accounts");
 }

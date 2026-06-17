@@ -2,7 +2,8 @@ import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCategories } from "@/lib/expenses/expenses-service";
-import { saveCategoriesAction } from "../actions";
+import { saveCategoriesAction, deleteCategoryAction } from "../actions";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function CategoriesSettingsPage() {
   const access = await requireCapability("expenses", "manageReference");
@@ -28,7 +29,7 @@ export default async function CategoriesSettingsPage() {
               <option value="TRANSFER">{t("exp.transfer")}</option>
             </select>
             <label className="flex justify-center"><input type="checkbox" name={`enabled_${c.id}`} defaultChecked={c.enabled} /></label>
-            <label className="flex justify-center"><input type="checkbox" name={`remove_${c.id}`} /></label>
+            <div className="flex justify-center"><DeleteButton onDelete={deleteCategoryAction.bind(null, c.id)} /></div>
           </div>
         ))}
 

@@ -2,7 +2,8 @@ import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listAccounts } from "@/lib/expenses/expenses-service";
-import { saveAccountsAction } from "../actions";
+import { saveAccountsAction, deleteAccountAction } from "../actions";
+import { DeleteButton } from "@/components/DeleteButton";
 
 export default async function AccountsSettingsPage() {
   const access = await requireCapability("expenses", "manageReference");
@@ -23,7 +24,7 @@ export default async function AccountsSettingsPage() {
           <div key={a.id} className="grid grid-cols-2 items-center gap-3 sm:grid-cols-[1fr_80px_80px]">
             <input name={`name_${a.id}`} defaultValue={a.name} className="input" />
             <label className="flex justify-center"><input type="checkbox" name={`enabled_${a.id}`} defaultChecked={a.enabled} /></label>
-            <label className="flex justify-center"><input type="checkbox" name={`remove_${a.id}`} /></label>
+            <div className="flex justify-center"><DeleteButton onDelete={deleteAccountAction.bind(null, a.id)} /></div>
           </div>
         ))}
 

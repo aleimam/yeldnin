@@ -101,6 +101,8 @@
   "sla.delivered": "تم التسليم",
   "sla.promised": "التسليم الموعود",
   "sla.expected": "التسليم المتوقع",
+  "common.selectAll": "تحديد الكل",
+  "common.deleteConfirm": "حذف هذا العنصر؟ سيُخفى مع الاحتفاظ به في السجلات.",
   "xrep.orders": "الطلبات المُسلَّمة",
   "xrep.product": "المنتج",
   "xrep.selling": "البيع",

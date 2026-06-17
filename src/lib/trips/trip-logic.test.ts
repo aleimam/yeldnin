@@ -36,4 +36,12 @@ describe("validateTrip", () => {
     expect(validateTrip({ travelerId: 1, country: "" })).toHaveProperty("country");
     expect(validateTrip({ travelerId: 1, country: "USA" })).toEqual({});
   });
+  it("delivery-in-Egypt must be after the last-receiving date", () => {
+    const base = { travelerId: 1, country: "USA" };
+    expect(validateTrip({ ...base, lastReceivingDate: "2026-07-01", deliveryDateInEgypt: "2026-07-10" })).toEqual({});
+    expect(validateTrip({ ...base, lastReceivingDate: "2026-07-10", deliveryDateInEgypt: "2026-07-01" })).toHaveProperty("deliveryDateInEgypt");
+    expect(validateTrip({ ...base, lastReceivingDate: "2026-07-10", deliveryDateInEgypt: "2026-07-10" })).toHaveProperty("deliveryDateInEgypt");
+    // only one date present → no constraint
+    expect(validateTrip({ ...base, deliveryDateInEgypt: "2026-07-01" })).toEqual({});
+  });
 });
