@@ -24,13 +24,13 @@ function Kpi({ label, value, accent }: { label: string; value: number; accent?: 
   );
 }
 
-function Distribution({ staffPool, yeldn, perStaff, t }: { staffPool: number; yeldn: number; perStaff: PerStaff[]; t: (k: string) => string }) {
+function Distribution({ staffPool, perStaff, t }: { staffPool: number; perStaff: PerStaff[]; t: (k: string) => string }) {
   return (
     <div className="card p-5">
       <h2 className="mb-3 font-semibold text-ink">{t("xrep.distribution")}</h2>
-      <div className="mb-3 grid grid-cols-2 gap-3">
-        <div className="rounded-lg bg-canvas p-3"><div className="text-xs text-muted">{t("xrep.owner")} (75%)</div><div className="font-bold text-ink">{egp(yeldn)} EGP</div></div>
-        <div className="rounded-lg bg-canvas p-3"><div className="text-xs text-muted">{t("xrep.staffPool")} (25%)</div><div className="font-bold text-ink">{egp(staffPool)} EGP</div></div>
+      <div className="mb-3 rounded-lg bg-canvas p-3">
+        <div className="text-xs text-muted">{t("xrep.staffShare")}</div>
+        <div className="font-bold text-ink">{egp(staffPool)} EGP</div>
       </div>
       {perStaff.length > 0 && (
         <ul className="divide-y divide-line/60 text-sm">
@@ -92,7 +92,7 @@ export default async function XoonxReportsPage({ searchParams }: { searchParams:
             <Kpi label={t("xrep.net")} value={r.netProfit} accent />
           </div>
           <div className="grid gap-6 md:grid-cols-2">
-            <Distribution staffPool={r.distribution.staffPool} yeldn={r.distribution.yeldn} perStaff={r.distribution.perStaff} t={t} />
+            <Distribution staffPool={r.distribution.staffPool} perStaff={r.distribution.perStaff} t={t} />
             <Costs purchasing={r.costs.purchasing} local={r.costs.local} byCategory={r.localByCategory} t={t} />
           </div>
           <div className="card overflow-x-auto">
@@ -135,7 +135,7 @@ export default async function XoonxReportsPage({ searchParams }: { searchParams:
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Distribution staffPool={r.distribution.staffPool} yeldn={r.distribution.yeldn} perStaff={r.distribution.perStaff} t={t} />
+          <Distribution staffPool={r.distribution.staffPool} perStaff={r.distribution.perStaff} t={t} />
           <Costs purchasing={r.costs.purchasing} local={r.costs.local} byCategory={r.localByCategory} t={t} />
         </div>
 
