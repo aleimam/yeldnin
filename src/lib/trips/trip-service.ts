@@ -84,6 +84,13 @@ export function listTrips() {
     take: 200,
   });
 }
+export function listTripsByTraveler(travelerId: number) {
+  return prisma.trip.findMany({
+    where: { travelerId, archivedAt: null },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, uid: true, status: true, country: true, lastReceivingDate: true },
+  });
+}
 export function getTrip(id: number) {
   return prisma.trip.findFirst({
     where: { id, archivedAt: null },

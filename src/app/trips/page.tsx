@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { requireModule } from "@/lib/auth/access";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listTrips } from "@/lib/trips/trip-service";
@@ -7,7 +8,8 @@ import { TripApproveButtons } from "./TripApproveButtons";
 import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TripsPage() {
-  const access = await requireModule("logistics", "VIEW");
+  const access = await requireUser();
+  if (!access.canModule("logistics", "VIEW") && !access.canModule("operations", "VIEW")) redirect("/");
   const canManage = access.canModule("logistics", "OPERATE");
   const [t, rows] = await Promise.all([getT(), listTrips()]);
   return (

@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { formatBizDate } from "@/lib/format/dates";
-import { requireModule } from "@/lib/auth/access";
+import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
@@ -16,7 +16,8 @@ import { TripOpsButtons } from "@/app/operations/TripOpsButtons";
 import { TripReview } from "@/app/operations/TripReview";
 
 export default async function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const access = await requireModule("logistics", "VIEW");
+  const access = await requireUser();
+  if (!access.canModule("logistics", "VIEW") && !access.canModule("operations", "VIEW")) redirect("/");
   const { id } = await params;
   const trip = await getTrip(Number(id));
   if (!trip) notFound();
