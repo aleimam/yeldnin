@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
@@ -39,7 +40,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               {items.map((it) => (
                 <tr key={it.id}>
                   <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
-                  <td className="td">{it.product.name}</td>
+                  <td className="td"><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
                   <td className="td">{wf.label(it.status as ItemStatus, loc)}</td>
                 </tr>
               ))}

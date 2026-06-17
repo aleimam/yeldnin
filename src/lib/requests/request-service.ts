@@ -100,7 +100,7 @@ export function getRequest(id: number) {
     where: { id, archivedAt: null },
     include: {
       customer: { select: { id: true, name: true } },
-      lines: { include: { product: { select: { name: true, uid: true } } } },
+      lines: { include: { product: { select: { id: true, name: true, uid: true } } } },
       photos: true,
     },
   });
@@ -111,7 +111,7 @@ export function getRequestItems(requestId: number) {
   return prisma.item.findMany({
     where: { requestId },
     orderBy: { id: "asc" },
-    include: { product: { select: { name: true, type: true, defaultSupplier: { select: { slaClass: true } } } } },
+    include: { product: { select: { id: true, name: true, type: true, defaultSupplier: { select: { slaClass: true } } } } },
   });
 }
 

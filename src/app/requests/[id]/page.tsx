@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
@@ -57,7 +58,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
             <tbody className="divide-y divide-line">
               {req.lines.map((l) => (
                 <tr key={l.id}>
-                  <td className="td">{l.product.name}</td>
+                  <td className="td"><Link href={`/products/${l.product.id}`} className="text-brand hover:underline">{l.product.name}</Link></td>
                   <td className="td text-end">{l.count}</td>
                   <td className="td text-end text-muted">{l.sellingPrice ?? "—"}</td>
                   <td className="td text-end text-muted">{l.purchasePrice ?? "—"}</td>
@@ -86,7 +87,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 return (
                   <tr key={it.id}>
                     <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
-                    <td className="td">{it.product.name}</td>
+                    <td className="td"><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
                     <td className="td">{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
                     {isSpecial && <td className="td text-muted">{s ? fmt(s.promised) : "—"}</td>}
                     {isSpecial && <td className="td text-muted">{s ? fmt(s.expected) : "—"}</td>}

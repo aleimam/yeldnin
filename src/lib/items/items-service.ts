@@ -153,7 +153,7 @@ export async function itemsInContainerHistory(containerType: string, containerId
   return prisma.item.findMany({
     where: { id: { in: ids } },
     orderBy: { id: "asc" },
-    include: { product: { select: { name: true } } },
+    include: { product: { select: { id: true, name: true } } },
   });
 }
 

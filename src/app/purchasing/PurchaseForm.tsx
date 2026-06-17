@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useT } from "@/i18n/client";
 import type { Scope } from "@/lib/products/products-logic";
 import { createPurchaseAction } from "./actions";
@@ -125,7 +126,7 @@ export function PurchaseForm({
             <tbody className="divide-y divide-line">
               {scopePool.map((p) => (
                 <tr key={p.productId}>
-                  <td className="td">{p.productName}</td>
+                  <td className="td"><Link href={`/products/${p.productId}`} className="text-brand hover:underline">{p.productName}</Link></td>
                   <td className="td text-end text-muted">{p.count}</td>
                   <td className="td text-end">
                     <input
