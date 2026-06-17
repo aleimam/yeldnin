@@ -100,6 +100,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       { labelKey: "pages.title", icon: "📄", href: "/settings/pages", module: "settings", capability: "managePages" },
       { labelKey: "perm.title", icon: "🔐", href: "/settings/permissions", module: "settings", capability: "managePermissions", adminOnly: true },
       { labelKey: "workflow.title", icon: "🔄", href: "/settings/workflow", module: "settings", capability: "manageWorkflow", adminOnly: true },
+      { labelKey: "notifyrules.title", icon: "🔔", href: "/settings/notifications", module: "settings", capability: "manageModules", adminOnly: true },
     ],
   },
   {

@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { openIssueForMark } from "@/lib/issues/issues-service";
 import { REVIEW_TEAMS } from "@/lib/review/review-logic";
-import { notifyAdmins } from "@/lib/notify/notify-service";
+import { sendToUsers, resolveRecipients } from "@/lib/notify/notify-service";
 import { tripAwaitingApprovalPayload } from "@/lib/notify/notify-logic";
 
 /** Upsert a team's mark for a trip (changeable until the trip is approved).
@@ -40,7 +40,7 @@ export async function setTripMark(
     const marks = await prisma.tripMark.findMany({ where: { tripId }, select: { team: true } });
     const teams = new Set(marks.map((m) => m.team));
     if (REVIEW_TEAMS.every((t) => teams.has(t))) {
-      await notifyAdmins(tripAwaitingApprovalPayload(tripId)).catch(() => {});
+      await sendToUsers(await resolveRecipients("trip.approval"), tripAwaitingApprovalPayload(tripId)).catch(() => {});
     }
   }
 }

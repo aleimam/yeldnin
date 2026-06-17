@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { isAdminTier, type Tier, type Level } from "@/lib/auth/access-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
-import { isModuleOperator, unitUpdatePayload, type PushPayload } from "./notify-logic";
+import { isModuleOperator, unitUpdatePayload, splitCsv, type PushPayload } from "./notify-logic";
+import { getNotifyRules } from "./notify-config-service";
 
 // ── VAPID config (lazy: env may be absent in dev until keys are set) ─────────
 let configured = false;
@@ -114,26 +115,63 @@ export async function notifyModuleOperators(moduleKeys: string[], payload: PushP
  * milestone. De-duped per (order, status); skips the actor so people aren't
  * pinged for their own actions. Best-effort — never throws.
  */
+/**
+ * Resolve recipient user-ids for an event from the admin matrix. Recipients =
+ * admins (if notifyAdmins) + operators of the configured modules (or
+ * ctx.fallbackModules when none are set) + the order creator (if
+ * notifyOrderCreator and ctx provides one). Empty when the event is disabled.
+ */
+export async function resolveRecipients(
+  event: string,
+  ctx?: { orderCreatorId?: number | null; fallbackModules?: string[] },
+): Promise<number[]> {
+  const rule = (await getNotifyRules())[event];
+  if (!rule || !rule.enabled) return [];
+  const ids = new Set<number>();
+  if (rule.notifyAdmins) for (const id of await adminUserIds()) ids.add(id);
+  const mods = splitCsv(rule.moduleKeys);
+  const useMods = mods.length ? mods : ctx?.fallbackModules ?? [];
+  if (useMods.length) for (const id of await moduleOperatorIds(useMods)) ids.add(id);
+  if (rule.notifyOrderCreator && ctx?.orderCreatorId) ids.add(ctx.orderCreatorId);
+  return [...ids];
+}
+
+/**
+ * Notify recipients of the unit.milestone event when orders' units reach a
+ * status the matrix marks notable. De-duped per (order, status); skips the
+ * actor so people aren't pinged for their own actions. Best-effort.
+ */
 export async function notifyUnitMilestones(
   transitions: { requestId: number; toStatus: string }[],
   actorId: number,
 ): Promise<void> {
   if (transitions.length === 0) return;
-  const ids = [...new Set(transitions.map((t) => t.requestId))];
+  const rule = (await getNotifyRules())["unit.milestone"];
+  if (!rule?.enabled) return;
+  const notable = new Set(splitCsv(rule.statuses));
+  const relevant = transitions.filter((t) => notable.has(t.toStatus));
+  if (relevant.length === 0) return;
+
+  const base = await resolveRecipients("unit.milestone"); // admins + module ops; creator added per order
+  const ids = [...new Set(relevant.map((t) => t.requestId))];
   const [requests, wf] = await Promise.all([
     prisma.request.findMany({ where: { id: { in: ids } }, select: { id: true, uid: true, createdById: true } }),
     getWorkflow(),
   ]);
   const byId = new Map(requests.map((r) => [r.id, r]));
   const seen = new Set<string>();
-  for (const tr of transitions) {
+  for (const tr of relevant) {
     const key = `${tr.requestId}:${tr.toStatus}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const r = byId.get(tr.requestId);
-    if (!r?.createdById || r.createdById === actorId) continue;
+    if (!r) continue;
+    const recipients = new Set(base);
+    if (rule.notifyOrderCreator && r.createdById) recipients.add(r.createdById);
+    const final = [...recipients].filter((id) => id !== actorId);
+    if (final.length === 0) continue;
     await sendToUsers(
-      [r.createdById],
+      final,
       unitUpdatePayload({ uid: r.uid, statusLabel: wf.label(tr.toStatus as ItemStatus, "en"), requestId: r.id }),
     ).catch(() => {});
   }

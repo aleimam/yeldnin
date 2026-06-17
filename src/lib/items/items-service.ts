@@ -4,8 +4,8 @@ import { nextUid } from "@/lib/uid";
 import { autoAdvanceSchedule } from "@/lib/workflow/workflow-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import { dueAutoAdvance, itemBucket, ITEM_BUCKETS } from "./items-logic";
-import { notifyModuleOperators, notifyUnitMilestones } from "@/lib/notify/notify-service";
-import { itemsFlaggedPayload, UNIT_NOTIFY_STATUSES } from "@/lib/notify/notify-logic";
+import { sendToUsers, resolveRecipients, notifyUnitMilestones } from "@/lib/notify/notify-service";
+import { itemsFlaggedPayload } from "@/lib/notify/notify-logic";
 
 export interface CreateItemsInput {
   productId: number;
@@ -104,7 +104,7 @@ export async function moveItems(
         byUserId: userId,
       },
     });
-    if (toStatus !== it.status && it.requestId && UNIT_NOTIFY_STATUSES.includes(toStatus)) {
+    if (toStatus !== it.status && it.requestId) {
       milestones.push({ requestId: it.requestId, toStatus });
     }
   }
@@ -123,7 +123,7 @@ export async function flagItems(itemIds: number[], flag: string, userId: number)
       data: { itemId: it.id, fromStatus: it.status, toStatus: it.status, action: `flag:${flag}`, byUserId: userId },
     });
   }
-  if (items.length) await notifyModuleOperators(["purchasing", "logistics", "operations"], itemsFlaggedPayload(items.length, flag)).catch(() => {});
+  if (items.length) await sendToUsers(await resolveRecipients("items.flagged"), itemsFlaggedPayload(items.length, flag)).catch(() => {});
 }
 
 /** Item-status rollup for the Requests dashboard (counts per bucket, scope-filtered). */

@@ -245,6 +245,21 @@ model FxRateCache {
   fetchedAt DateTime
 }
 
+// Admin-managed notification routing. One row per event (overrides the
+// code-defined defaults in notify-logic). Recipients = admins (notifyAdmins)
+// + operators of moduleKeys + the order creator (notifyOrderCreator, where the
+// event has an order context). statuses (CSV) applies to unit.milestone only.
+model NotificationRule {
+  event              String   @id // unit.milestone | items.flagged | issue.opened | trip.approval | sla.alert
+  enabled            Boolean  @default(true)
+  notifyAdmins       Boolean  @default(false)
+  notifyOrderCreator Boolean  @default(false)
+  moduleKeys         String   @default("") // CSV of module keys
+  statuses           String   @default("") // CSV item statuses (unit.milestone)
+  updatedById        Int?
+  updatedAt          DateTime @updatedAt
+}
+
 // ─── Supply chain: master data ────────────────────────────────────────────────
 
 // Product catalog. scope: EGV | XOONX | PERSONAL.

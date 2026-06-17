@@ -72,6 +72,44 @@ export function unitUpdatePayload(args: { uid?: string | null; statusLabel: stri
   };
 }
 
+// ── Admin notification matrix (#27) ──────────────────────────────────────────
+
+export interface NotifyRule {
+  event: string;
+  enabled: boolean;
+  notifyAdmins: boolean;
+  notifyOrderCreator: boolean;
+  moduleKeys: string; // CSV
+  statuses: string; // CSV (unit.milestone only)
+}
+
+/** Catalog of routable events + which optional controls each exposes in the matrix. */
+export const NOTIFY_EVENTS = [
+  { key: "unit.milestone", orderCreator: true, statuses: true },
+  { key: "items.flagged", orderCreator: false, statuses: false },
+  { key: "issue.opened", orderCreator: false, statuses: false },
+  { key: "trip.approval", orderCreator: false, statuses: false },
+  { key: "sla.alert", orderCreator: false, statuses: false },
+] as const;
+export type NotifyEventKey = (typeof NOTIFY_EVENTS)[number]["key"];
+
+/**
+ * Code-defined defaults; DB rows override per event. These mirror the pre-#27
+ * hardcoded behavior so an unconfigured system keeps notifying exactly as before.
+ */
+export const DEFAULT_NOTIFY_RULES: Record<string, NotifyRule> = {
+  "unit.milestone": { event: "unit.milestone", enabled: true, notifyAdmins: false, notifyOrderCreator: true, moduleKeys: "", statuses: UNIT_NOTIFY_STATUSES.join(",") },
+  "items.flagged": { event: "items.flagged", enabled: true, notifyAdmins: false, notifyOrderCreator: false, moduleKeys: "purchasing,logistics,operations", statuses: "" },
+  "issue.opened": { event: "issue.opened", enabled: true, notifyAdmins: false, notifyOrderCreator: false, moduleKeys: "issues", statuses: "" },
+  "trip.approval": { event: "trip.approval", enabled: true, notifyAdmins: true, notifyOrderCreator: false, moduleKeys: "", statuses: "" },
+  "sla.alert": { event: "sla.alert", enabled: true, notifyAdmins: false, notifyOrderCreator: false, moduleKeys: "", statuses: "" },
+};
+
+/** Parse a CSV config value into trimmed, non-empty tokens. */
+export function splitCsv(csv: string | null | undefined): string[] {
+  return (csv ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 /**
  * Should this user receive an alert scoped to `moduleKeys`? Admin tiers always
  * do; otherwise the user needs at least `min` (default OPERATE) on one of the
