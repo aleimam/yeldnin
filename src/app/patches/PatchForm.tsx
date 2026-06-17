@@ -11,12 +11,18 @@ export interface PatchPurchaseOption {
   items: { id: number; productName: string }[];
 }
 
-export function PatchForm({ purchases, couriers }: { purchases: PatchPurchaseOption[]; couriers: { id: number; name: string }[] }) {
+export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchases: PatchPurchaseOption[]; couriers: { id: number; name: string }[]; initialPurchaseId?: string }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [purchaseId, setPurchaseId] = useState<string>(purchases[0] ? String(purchases[0].id) : "");
+  const initialPid =
+    initialPurchaseId && purchases.some((p) => String(p.id) === initialPurchaseId)
+      ? initialPurchaseId
+      : purchases[0]
+        ? String(purchases[0].id)
+        : "";
+  const [purchaseId, setPurchaseId] = useState<string>(initialPid);
   const selected = purchases.find((p) => String(p.id) === purchaseId);
   const [itemIds, setItemIds] = useState<number[]>(selected ? selected.items.map((i) => i.id) : []);
   const [tracking, setTracking] = useState("");

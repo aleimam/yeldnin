@@ -7,6 +7,8 @@ import { productScopes } from "@/lib/products/products-logic";
 import { getPurchase, getPurchaseItems } from "@/lib/purchasing/purchasing-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
+import { statusIndex } from "@/lib/items/items-logic";
+import { PurchaseActions } from "../../PurchaseActions";
 
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("purchasing", "VIEW");
@@ -16,18 +18,24 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
   if (!purchase || !scopes.includes(purchase.scope as never)) notFound();
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getPurchaseItems(purchase.id), getWorkflow()]);
   const loc = locale === "ar" ? "ar" : "en";
+  const canManage = access.canModule("purchasing", "OPERATE") || access.canModule("logistics", "OPERATE");
+  const onWebsite = items.some((it) => statusIndex(it.status as ItemStatus) >= statusIndex("WEBSITE"));
+  const hasOrdered = items.some((it) => it.status === "ORDERED");
 
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={purchase.uid ?? `#${purchase.id}`} backHref="/purchasing/purchases">
       <div className="max-w-3xl space-y-6">
         <div className="card p-5">
-          <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
-            <div><span className="text-muted">{t("requests.scope")}: </span><span className="text-ink">{t(`scope.${purchase.scope}`)}</span></div>
-            <div><span className="text-muted">{t("purchasing.country")}: </span><span className="text-ink">{purchase.country}</span></div>
-            <div><span className="text-muted">{t("purchasing.supplier")}: </span><span className="text-ink">{purchase.supplierName ?? "—"}</span></div>
-            <div><span className="text-muted">{t("purchasing.destination")}: </span><span className="text-ink">{purchase.destinationName ?? "—"}</span></div>
-            <div><span className="text-muted">{t("purchasing.price")}: </span><span className="text-ink">{purchase.purchasePrice ?? "—"}</span></div>
-            <div><span className="text-muted">{t("purchasing.status")}: </span><span className="text-ink">{purchase.status}</span></div>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+              <div><span className="text-muted">{t("requests.scope")}: </span><span className="text-ink">{t(`scope.${purchase.scope}`)}</span></div>
+              <div><span className="text-muted">{t("purchasing.country")}: </span><span className="text-ink">{purchase.country}</span></div>
+              <div><span className="text-muted">{t("purchasing.supplier")}: </span><span className="text-ink">{purchase.supplierName ?? "—"}</span></div>
+              <div><span className="text-muted">{t("purchasing.destination")}: </span><span className="text-ink">{purchase.destinationName ?? "—"}</span></div>
+              <div><span className="text-muted">{t("purchasing.price")}: </span><span className="text-ink">{purchase.purchasePrice ?? "—"}</span></div>
+              <div><span className="text-muted">{t("purchasing.status")}: </span><span className="text-ink">{t(`purchasestatus.${purchase.status}`)}</span></div>
+            </div>
+            {canManage && <PurchaseActions id={purchase.id} status={purchase.status} hasOrdered={hasOrdered} locked={onWebsite} />}
           </div>
           {purchase.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{purchase.notes}</p>}
         </div>

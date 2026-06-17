@@ -5,6 +5,13 @@ import { isScope } from "@/lib/products/products-logic";
 export const PURCHASE_DEST_TYPES = ["HUB", "TRIP"] as const;
 export type PurchaseDestType = (typeof PURCHASE_DEST_TYPES)[number];
 
+export const PURCHASE_STATUSES = ["NEW", "DISPATCHED", "DELIVERED", "RECEIVED"] as const;
+export type PurchaseStatus = (typeof PURCHASE_STATUSES)[number];
+export function nextPurchaseStatus(s: string): PurchaseStatus | null {
+  const i = (PURCHASE_STATUSES as readonly string[]).indexOf(s);
+  return i >= 0 && i < PURCHASE_STATUSES.length - 1 ? PURCHASE_STATUSES[i + 1] : null;
+}
+
 export interface PurchaseLineInput {
   productId: number;
   count: number;

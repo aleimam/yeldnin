@@ -6,8 +6,9 @@ import { listPurchasesWithOrdered, getPurchaseOrderedItems } from "@/lib/patches
 import { listCouriersForPicker } from "@/lib/couriers/couriers-service";
 import { PatchForm } from "../PatchForm";
 
-export default async function NewPatchPage() {
+export default async function NewPatchPage({ searchParams }: { searchParams: Promise<{ purchase?: string }> }) {
   const access = await requireModule("logistics", "OPERATE");
+  const sp = await searchParams;
   const [t, purchases, couriers] = await Promise.all([
     getT(),
     listPurchasesWithOrdered([...SCOPES]),
@@ -23,7 +24,7 @@ export default async function NewPatchPage() {
 
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={t("patches.new")} backHref="/patches">
-      <PatchForm purchases={withItems} couriers={couriers} />
+      <PatchForm purchases={withItems} couriers={couriers} initialPurchaseId={sp.purchase} />
     </AppShell>
   );
 }

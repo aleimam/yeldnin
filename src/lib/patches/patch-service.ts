@@ -78,6 +78,8 @@ export async function createPatch(input: CreatePatchInput, photoAssetIds: string
     { status: "SHIPPED", containerType: "PATCH", containerId: patch.id, action: "dispatch" },
     userId,
   );
+  // Dispatching from a purchase marks that purchase as Dispatched.
+  await prisma.purchase.update({ where: { id: purchase.id }, data: { status: "DISPATCHED" } });
   return patch;
 }
 

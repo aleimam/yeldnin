@@ -1,9 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireModule, requireUser } from "@/lib/auth/access";
 import { productScopes, type Scope } from "@/lib/products/products-logic";
 import { validatePurchase } from "@/lib/purchasing/purchasing-logic";
-import { createPurchase } from "@/lib/purchasing/purchasing-service";
+import { createPurchase, advancePurchaseStatus, receivePurchaseAtOffice } from "@/lib/purchasing/purchasing-service";
 import { writeAudit } from "@/lib/audit";
 
 export interface PurchasePayload {
@@ -46,4 +46,30 @@ export async function createPurchaseAction(p: PurchasePayload): Promise<Purchase
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not create the purchase." };
   }
+}
+
+async function requirePurchaseManage() {
+  const access = await requireUser();
+  if (!access.canModule("purchasing", "OPERATE") && !access.canModule("logistics", "OPERATE")) {
+    throw new Error("Not allowed.");
+  }
+  return access;
+}
+
+/** Purchasing/logistics advance a purchase's status forward (until on website). */
+export async function advancePurchaseStatusAction(id: number): Promise<void> {
+  const access = await requirePurchaseManage();
+  await advancePurchaseStatus(id, access.user.id);
+  await writeAudit(access.user.id, "purchasing", "purchase.advance", "purchase", id);
+  revalidatePath(`/purchasing/purchases/${id}`);
+  revalidatePath("/purchasing/purchases");
+}
+
+/** Bypass patches: receive the purchase straight to its destination. */
+export async function receivePurchaseAtOfficeAction(id: number): Promise<void> {
+  const access = await requirePurchaseManage();
+  await receivePurchaseAtOffice(id, access.user.id);
+  await writeAudit(access.user.id, "purchasing", "purchase.receiveNoPatch", "purchase", id);
+  revalidatePath(`/purchasing/purchases/${id}`);
+  revalidatePath("/purchasing/purchases");
 }

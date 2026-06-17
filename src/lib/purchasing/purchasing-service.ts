@@ -2,7 +2,9 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
-import { clampLinesToPool, type PurchaseLineInput } from "./purchasing-logic";
+import { statusIndex } from "@/lib/items/items-logic";
+import type { ItemStatus } from "@/lib/workflow/workflow-logic";
+import { clampLinesToPool, nextPurchaseStatus, type PurchaseLineInput } from "./purchasing-logic";
 import { isTripPurchaseEligible } from "@/lib/trips/trip-logic";
 import { startTripShippingIfApproved } from "@/lib/trips/trip-service";
 import { parseTypes } from "@/lib/travelers/travelers-logic";
@@ -170,4 +172,39 @@ export function listHubsForPicker() {
     orderBy: { name: "asc" },
     select: { id: true, name: true, country: true },
   });
+}
+
+const WEBSITE_INDEX = statusIndex("WEBSITE");
+
+/** True once any unit that passed through this purchase has reached the website. */
+export async function purchaseOnWebsite(purchaseId: number): Promise<boolean> {
+  const items = await itemsInContainerHistory("PURCHASE", purchaseId);
+  return items.some((it) => statusIndex(it.status as ItemStatus) >= WEBSITE_INDEX);
+}
+
+/** Purchasing/logistics advance the purchase status forward — until it's on the website. */
+export async function advancePurchaseStatus(id: number, userId: number) {
+  const purchase = await prisma.purchase.findUnique({ where: { id }, select: { status: true } });
+  if (!purchase) return;
+  const next = nextPurchaseStatus(purchase.status);
+  if (!next || (await purchaseOnWebsite(id))) return;
+  await prisma.purchase.update({ where: { id }, data: { status: next, updatedById: userId } });
+}
+
+/** Bypass patches: receive the purchase's ordered units straight to the destination hub/trip. */
+export async function receivePurchaseAtOffice(id: number, userId: number) {
+  const purchase = await prisma.purchase.findUnique({ where: { id } });
+  if (!purchase || (await purchaseOnWebsite(id))) return;
+  const items = await prisma.item.findMany({
+    where: { status: "ORDERED", containerType: "PURCHASE", containerId: id, exceptionFlag: null },
+    select: { id: true },
+  });
+  if (items.length) {
+    await moveItems(
+      items.map((i) => i.id),
+      { status: "HUB", containerType: purchase.destinationType, containerId: purchase.destinationId, action: "received-no-patch" },
+      userId,
+    );
+  }
+  await prisma.purchase.update({ where: { id }, data: { status: "RECEIVED", updatedById: userId } });
 }
