@@ -119,7 +119,7 @@ export function DeviceCalculator({ suppliers }: { suppliers: SupplierOption[] })
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-4">
-        <button type="submit" disabled={pending} className="btn-primary">
+        <button type="submit" disabled={pending} className="btn-primary w-full sm:w-auto">
           {pending ? "…" : t("pricer.calculate")}
         </button>
         {Object.keys(errors).length > 0 && <p className="text-sm text-red-600">{t("pricer.fixErrors")}</p>}

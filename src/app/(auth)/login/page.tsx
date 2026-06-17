@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { getT } from "@/i18n/server";
 import { getAccess } from "@/lib/auth/access";
+import { getPlatformSettings } from "@/lib/settings/settings-service";
+import { assetUrl } from "@/lib/assets/assets-service";
 
 export default async function LoginPage({
   searchParams,
@@ -10,16 +12,25 @@ export default async function LoginPage({
   const access = await getAccess();
   if (access.user) redirect("/");
 
-  const t = await getT();
+  const [t, settings] = await Promise.all([getT(), getPlatformSettings()]);
   const { error } = await searchParams;
+  const logo = assetUrl(settings.logoUrl);
+  const darkLogo = assetUrl(settings.darkLogoUrl) ?? logo;
 
   return (
     <main className="grid min-h-screen place-items-center px-4">
       <div className="card w-full max-w-sm p-8">
         <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-md bg-brand text-lg text-brand-fg">
-            ✦
-          </span>
+          {logo ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logo} alt={settings.appName} className="h-9 w-auto dark:hidden" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={darkLogo!} alt={settings.appName} className="hidden h-9 w-auto dark:block" />
+            </>
+          ) : (
+            <span className="grid h-9 w-9 place-items-center rounded-md bg-brand text-lg text-brand-fg">✦</span>
+          )}
           <span className="text-2xl font-bold text-ink">{t("app.name")}</span>
         </div>
         <h1 className="mb-6 text-center text-lg font-semibold text-ink">

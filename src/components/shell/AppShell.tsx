@@ -50,7 +50,7 @@ export async function AppShell({
       <TopBar user={access.user} activeModuleKey={moduleKey} />
       <div className="mx-auto flex max-w-7xl">
         {hasNav && <Sidebar sections={sections} groups={groups} />}
-        <main className="min-w-0 flex-1 px-4 py-8">
+        <main className="min-w-0 flex-1 px-4 pt-8 pb-24 sm:pb-8">
           {(pageTitle || actions || backHref) && (
             <div className="mb-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">

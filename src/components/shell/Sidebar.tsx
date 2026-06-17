@@ -123,7 +123,8 @@ export function Sidebar({
 
       {/* Mobile: a persistent icon rail; the expand button slides the names
           panel over the content (the drawer below). */}
-      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-16 shrink-0 flex-col border-e border-line bg-surface md:hidden">
+      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-16 shrink-0 flex-col overflow-y-auto border-e border-line bg-surface md:hidden">
+        <Body sections={sections} groups={groups} collapsed={true} />
         <button
           type="button"
           onClick={openDrawer}
@@ -133,9 +134,6 @@ export function Sidebar({
         >
           <span>»</span>
         </button>
-        <div className="flex-1 overflow-y-auto">
-          <Body sections={sections} groups={groups} collapsed={true} />
-        </div>
       </aside>
 
       {/* Mobile names overlay (slides over content) */}

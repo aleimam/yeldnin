@@ -21,7 +21,6 @@ export default async function TripsPage() {
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("trip.uid")}</th>
               <th className="th">{t("trip.traveler")}</th>
               <th className="th">{t("trip.country")}</th>
               <th className="th">{t("trip.lastReceiving")}</th>
@@ -31,10 +30,7 @@ export default async function TripsPage() {
           <tbody className="divide-y divide-line">
             {rows.map((tr) => (
               <tr key={tr.id} className="hover:bg-canvas/60">
-                <td className="td font-mono text-xs text-muted">
-                  <Link href={`/trips/${tr.id}`} className="text-brand hover:underline">{tr.uid ?? tr.id}</Link>
-                </td>
-                <td className="td">{tr.traveler.name}</td>
+                <td className="td"><Link href={`/trips/${tr.id}`} className="text-brand hover:underline">{tr.traveler.name}</Link></td>
                 <td className="td text-muted">{tr.country}</td>
                 <td className="td text-muted">{formatBizDate(tr.lastReceivingDate)}</td>
                 <td className="td">
@@ -44,7 +40,7 @@ export default async function TripsPage() {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("trip.empty")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={4}>{t("trip.empty")}</td></tr>}
           </tbody>
         </table>
       </div>
