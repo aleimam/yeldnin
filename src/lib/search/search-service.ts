@@ -5,6 +5,7 @@ import { productScopes } from "@/lib/products/products-logic";
 import { requestScopes } from "@/lib/requests/request-logic";
 import { customerScopes } from "@/lib/customers/customers-logic";
 import { parseQuery, isSearchable, uidPrefix, UID_PREFIX_TYPE, type ParsedQuery } from "./search-logic";
+import { formatBizDate } from "@/lib/format/dates";
 
 export interface SearchHit {
   type: string;
@@ -56,7 +57,7 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
           take: perType,
           orderBy: { updatedAt: "desc" },
         });
-        return rows.map((r) => ({ type: "product", id: r.id, uid: r.uid, title: r.name, subtitle: r.uid, href: `/products/${r.id}` }));
+        return rows.map((r) => ({ type: "product", id: r.id, uid: r.uid, title: r.name, subtitle: r.scope, href: `/products/${r.id}` }));
       },
     });
   }
@@ -68,11 +69,11 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
       run: async () => {
         const rows = await prisma.request.findMany({
           where: { archivedAt: null, scope: { in: rScopes }, ...clause(parsed, ["uid", "notes"]) },
-          select: { id: true, uid: true, type: true, scope: true },
+          select: { id: true, uid: true, type: true, scope: true, customer: { select: { name: true } } },
           take: perType,
           orderBy: { createdAt: "desc" },
         });
-        return rows.map((r) => ({ type: "request", id: r.id, uid: r.uid, title: r.uid ?? `#${r.id}`, subtitle: r.scope, href: `/requests/${r.id}` }));
+        return rows.map((r) => ({ type: "request", id: r.id, uid: r.uid, title: r.customer?.name ?? r.scope, subtitle: r.scope, href: `/requests/${r.id}` }));
       },
     });
   }
@@ -88,7 +89,7 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
           take: perType,
           orderBy: { updatedAt: "desc" },
         });
-        return rows.map((r) => ({ type: "customer", id: r.id, uid: r.uid, title: r.name, subtitle: r.contactNumber ?? r.uid, href: `/customers/${r.id}` }));
+        return rows.map((r) => ({ type: "customer", id: r.id, uid: r.uid, title: r.name, subtitle: r.contactNumber, href: `/customers/${r.id}` }));
       },
     });
   }
@@ -104,7 +105,7 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
           take: perType,
           orderBy: { createdAt: "desc" },
         });
-        return rows.map((r) => ({ type: "purchase", id: r.id, uid: r.uid, title: r.uid ?? `#${r.id}`, subtitle: r.supplierName ?? r.scope, href: `/purchasing/purchases/${r.id}` }));
+        return rows.map((r) => ({ type: "purchase", id: r.id, uid: r.uid, title: r.supplierName ?? r.scope, subtitle: r.scope, href: `/purchasing/purchases/${r.id}` }));
       },
     });
   }
@@ -120,7 +121,7 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
           take: perType,
           orderBy: { createdAt: "desc" },
         });
-        return rows.map((r) => ({ type: "patch", id: r.id, uid: r.uid, title: r.uid ?? `#${r.id}`, subtitle: r.tracking ?? r.destinationName, href: `/patches/${r.id}` }));
+        return rows.map((r) => ({ type: "patch", id: r.id, uid: r.uid, title: r.destinationName ?? r.tracking ?? "—", subtitle: r.tracking ?? r.destinationName, href: `/patches/${r.id}` }));
       },
     });
     defs.push({
@@ -129,11 +130,11 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
       run: async () => {
         const rows = await prisma.trip.findMany({
           where: { archivedAt: null, ...clause(parsed, ["uid", "country", "notes"]) },
-          select: { id: true, uid: true, country: true },
+          select: { id: true, uid: true, country: true, traveler: { select: { name: true } }, lastReceivingDate: true },
           take: perType,
           orderBy: { createdAt: "desc" },
         });
-        return rows.map((r) => ({ type: "trip", id: r.id, uid: r.uid, title: r.uid ?? `#${r.id}`, subtitle: r.country, href: `/trips/${r.id}` }));
+        return rows.map((r) => ({ type: "trip", id: r.id, uid: r.uid, title: r.traveler.name, subtitle: r.lastReceivingDate ? formatBizDate(r.lastReceivingDate) : r.country, href: `/trips/${r.id}` }));
       },
     });
     defs.push({
@@ -142,11 +143,11 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
       run: async () => {
         const rows = await prisma.traveler.findMany({
           where: { archivedAt: null, ...clause(parsed, ["name", "contact", "uid"]) },
-          select: { id: true, uid: true, name: true },
+          select: { id: true, uid: true, name: true, contact: true },
           take: perType,
           orderBy: { updatedAt: "desc" },
         });
-        return rows.map((r) => ({ type: "traveler", id: r.id, uid: r.uid, title: r.name, subtitle: r.uid, href: `/travelers/${r.id}` }));
+        return rows.map((r) => ({ type: "traveler", id: r.id, uid: r.uid, title: r.name, subtitle: r.contact, href: `/travelers/${r.id}` }));
       },
     });
     defs.push({
@@ -175,7 +176,7 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
           take: perType,
           orderBy: { createdAt: "desc" },
         });
-        return rows.map((r) => ({ type: "shipment", id: r.id, uid: r.uid, title: r.uid ?? `#${r.id}`, subtitle: r.scope, href: `/shipments/${r.id}` }));
+        return rows.map((r) => ({ type: "shipment", id: r.id, uid: r.uid, title: r.scope, subtitle: r.status, href: `/shipments/${r.id}` }));
       },
     });
   }
@@ -187,11 +188,11 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
       run: async () => {
         const rows = await prisma.courier.findMany({
           where: { archivedAt: null, ...clause(parsed, ["name", "contact", "uid"]) },
-          select: { id: true, uid: true, name: true },
+          select: { id: true, uid: true, name: true, contact: true },
           take: perType,
           orderBy: { updatedAt: "desc" },
         });
-        return rows.map((r) => ({ type: "courier", id: r.id, uid: r.uid, title: r.name, subtitle: r.uid, href: `/couriers/${r.id}` }));
+        return rows.map((r) => ({ type: "courier", id: r.id, uid: r.uid, title: r.name, subtitle: r.contact, href: `/couriers/${r.id}` }));
       },
     });
   }
@@ -203,11 +204,11 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
       run: async () => {
         const rows = await prisma.issue.findMany({
           where: { ...clause(parsed, ["title", "uid", "note"]) },
-          select: { id: true, uid: true, title: true },
+          select: { id: true, uid: true, title: true, status: true },
           take: perType,
           orderBy: { createdAt: "desc" },
         });
-        return rows.map((r) => ({ type: "issue", id: r.id, uid: r.uid, title: r.title, subtitle: r.uid, href: `/issues/${r.id}` }));
+        return rows.map((r) => ({ type: "issue", id: r.id, uid: r.uid, title: r.title, subtitle: r.status, href: `/issues/${r.id}` }));
       },
     });
   }
@@ -227,7 +228,7 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
           take: perType,
           orderBy: { updatedAt: "desc" },
         });
-        return rows.map((r) => ({ type: "item", id: r.id, uid: r.uid, title: r.uid ?? `#${r.id}`, subtitle: r.product.name, href: `/history/items/${r.id}` }));
+        return rows.map((r) => ({ type: "item", id: r.id, uid: r.uid, title: r.product.name, subtitle: r.uid, href: `/history/items/${r.id}` }));
       },
     });
   }

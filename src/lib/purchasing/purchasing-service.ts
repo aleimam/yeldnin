@@ -5,6 +5,8 @@ import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
 import { clampLinesToPool, type PurchaseLineInput } from "./purchasing-logic";
 import { isTripPurchaseEligible } from "@/lib/trips/trip-logic";
 import { startTripShippingIfApproved } from "@/lib/trips/trip-service";
+import { parseTypes } from "@/lib/travelers/travelers-logic";
+import { formatBizDate } from "@/lib/format/dates";
 
 export interface PoolRow {
   scope: string;
@@ -91,12 +93,20 @@ export async function createPurchase(input: CreatePurchaseInput, userId: number)
   } else if (input.destinationId && input.destinationType === "TRIP") {
     const trip = await prisma.trip.findUnique({
       where: { id: input.destinationId },
-      select: { traveler: { select: { name: true } }, country: true, status: true, lastReceivingDate: true },
+      select: { traveler: { select: { name: true } }, status: true, lastReceivingDate: true, allowedProductTypes: true },
     });
     if (!trip || !isTripPurchaseEligible(trip, new Date())) {
       throw new Error("Selected trip is not open for purchases (must be Approved/Started Shipping with a future last-receiving date).");
     }
-    destinationName = `${trip.traveler.name} · ${trip.country}`;
+    // The trip must accept all the product types being purchased to it.
+    const allowed = parseTypes(trip.allowedProductTypes) as string[];
+    if (allowed.length) {
+      const prods = await prisma.product.findMany({ where: { id: { in: lines.map((l) => l.productId) } }, select: { type: true } });
+      if (prods.some((p) => !allowed.includes(p.type))) {
+        throw new Error("This trip does not accept one or more of these product types.");
+      }
+    }
+    destinationName = `${trip.traveler.name} · ${trip.lastReceivingDate ? formatBizDate(trip.lastReceivingDate) : "—"}`;
   }
 
   const uid = await nextUid("PUR");

@@ -111,7 +111,7 @@ export function GlobalSearch() {
                       className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-start text-sm hover:bg-canvas ${active === idx ? "bg-canvas" : ""}`}
                     >
                       <span className="truncate text-ink">{h.title}</span>
-                      {h.subtitle && <span className="shrink-0 truncate font-mono text-xs text-muted">{h.subtitle}</span>}
+                      {h.subtitle && <span className="shrink-0 truncate text-xs text-muted">{h.subtitle}</span>}
                     </button>
                   );
                 })}
