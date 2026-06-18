@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import type { Scope, ProductType } from "./products-logic";
 import type { ProductImportRow } from "./products-import-logic";
@@ -21,8 +22,6 @@ export interface ProductInput {
   notes?: string | null;
   isMaleSupport: boolean;
 }
-
-const clean = (s?: string | null) => s?.trim() || null;
 
 export function listProducts(opts: { scopes: Scope[]; search?: string }) {
   return prisma.product.findMany({

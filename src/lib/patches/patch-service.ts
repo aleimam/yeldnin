@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
 
@@ -37,7 +38,6 @@ export interface CreatePatchInput {
   handlingFee?: number | null;
   handlingFeeCurrency?: string | null;
 }
-const clean = (s?: string | null) => s?.trim() || null;
 
 /** Create a patch from a purchase and move the chosen items ORDERED → SHIPPED. */
 export async function createPatch(input: CreatePatchInput, photoAssetIds: string[], userId: number) {

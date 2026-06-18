@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { isContactChannel } from "./customers-logic";
 
@@ -10,7 +11,6 @@ export interface CustomerInput {
   contactNumber?: string | null;
   notes?: string | null;
 }
-const clean = (s?: string | null) => s?.trim() || null;
 const channel = (c: string) => (isContactChannel(c) ? c : "WHATSAPP");
 const scopeOf = (s: string) => (s === "XOONX" ? "XOONX" : "EGV");
 

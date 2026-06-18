@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { hashPassword } from "@/lib/auth/password";
 import { isLevel, type Level, type Tier } from "@/lib/auth/access-logic";
 
@@ -55,8 +56,6 @@ export interface UserProfileInput {
   yeldnPhone?: string;
   avatarUrl?: string | null;
 }
-
-const clean = (s?: string) => s?.trim() || null;
 
 async function assertUsernameFree(username: string | null, exceptId?: number) {
   if (!username) return;

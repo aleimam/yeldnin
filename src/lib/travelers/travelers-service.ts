@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { joinTypes } from "./travelers-logic";
 
@@ -13,7 +14,6 @@ export interface TravelerInput {
   carriesMaleSupport: boolean;
   allowedProductTypes: string[];
 }
-const clean = (s?: string | null) => s?.trim() || null;
 
 export function listTravelers() {
   return prisma.traveler.findMany({

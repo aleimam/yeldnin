@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { createItems } from "@/lib/items/items-service";
 import { createCustomer } from "@/lib/customers/customers-service";
@@ -15,8 +16,6 @@ export interface CreateRequestInput {
   deposit?: number | null;
   lines: { productId: number; count: number; sellingPrice?: number | null; purchasePrice?: number | null; purchaseCurrency?: string | null; notes?: string | null }[];
 }
-const clean = (s?: string | null) => s?.trim() || null;
-
 /** Create a request + its lines, then spawn one Item per unit at REQUESTED. */
 export async function createRequest(input: CreateRequestInput, photoAssetIds: string[], userId: number) {
   let customerId = input.customerId ?? null;

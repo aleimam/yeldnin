@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 
 export interface HubInput {
@@ -7,7 +8,6 @@ export interface HubInput {
   country: string;
   notes?: string | null;
 }
-const clean = (s?: string | null) => s?.trim() || null;
 
 export function listHubs() {
   return prisma.hub.findMany({

@@ -1,12 +1,12 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 
 export interface CourierInput {
   name: string;
   contact?: string | null;
 }
-const clean = (s?: string | null) => s?.trim() || null;
 
 export function listCouriers() {
   return prisma.courier.findMany({ where: { archivedAt: null }, orderBy: { createdAt: "desc" }, take: 200 });

@@ -1,10 +1,9 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { sendLocalizedToUsers, resolveRecipients } from "@/lib/notify/notify-service";
 import { issueOpenedPayload } from "@/lib/notify/notify-logic";
-
-const clean = (s?: string | null) => s?.trim() || null;
 
 export async function createIssue(
   input: { title: string; note?: string | null; scope?: string | null },
