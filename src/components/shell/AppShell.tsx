@@ -4,6 +4,7 @@ import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { SidebarProvider } from "./SidebarContext";
 import { TitleSetter } from "./TitleSetter";
+import { AutoCards } from "./AutoCards";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import type { Access, SessionUser } from "@/lib/auth/access";
 import { sectionsFor, visibleSettingsGroups, SIDEBAR_COOKIE } from "@/lib/module-sections";
@@ -47,6 +48,7 @@ export async function AppShell({
   return (
     <SidebarProvider initialCollapsed={initialCollapsed}>
       <TitleSetter appName={settings.appName} />
+      <AutoCards />
       <TopBar user={access.user} activeModuleKey={moduleKey} />
       <div className="mx-auto flex max-w-7xl">
         {hasNav && <Sidebar sections={sections} groups={groups} />}

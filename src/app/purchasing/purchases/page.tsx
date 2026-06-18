@@ -30,7 +30,7 @@ export default async function PurchasesPage() {
       actions={canBuy ? <Link href="/purchasing/purchases/new" className="btn-primary">+ {t("purchasing.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full table-cards">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("purchasing.purchase")}</th>

@@ -55,7 +55,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.products")}</h2>
-          <table className="w-full text-sm table-cards">
+          <table className="w-full text-sm" data-cards>
             <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("requests.count")}</th>{canSeeSelling && <th className="th text-end">{t("requests.sell")}</th>}<th className="th text-end">{t("requests.buy")}</th></tr></thead>
             <tbody className="divide-y divide-line">
               {req.lines.map((l) => (
@@ -72,7 +72,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.items")} ({items.length})</h2>
-          <table className="w-full text-sm table-cards">
+          <table className="w-full text-sm" data-cards>
             <thead>
               <tr className="border-b border-line">
                 <th className="th">{t("requests.uid")}</th>

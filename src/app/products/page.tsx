@@ -35,7 +35,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       }
     >
       <div className="card overflow-x-auto">
-        <table className="w-full table-cards">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("products.sku")}</th>

@@ -28,7 +28,7 @@ export default async function TravelersPage() {
       actions={canManage ? <Link href="/travelers/new" className="btn-primary">+ {t("travelers.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full table-cards">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("travelers.name")}</th>

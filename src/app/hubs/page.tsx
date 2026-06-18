@@ -28,7 +28,7 @@ export default async function HubsPage() {
       actions={canManage ? <Link href="/hubs/new" className="btn-primary">+ {t("hubs.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full table-cards">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("hubs.uid")}</th>

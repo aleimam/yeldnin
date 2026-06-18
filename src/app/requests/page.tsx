@@ -63,7 +63,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       )}
 
       <div className="card overflow-x-auto">
-        <table className="w-full table-cards">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("requests.uid")}</th>

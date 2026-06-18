@@ -28,7 +28,7 @@ export default async function PatchesPage() {
       actions={canManage ? <Link href="/patches/new" className="btn-primary">+ {t("patches.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full table-cards">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("patches.patch")}</th>

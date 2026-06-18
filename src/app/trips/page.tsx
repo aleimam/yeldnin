@@ -32,7 +32,7 @@ export default async function TripsPage() {
       actions={canManage ? <Link href="/trips/new" className="btn-primary">+ {t("trip.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full table-cards">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("trip.traveler")}</th>
