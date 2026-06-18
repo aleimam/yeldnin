@@ -29,7 +29,9 @@ export function TypesEditor({ scope, title, initial }: { scope: string; title: s
   function save() {
     setSaved(false);
     setError(null);
-    if (withWeights && Math.round(liveSum) !== 100) {
+    // Weights are optional: all-zero means "weight call types equally" (matching
+    // the composite's fallback). Only enforce the 100% rule once any weight is set.
+    if (withWeights && Math.round(liveSum) !== 0 && Math.round(liveSum) !== 100) {
       setError(t("cs.weightsSum100"));
       return;
     }
@@ -92,7 +94,10 @@ export function TypesEditor({ scope, title, initial }: { scope: string; title: s
         )}
       </div>
       {withWeights && (
-        <p className={`text-xs ${Math.round(liveSum) === 100 ? "text-muted" : "text-red-600"}`}>{t("cs.weightSum")}: {liveSum}% / 100%</p>
+        <p className={`text-xs ${Math.round(liveSum) === 100 || Math.round(liveSum) === 0 ? "text-muted" : "text-red-600"}`}>
+          {t("cs.weightSum")}: {liveSum}% / 100%
+          {Math.round(liveSum) === 0 && <span className="ms-1">· {t("cs.weightsEqualHint")}</span>}
+        </p>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center gap-3">

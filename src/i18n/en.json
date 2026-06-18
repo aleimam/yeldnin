@@ -443,6 +443,7 @@
   "cs.callType": "Call type",
   "cs.weightSum": "Weights total",
   "cs.weightsSum100": "Call-type weights must total 100%.",
+  "cs.weightsEqualHint": "leave all at 0 to weight types equally",
   "cs.splitTitle": "Overall-average weighting",
   "cs.splitHint": "How much Calls vs Performance count toward the monthly overall average.",
   "cs.bonus": "Bonus",
