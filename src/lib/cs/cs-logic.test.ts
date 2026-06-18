@@ -61,8 +61,8 @@ describe("normalizedPct", () => {
   it("is the weighted fraction of the Perfect ceiling", () => {
     expect(normalizedPct([{ weight: 4, value: 0.5 }], map)).toBe(50); // 2 / 4
   });
-  it("clamps negatives to 0 and handles empty", () => {
-    expect(normalizedPct([{ weight: 2, value: -1 }], map)).toBe(0);
+  it("goes below 0% for Catastrophe and returns 0 for empty", () => {
+    expect(normalizedPct([{ weight: 2, value: -1 }], map)).toBe(-100); // -2 / 2
     expect(normalizedPct([], map)).toBe(0);
   });
 });

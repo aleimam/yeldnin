@@ -74,16 +74,16 @@ export function weightedTotal(answers: ScoredAnswer[]): number {
 
 /**
  * Score as a % where a Perfect answer on every question = 100% (ceiling =
- * PERFECT value × Σ weights). Outstanding sits above Perfect, so a rep can
- * exceed 100%. Negative totals clamp to 0; a non-positive ceiling yields 0.
+ * PERFECT value × Σ weights). NOT clamped: Outstanding pushes above 100% and
+ * Catastrophe below 0%. A non-positive ceiling (no answers) yields 0.
  */
 export function normalizedPct(answers: ScoredAnswer[], map: ValueMap): number {
-  const best = map.PERFECT; // Perfect is the 100% mark; Outstanding can push above it
+  const best = map.PERFECT; // Perfect is the 100% mark; values run past 100% / below 0%
   const sumW = answers.reduce((s, a) => s + a.weight, 0);
   const ceiling = best * sumW;
   if (ceiling <= 0) return 0;
   const total = answers.reduce((s, a) => s + a.value * a.weight, 0);
-  return round2(Math.max(0, (total / ceiling) * 100));
+  return round2((total / ceiling) * 100);
 }
 
 // ── Access — governed by the per-user `cs_quality` module level (admins always

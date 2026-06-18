@@ -160,6 +160,39 @@ async function main() {
     }
   }
 
+  // Recompute stored normalized % for existing evaluations under the current
+  // rule (Perfect value = 100% ceiling, unclamped). Idempotent — writes only on
+  // change. Uses the current answer-value config's PERFECT per scope.
+  {
+    const cfgRow = await prisma.csConfig.findUnique({ where: { id: 1 } });
+    let cfg: { call?: Record<string, number>; performance?: Record<string, number> } = {};
+    try {
+      cfg = cfgRow ? JSON.parse(cfgRow.config || "{}") : {};
+    } catch {
+      cfg = {};
+    }
+    const perfectFor = (scope: string) => {
+      const m = scope === "CALL" ? cfg.call : cfg.performance;
+      return m && typeof m.PERFECT === "number" ? m.PERFECT : 1;
+    };
+    const evals = await prisma.csEvaluation.findMany({
+      where: { archivedAt: null },
+      include: { answers: { select: { value: true, weight: true } } },
+    });
+    let recomputed = 0;
+    for (const ev of evals) {
+      const sumW = ev.answers.reduce((s, a) => s + a.weight, 0);
+      const ceiling = perfectFor(ev.scope) * sumW;
+      const total = ev.answers.reduce((s, a) => s + a.value * a.weight, 0);
+      const normalized = ceiling > 0 ? Math.round((total / ceiling) * 10000) / 100 : 0;
+      if (normalized !== ev.normalized) {
+        await prisma.csEvaluation.update({ where: { id: ev.id }, data: { normalized } });
+        recomputed++;
+      }
+    }
+    if (recomputed) console.log(`  Recomputed normalized % for ${recomputed} evaluation(s).`);
+  }
+
   // Default super-admin (only if there are no users at all)
   const userCount = await prisma.user.count();
   if (userCount === 0) {
