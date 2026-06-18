@@ -50,14 +50,26 @@ export async function listEvaluations(opts: { status?: string; subjectUserId?: n
     orderBy: { createdAt: "desc" },
     take: 300,
   });
-  const names = await nameMap(evals.flatMap((e) => [e.subjectUserId, e.evaluatorUserId]));
+  const [locale, names] = await Promise.all([
+    getLocale(),
+    nameMap(evals.flatMap((e) => [e.subjectUserId, e.evaluatorUserId])),
+  ]);
+  // The eval-level type label is an English snapshot; in Arabic, map it to the
+  // current call type's Arabic name when one exists (best-effort by name).
+  const typeArMap =
+    locale === "ar"
+      ? new Map(
+          (await prisma.csEvalType.findMany({ where: { scope: "CALL", nameAr: { not: null } }, select: { name: true, nameAr: true } }))
+            .map((tp) => [tp.name, tp.nameAr as string]),
+        )
+      : new Map<string, string>();
   return evals.map((e) => ({
     id: e.id,
     uid: e.uid,
     subject: names.get(e.subjectUserId) ?? `#${e.subjectUserId}`,
     evaluator: opts.showEvaluator ? names.get(e.evaluatorUserId) ?? `#${e.evaluatorUserId}` : null,
     scope: e.scope,
-    typeName: e.typeName,
+    typeName: e.typeName ? typeArMap.get(e.typeName) ?? e.typeName : null,
     status: e.status,
     total: e.total,
     normalized: e.normalized,

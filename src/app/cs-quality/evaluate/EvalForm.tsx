@@ -1,14 +1,14 @@
 "use client";
 import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useT } from "@/i18n/client";
+import { useT, useLocale } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
-import { CS_LEVELS, valueFor, weightedTotal, normalizedPct, type ValueMap } from "@/lib/cs/cs-logic";
+import { CS_LEVELS, valueFor, weightedTotal, normalizedPct, localized, type ValueMap } from "@/lib/cs/cs-logic";
 import { createCsEvaluationAction } from "../actions";
 
-type Q = { id: number; title: string; criteria: string; tags: string | null; weight: number; typeId: number; typeName: string };
+type Q = { id: number; title: string; titleAr: string | null; criteria: string; criteriaAr: string | null; tags: string | null; tagsAr: string | null; weight: number; typeId: number; typeName: string; typeNameAr: string | null };
 type Rep = { id: number; name: string };
-type CallType = { id: number; name: string };
+type CallType = { id: number; name: string; nameAr: string | null };
 
 // Catastrophe red … Outstanding green; middle three neutral.
 const TONE: Record<string, string> = {
@@ -37,6 +37,7 @@ export function EvalForm({
   valueMap: ValueMap;
 }) {
   const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [subjectId, setSubjectId] = useState("");
@@ -93,7 +94,7 @@ export function EvalForm({
           <div>
             <label className="label">{t("cs.callType")}</label>
             <select className="input" value={callTypeId} onChange={(e) => { setCallTypeId(e.target.value); setAnswers({}); }}>
-              {callTypes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {callTypes.map((c) => <option key={c.id} value={c.id}>{localized(c.name, c.nameAr, locale)}</option>)}
             </select>
           </div>
         )}
@@ -110,13 +111,13 @@ export function EvalForm({
           <div key={q.id} className="card space-y-3 p-4">
             <div>
               <div className="flex items-baseline justify-between gap-3">
-                <p className="font-semibold text-ink">{q.title}</p>
-                <span className="shrink-0 text-xs text-muted">{multiType ? `${q.typeName} · ` : ""}×{q.weight}</span>
+                <p className="font-semibold text-ink">{localized(q.title, q.titleAr, locale)}</p>
+                <span className="shrink-0 text-xs text-muted">{multiType ? `${localized(q.typeName, q.typeNameAr, locale)} · ` : ""}×{q.weight}</span>
               </div>
-              {q.criteria && <p className="mt-0.5 text-sm text-muted">{q.criteria}</p>}
-              {q.tags && (
+              {localized(q.criteria, q.criteriaAr, locale) && <p className="mt-0.5 text-sm text-muted">{localized(q.criteria, q.criteriaAr, locale)}</p>}
+              {localized(q.tags ?? "", q.tagsAr, locale) && (
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {q.tags.split(",").map((x) => x.trim()).filter(Boolean).map((tag) => (
+                  {localized(q.tags ?? "", q.tagsAr, locale).split(",").map((x) => x.trim()).filter(Boolean).map((tag) => (
                     <span key={tag} className="rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{tag}</span>
                   ))}
                 </div>

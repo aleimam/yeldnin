@@ -10,8 +10,8 @@ export default async function CsTypesPage() {
   return (
     <AppShell access={access} moduleKey="cs_quality" pageTitle={t("cs.types")} backHref="/cs-quality">
       <div className="max-w-2xl space-y-6">
-        <TypesEditor scope="CALL" title={t("cs.scope.CALL")} initial={call.map((c) => ({ id: c.id, name: c.name, weight: c.weight }))} />
-        <TypesEditor scope="PERFORMANCE" title={t("cs.scope.PERFORMANCE")} initial={performance.map((c) => ({ id: c.id, name: c.name, weight: c.weight }))} />
+        <TypesEditor scope="CALL" title={t("cs.scope.CALL")} initial={call.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr ?? "", weight: c.weight }))} />
+        <TypesEditor scope="PERFORMANCE" title={t("cs.scope.PERFORMANCE")} initial={performance.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr ?? "", weight: c.weight }))} />
       </div>
     </AppShell>
   );

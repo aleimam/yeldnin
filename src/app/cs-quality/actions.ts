@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { getT } from "@/i18n/server";
 import { requireCapability, requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import { saveCsConfig } from "@/lib/cs/cs-config-service";
@@ -20,7 +21,7 @@ export async function saveCsConfigAction(config: CsConfigShape): Promise<{ ok: b
   return { ok: true };
 }
 
-export async function saveCsTypesAction(scope: string, rows: CsTypeRow[], add: { name: string; weight?: number } | null): Promise<{ ok: boolean }> {
+export async function saveCsTypesAction(scope: string, rows: CsTypeRow[], add: { name: string; nameAr?: string | null; weight?: number } | null): Promise<{ ok: boolean }> {
   const access = await requireCapability("cs_quality", "manage");
   await saveCsTypeBatch(scope, rows, add, access.user.id);
   revalidatePath("/cs-quality/types");
@@ -41,17 +42,18 @@ export async function saveBonusTiersAction(tiers: BonusTier[]): Promise<{ ok: bo
   return { ok: true };
 }
 
+/** Returns an i18n key for the first failing rule, or null when valid. */
 function validateQuestion(p: CsQuestionInput): string | null {
-  if (!p.title.trim()) return "Title is required.";
-  if (!p.criteria.trim()) return "Question text is required.";
-  if (!p.typeId) return "Pick a type.";
+  if (!p.title.trim()) return "cs.err.titleRequired";
+  if (!p.criteria.trim()) return "cs.err.questionRequired";
+  if (!p.typeId) return "cs.err.pickType";
   return null;
 }
 
 export async function createCsQuestionAction(p: CsQuestionInput): Promise<QResult> {
   const access = await requireCapability("cs_quality", "manage");
   const err = validateQuestion(p);
-  if (err) return { ok: false, error: err };
+  if (err) return { ok: false, error: (await getT())(err) };
   const q = await createCsQuestion(p, access.user.id);
   revalidatePath("/cs-quality/questions");
   return { ok: true, id: q.id };
@@ -60,7 +62,7 @@ export async function createCsQuestionAction(p: CsQuestionInput): Promise<QResul
 export async function updateCsQuestionAction(id: number, p: CsQuestionInput): Promise<QResult> {
   const access = await requireCapability("cs_quality", "manage");
   const err = validateQuestion(p);
-  if (err) return { ok: false, error: err };
+  if (err) return { ok: false, error: (await getT())(err) };
   await updateCsQuestion(id, p, access.user.id);
   revalidatePath("/cs-quality/questions");
   return { ok: true };
@@ -83,13 +85,14 @@ export async function createCsEvaluationAction(p: {
   photoIds?: string[];
 }): Promise<EvalResult> {
   const access = await requireUser();
+  const t = await getT();
   const allowed = p.scope === "CALL" ? canEvaluateCalls(access) : canManageCs(access);
-  if (!allowed) return { ok: false, error: "You can't run that evaluation." };
-  if (!p.subjectUserId) return { ok: false, error: "Pick a sales rep." };
-  if (p.subjectUserId === access.user.id) return { ok: false, error: "You can't evaluate yourself." };
-  if (!p.callDate) return { ok: false, error: "Pick the evaluation date." };
+  if (!allowed) return { ok: false, error: t("cs.err.cantEvaluate") };
+  if (!p.subjectUserId) return { ok: false, error: t("cs.pickRep") };
+  if (p.subjectUserId === access.user.id) return { ok: false, error: t("cs.err.cantEvaluateSelf") };
+  if (!p.callDate) return { ok: false, error: t("cs.pickDate") };
   const answers = (p.answers ?? []).filter((a) => a.questionId && isCsLevel(a.level));
-  if (!answers.length) return { ok: false, error: "Answer the questions." };
+  if (!answers.length) return { ok: false, error: t("cs.answerAll") };
   const ev = await createEvaluation(
     {
       subjectUserId: p.subjectUserId,

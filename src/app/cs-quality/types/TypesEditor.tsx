@@ -4,21 +4,23 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { saveCsTypesAction } from "../actions";
 
-type Row = { id: number; name: string; weight: number; remove?: boolean };
+type Row = { id: number; name: string; nameAr: string; weight: number; remove?: boolean };
 
-export function TypesEditor({ scope, title, initial }: { scope: string; title: string; initial: { id: number; name: string; weight: number }[] }) {
+export function TypesEditor({ scope, title, initial }: { scope: string; title: string; initial: { id: number; name: string; nameAr: string; weight: number }[] }) {
   const t = useT();
   const router = useRouter();
   const withWeights = scope === "CALL"; // call types are weighted within the overall average
   const [pending, start] = useTransition();
   const [rows, setRows] = useState<Row[]>(initial.map((r) => ({ ...r })));
   const [add, setAdd] = useState("");
+  const [addNameAr, setAddNameAr] = useState("");
   const [addWeight, setAddWeight] = useState("");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const dirty = () => { setSaved(false); setError(null); };
   const setName = (id: number, name: string) => { dirty(); setRows((p) => p.map((r) => (r.id === id ? { ...r, name } : r))); };
+  const setNameAr = (id: number, nameAr: string) => { dirty(); setRows((p) => p.map((r) => (r.id === id ? { ...r, nameAr } : r))); };
   const setWeight = (id: number, w: string) => { dirty(); setRows((p) => p.map((r) => (r.id === id ? { ...r, weight: Number(w) || 0 } : r))); };
   const toggleRemove = (id: number) => { dirty(); setRows((p) => p.map((r) => (r.id === id ? { ...r, remove: !r.remove } : r))); };
 
@@ -34,10 +36,11 @@ export function TypesEditor({ scope, title, initial }: { scope: string; title: s
     start(async () => {
       await saveCsTypesAction(
         scope,
-        rows.map((r) => ({ id: r.id, name: r.name, weight: r.weight || 0, remove: !!r.remove })),
-        add.trim() ? { name: add.trim(), weight: Number(addWeight) || 0 } : null,
+        rows.map((r) => ({ id: r.id, name: r.name, nameAr: r.nameAr || null, weight: r.weight || 0, remove: !!r.remove })),
+        add.trim() ? { name: add.trim(), nameAr: addNameAr.trim() || null, weight: Number(addWeight) || 0 } : null,
       );
       setAdd("");
+      setAddNameAr("");
       setAddWeight("");
       setSaved(true);
       router.refresh();
@@ -54,6 +57,14 @@ export function TypesEditor({ scope, title, initial }: { scope: string; title: s
               className={`input flex-1 ${r.remove ? "line-through opacity-50" : ""}`}
               value={r.name}
               onChange={(e) => setName(r.id, e.target.value)}
+              disabled={r.remove}
+            />
+            <input
+              className={`input flex-1 ${r.remove ? "line-through opacity-50" : ""}`}
+              dir="rtl"
+              placeholder={t("cs.nameAr")}
+              value={r.nameAr}
+              onChange={(e) => setNameAr(r.id, e.target.value)}
               disabled={r.remove}
             />
             {withWeights && (
@@ -75,6 +86,7 @@ export function TypesEditor({ scope, title, initial }: { scope: string; title: s
       </div>
       <div className="flex items-center gap-2">
         <input className="input flex-1" placeholder={t("cs.addType")} value={add} onChange={(e) => { dirty(); setAdd(e.target.value); }} />
+        <input className="input flex-1" dir="rtl" placeholder={t("cs.nameAr")} value={addNameAr} onChange={(e) => { dirty(); setAddNameAr(e.target.value); }} />
         {withWeights && (
           <input type="number" className="input w-20 text-end" placeholder={t("cs.weight")} value={addWeight} onChange={(e) => { dirty(); setAddWeight(e.target.value); }} aria-label={t("cs.weight")} />
         )}

@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { formatBizDate } from "@/lib/format/dates";
-import { canManageCs } from "@/lib/cs/cs-logic";
+import { canManageCs, localized } from "@/lib/cs/cs-logic";
 import { getEvaluationDetail } from "@/lib/cs/cs-report-service";
 import { ReviewActions } from "./ReviewActions";
 import { DeleteEvalButton } from "./DeleteEvalButton";
@@ -32,7 +32,9 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   const staffView = admin || isEvaluator; // reps don't see weight/weighted/value mechanics
   const canDelete = admin || (isEvaluator && ev.status === "PENDING");
   const backHref = admin ? "/cs-quality/review" : isSubject ? "/cs-quality/mine" : "/cs-quality/submitted";
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
+  // Eval-level type chip: borrow the Arabic type name snapshotted on any answer.
+  const evTypeName = ev.typeName ? localized(ev.typeName, ev.answers.find((a) => a.typeNameAr)?.typeNameAr, locale) : null;
 
   return (
     <AppShell access={access} moduleKey="cs_quality" pageTitle={ev.uid ?? `#${ev.id}`} backHref={backHref}>
@@ -41,7 +43,7 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
               <div><span className="text-muted">{t("cs.salesRep")}: </span><span className="text-ink">{subject}</span></div>
-              <div><span className="text-muted">{t("cs.scope")}: </span><span className="text-ink">{t(`cs.scope.${ev.scope}`)}{ev.typeName ? ` · ${ev.typeName}` : ""}</span></div>
+              <div><span className="text-muted">{t("cs.scope")}: </span><span className="text-ink">{t(`cs.scope.${ev.scope}`)}{evTypeName ? ` · ${evTypeName}` : ""}</span></div>
               {showEvaluator && <div><span className="text-muted">{t("cs.evaluator")}: </span><span className="text-ink">{evaluator}</span></div>}
               <div><span className="text-muted">{t("cs.date")}: </span><span className="text-ink">{formatBizDate(ev.scope === "CALL" ? ev.callDate ?? ev.createdAt : ev.createdAt)}</span></div>
               <div><span className="text-muted">{t("cs.score")}: </span><span className="font-semibold text-ink">{ev.total}</span></div>
@@ -72,9 +74,9 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
               {ev.answers.map((a) => (
                 <tr key={a.id}>
                   <td className="td" data-label={t("cs.criteria")}>
-                    <span className="font-medium text-ink">{a.title || a.criteria}</span>
-                    {staffView && a.title && a.criteria && <span className="block text-xs text-muted">{a.criteria}</span>}
-                    {staffView && a.typeName && <span className="block text-[10px] uppercase text-muted">{a.typeName}</span>}
+                    <span className="font-medium text-ink">{localized(a.title, a.titleAr, locale) || localized(a.criteria, a.criteriaAr, locale)}</span>
+                    {staffView && a.title && a.criteria && <span className="block text-xs text-muted">{localized(a.criteria, a.criteriaAr, locale)}</span>}
+                    {staffView && a.typeName && <span className="block text-[10px] uppercase text-muted">{localized(a.typeName, a.typeNameAr, locale)}</span>}
                     {a.note && <span className="block text-xs text-muted">“{a.note}”</span>}
                   </td>
                   <td className="td" data-label={staffView ? t("cs.answer") : t("cs.score")}><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span>{staffView && <span className="text-xs text-muted"> ({a.value})</span>}</td>

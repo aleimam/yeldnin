@@ -148,15 +148,16 @@ async function main() {
   }
 
   // CS Quality evaluation types (idempotent). Both lists are admin-editable.
-  const CS_TYPES: { scope: string; names: string[] }[] = [
-    { scope: "CALL", names: ["Normal", "Orders", "Problems"] },
-    { scope: "PERFORMANCE", names: ["Attitude", "Effort", "Time"] },
+  const CS_TYPES: { scope: string; types: { name: string; nameAr: string }[] }[] = [
+    { scope: "CALL", types: [{ name: "Normal", nameAr: "عادية" }, { name: "Orders", nameAr: "طلبات" }, { name: "Problems", nameAr: "مشاكل" }] },
+    { scope: "PERFORMANCE", types: [{ name: "Attitude", nameAr: "السلوك" }, { name: "Effort", nameAr: "الجهد" }, { name: "Time", nameAr: "الوقت" }] },
   ];
   for (const grp of CS_TYPES) {
-    for (let i = 0; i < grp.names.length; i++) {
-      const name = grp.names[i];
+    for (let i = 0; i < grp.types.length; i++) {
+      const { name, nameAr } = grp.types[i];
       const found = await prisma.csEvalType.findFirst({ where: { scope: grp.scope, name } });
-      if (!found) await prisma.csEvalType.create({ data: { scope: grp.scope, name, sortOrder: i } });
+      if (!found) await prisma.csEvalType.create({ data: { scope: grp.scope, name, nameAr, sortOrder: i } });
+      else if (!found.nameAr) await prisma.csEvalType.update({ where: { id: found.id }, data: { nameAr } });
     }
   }
 
@@ -191,6 +192,39 @@ async function main() {
       }
     }
     if (recomputed) console.log(`  Recomputed normalized % for ${recomputed} evaluation(s).`);
+  }
+
+  // Backfill Arabic snapshots onto existing evaluation answers from the current
+  // question/type. Idempotent: only fills a blank when the source has Arabic, so
+  // it becomes a no-op once everything is filled (and fills in over time as
+  // admins add Arabic to the question pool and the seed re-runs on deploy).
+  {
+    const answers = await prisma.csEvaluationAnswer.findMany({
+      where: { OR: [{ titleAr: null }, { criteriaAr: null }, { typeNameAr: null }] },
+      select: { id: true, questionId: true, titleAr: true, criteriaAr: true, typeNameAr: true },
+    });
+    const qIds = [...new Set(answers.map((a) => a.questionId))];
+    const questions = qIds.length
+      ? await prisma.csQuestion.findMany({
+          where: { id: { in: qIds } },
+          select: { id: true, titleAr: true, criteriaAr: true, type: { select: { nameAr: true } } },
+        })
+      : [];
+    const qMap = new Map(questions.map((q) => [q.id, q]));
+    let filled = 0;
+    for (const a of answers) {
+      const q = qMap.get(a.questionId);
+      if (!q) continue;
+      const data: { titleAr?: string; criteriaAr?: string; typeNameAr?: string } = {};
+      if (a.titleAr == null && q.titleAr) data.titleAr = q.titleAr;
+      if (a.criteriaAr == null && q.criteriaAr) data.criteriaAr = q.criteriaAr;
+      if (a.typeNameAr == null && q.type?.nameAr) data.typeNameAr = q.type.nameAr;
+      if (Object.keys(data).length) {
+        await prisma.csEvaluationAnswer.update({ where: { id: a.id }, data });
+        filled++;
+      }
+    }
+    if (filled) console.log(`  Backfilled Arabic on ${filled} evaluation answer(s).`);
   }
 
   // Default super-admin (only if there are no users at all)

@@ -23,7 +23,7 @@ export default async function EvaluatePerformancePage() {
       <EvalForm
         scope="PERFORMANCE"
         reps={reps}
-        questions={questions.map((q) => ({ id: q.id, title: q.title, criteria: q.criteria, tags: q.tags, weight: q.weight, typeId: q.typeId, typeName: q.type.name }))}
+        questions={questions.map((q) => ({ id: q.id, title: q.title, titleAr: q.titleAr, criteria: q.criteria, criteriaAr: q.criteriaAr, tags: q.tags, tagsAr: q.tagsAr, weight: q.weight, typeId: q.typeId, typeName: q.type.name, typeNameAr: q.type.nameAr }))}
         callTypes={[]}
         typeCount={types.length}
         valueMap={config.performance}

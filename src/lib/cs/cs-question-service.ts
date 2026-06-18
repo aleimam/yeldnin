@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
+import { clean } from "@/lib/text";
 import { clampWeight } from "./cs-logic";
 
 /** Questions for the admin pool (and to drive evaluations). */
@@ -13,14 +14,17 @@ export function listCsQuestions(opts?: { scope?: string; typeId?: number; active
       ...(opts?.activeOnly ? { active: true } : {}),
     },
     orderBy: [{ scope: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
-    include: { type: { select: { id: true, name: true, scope: true } } },
+    include: { type: { select: { id: true, name: true, nameAr: true, scope: true } } },
   });
 }
 
 export interface CsQuestionInput {
   title: string;
+  titleAr?: string | null;
   criteria: string;
+  criteriaAr?: string | null;
   tags?: string | null;
+  tagsAr?: string | null;
   weight: number;
   scope: string;
   typeId: number;
@@ -32,8 +36,11 @@ export async function createCsQuestion(input: CsQuestionInput, userId: number) {
   const q = await prisma.csQuestion.create({
     data: {
       title: input.title.trim(),
+      titleAr: clean(input.titleAr),
       criteria: input.criteria.trim(),
+      criteriaAr: clean(input.criteriaAr),
       tags: input.tags?.trim() || null,
+      tagsAr: clean(input.tagsAr),
       weight: clampWeight(input.weight),
       scope: input.scope,
       typeId: input.typeId,
@@ -51,8 +58,11 @@ export async function updateCsQuestion(id: number, input: CsQuestionInput, userI
     where: { id },
     data: {
       title: input.title.trim(),
+      titleAr: clean(input.titleAr),
       criteria: input.criteria.trim(),
+      criteriaAr: clean(input.criteriaAr),
       tags: input.tags?.trim() || null,
+      tagsAr: clean(input.tagsAr),
       weight: clampWeight(input.weight),
       scope: input.scope,
       typeId: input.typeId,

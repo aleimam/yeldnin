@@ -29,7 +29,7 @@ export async function questionsForScope(scope: string, typeId?: number) {
   return prisma.csQuestion.findMany({
     where: { archivedAt: null, active: true, scope, type: { archivedAt: null }, ...(typeId ? { typeId } : {}) },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-    include: { type: { select: { id: true, name: true } } },
+    include: { type: { select: { id: true, name: true, nameAr: true } } },
   });
 }
 
@@ -55,7 +55,7 @@ export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: 
   // cross-scope, archived, or inactive questions; unmatched answers drop below.
   const questions = await prisma.csQuestion.findMany({
     where: { id: { in: input.answers.map((a) => a.questionId) }, scope: input.scope, active: true, archivedAt: null },
-    include: { type: { select: { name: true } } },
+    include: { type: { select: { name: true, nameAr: true } } },
   });
   const qById = new Map(questions.map((q) => [q.id, q]));
 
@@ -66,8 +66,11 @@ export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: 
     return [{
       questionId: q.id,
       title: q.title,
+      titleAr: q.titleAr,
       criteria: q.criteria,
+      criteriaAr: q.criteriaAr,
       typeName: q.type.name,
+      typeNameAr: q.type.nameAr,
       weight: q.weight,
       level: a.level,
       value,

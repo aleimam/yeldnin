@@ -17,13 +17,17 @@ export default async function CsQuestionsPage() {
   const rows = questions.map((q) => ({
     id: q.id,
     title: q.title,
+    titleAr: q.titleAr,
     criteria: q.criteria,
+    criteriaAr: q.criteriaAr,
     tags: q.tags,
+    tagsAr: q.tagsAr,
     weight: q.weight,
     scope: q.scope,
     typeId: q.typeId,
     active: q.active,
     typeName: q.type.name,
+    typeNameAr: q.type.nameAr,
   }));
 
   return (

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
-import { canAccessCs, CS_LEVELS, CS_SCOPES } from "@/lib/cs/cs-logic";
+import { getT, getLocale } from "@/i18n/server";
+import { canAccessCs, CS_LEVELS, CS_SCOPES, localized } from "@/lib/cs/cs-logic";
 import { listCsQuestions } from "@/lib/cs/cs-question-service";
 
 // Catastrophe red … Outstanding green; middle three neutral (mirrors the eval form).
@@ -19,7 +19,7 @@ const TONE: Record<string, string> = {
 export default async function CsCriteriaPage() {
   const access = await requireUser();
   if (!canAccessCs(access)) redirect("/");
-  const [t, questions] = await Promise.all([getT(), listCsQuestions({ activeOnly: true })]);
+  const [t, locale, questions] = await Promise.all([getT(), getLocale(), listCsQuestions({ activeOnly: true })]);
 
   // Group active questions by scope → type (type label hidden when a scope has only one).
   const sections = CS_SCOPES.map((scope) => {
@@ -28,7 +28,7 @@ export default async function CsCriteriaPage() {
     for (const q of qs) {
       let g = groups.find((x) => x.typeId === q.typeId);
       if (!g) {
-        g = { typeId: q.typeId, typeName: q.type.name, items: [] };
+        g = { typeId: q.typeId, typeName: localized(q.type.name, q.type.nameAr, locale), items: [] };
         groups.push(g);
       }
       g.items.push(q);
@@ -66,13 +66,13 @@ export default async function CsCriteriaPage() {
                 {g.items.map((q) => (
                   <div key={q.id} className="card space-y-1 p-4">
                     <div className="flex items-baseline justify-between gap-3">
-                      <p className="font-semibold text-ink">{q.title}</p>
+                      <p className="font-semibold text-ink">{localized(q.title, q.titleAr, locale)}</p>
                       <span className="shrink-0 text-xs text-muted">×{q.weight}</span>
                     </div>
-                    {q.criteria && <p className="text-sm text-muted">{q.criteria}</p>}
-                    {q.tags && (
+                    {localized(q.criteria, q.criteriaAr, locale) && <p className="text-sm text-muted">{localized(q.criteria, q.criteriaAr, locale)}</p>}
+                    {localized(q.tags ?? "", q.tagsAr, locale) && (
                       <div className="flex flex-wrap gap-1 pt-0.5">
-                        {q.tags
+                        {localized(q.tags ?? "", q.tagsAr, locale)
                           .split(",")
                           .map((x) => x.trim())
                           .filter(Boolean)

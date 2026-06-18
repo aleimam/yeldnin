@@ -77,6 +77,12 @@ export function clampWeight(w: number): number {
   return Math.max(1, Math.min(10, Math.round(w || 1)));
 }
 
+/** Pick the Arabic variant in the `ar` locale when present, else the base text.
+ *  Used for question titles/criteria/tags and evaluation-type names. */
+export function localized(base: string, ar: string | null | undefined, locale: string): string {
+  return locale === "ar" && ar ? ar : base;
+}
+
 export interface ScoredAnswer {
   weight: number;
   value: number; // resolved answer value

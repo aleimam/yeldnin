@@ -1,17 +1,18 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useT } from "@/i18n/client";
-import { clampWeight } from "@/lib/cs/cs-logic";
+import { useT, useLocale } from "@/i18n/client";
+import { clampWeight, localized } from "@/lib/cs/cs-logic";
 import { createCsQuestionAction, updateCsQuestionAction, archiveCsQuestionAction } from "../actions";
 
 type TypeOpt = { id: number; name: string; scope: string };
-type Q = { id: number; title: string; criteria: string; tags: string | null; weight: number; scope: string; typeId: number; active: boolean; typeName: string };
+type Q = { id: number; title: string; titleAr: string | null; criteria: string; criteriaAr: string | null; tags: string | null; tagsAr: string | null; weight: number; scope: string; typeId: number; active: boolean; typeName: string; typeNameAr: string | null };
 
-const blank = { title: "", criteria: "", tags: "", scope: "CALL", typeId: "", weight: "5", active: true };
+const blank = { title: "", titleAr: "", criteria: "", criteriaAr: "", tags: "", tagsAr: "", scope: "CALL", typeId: "", weight: "5", active: true };
 
 export function QuestionPool({ questions, types }: { questions: Q[]; types: TypeOpt[] }) {
   const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -32,12 +33,12 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
   }
   function edit(q: Q) {
     setEditingId(q.id);
-    setF({ title: q.title, criteria: q.criteria, tags: q.tags ?? "", scope: q.scope, typeId: String(q.typeId), weight: String(q.weight), active: q.active });
+    setF({ title: q.title, titleAr: q.titleAr ?? "", criteria: q.criteria, criteriaAr: q.criteriaAr ?? "", tags: q.tags ?? "", tagsAr: q.tagsAr ?? "", scope: q.scope, typeId: String(q.typeId), weight: String(q.weight), active: q.active });
     setError("");
   }
   function submit() {
     setError("");
-    const payload = { title: f.title, criteria: f.criteria, tags: f.tags || null, weight: clampWeight(Number(f.weight)), scope: f.scope, typeId: Number(f.typeId), active: f.active };
+    const payload = { title: f.title, titleAr: f.titleAr || null, criteria: f.criteria, criteriaAr: f.criteriaAr || null, tags: f.tags || null, tagsAr: f.tagsAr || null, weight: clampWeight(Number(f.weight)), scope: f.scope, typeId: Number(f.typeId), active: f.active };
     start(async () => {
       const res = editingId ? await updateCsQuestionAction(editingId, payload) : await createCsQuestionAction(payload);
       if (res.ok) {
@@ -58,17 +59,31 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
     <div className="max-w-4xl space-y-6">
       <form className="card space-y-3 p-5" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <h2 className="font-semibold text-ink">{editingId ? t("cs.editQuestion") : t("cs.addQuestion")}</h2>
-        <div>
-          <label className="label">{t("cs.qTitle")}</label>
-          <input className="input" value={f.title} onChange={(e) => set("title", e.target.value)} />
-        </div>
-        <div>
-          <label className="label">{t("cs.qQuestion")}</label>
-          <textarea className="input" rows={2} value={f.criteria} onChange={(e) => set("criteria", e.target.value)} />
-        </div>
-        <div>
-          <label className="label">{t("cs.qTags")}</label>
-          <input className="input" placeholder={t("cs.qTagsHint")} value={f.tags} onChange={(e) => set("tags", e.target.value)} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="label">{t("cs.qTitle")}</label>
+            <input className="input" value={f.title} onChange={(e) => set("title", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">{t("cs.qTitleAr")}</label>
+            <input className="input" dir="rtl" value={f.titleAr} onChange={(e) => set("titleAr", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">{t("cs.qQuestion")}</label>
+            <textarea className="input" rows={2} value={f.criteria} onChange={(e) => set("criteria", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">{t("cs.qQuestionAr")}</label>
+            <textarea className="input" dir="rtl" rows={2} value={f.criteriaAr} onChange={(e) => set("criteriaAr", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">{t("cs.qTags")}</label>
+            <input className="input" placeholder={t("cs.qTagsHint")} value={f.tags} onChange={(e) => set("tags", e.target.value)} />
+          </div>
+          <div>
+            <label className="label">{t("cs.qTagsAr")}</label>
+            <input className="input" dir="rtl" value={f.tagsAr} onChange={(e) => set("tagsAr", e.target.value)} />
+          </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-4">
           <div>
@@ -116,12 +131,12 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
             {questions.map((q) => (
               <tr key={q.id} className={q.active ? "" : "opacity-50"}>
                 <td className="td">
-                  <span className="font-medium text-ink">{q.title}</span>
+                  <span className="font-medium text-ink">{localized(q.title, q.titleAr, locale)}</span>
                   {!q.active && <span className="ms-2 text-xs text-muted">({t("cs.inactive")})</span>}
-                  <span className="block text-xs text-muted">{q.criteria}</span>
+                  <span className="block text-xs text-muted">{localized(q.criteria, q.criteriaAr, locale)}</span>
                 </td>
                 <td className="td">{t(`cs.scope.${q.scope}`)}</td>
-                <td className="td text-muted">{q.typeName}</td>
+                <td className="td text-muted">{localized(q.typeName, q.typeNameAr, locale)}</td>
                 <td className="td text-end">{q.weight}</td>
                 <td className="td text-end whitespace-nowrap">
                   <button onClick={() => edit(q)} className="text-brand hover:underline">{t("common.edit")}</button>

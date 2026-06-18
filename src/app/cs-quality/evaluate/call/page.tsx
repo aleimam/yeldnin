@@ -23,8 +23,8 @@ export default async function EvaluateCallPage() {
       <EvalForm
         scope="CALL"
         reps={reps}
-        questions={questions.map((q) => ({ id: q.id, title: q.title, criteria: q.criteria, tags: q.tags, weight: q.weight, typeId: q.typeId, typeName: q.type.name }))}
-        callTypes={callTypes.map((c) => ({ id: c.id, name: c.name }))}
+        questions={questions.map((q) => ({ id: q.id, title: q.title, titleAr: q.titleAr, criteria: q.criteria, criteriaAr: q.criteriaAr, tags: q.tags, tagsAr: q.tagsAr, weight: q.weight, typeId: q.typeId, typeName: q.type.name, typeNameAr: q.type.nameAr }))}
+        callTypes={callTypes.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr }))}
         typeCount={callTypes.length}
         valueMap={config.call}
       />
