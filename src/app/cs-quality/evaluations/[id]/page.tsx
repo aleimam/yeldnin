@@ -21,7 +21,7 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   const { id } = await params;
   const data = await getEvaluationDetail(Number(id));
   if (!data) notFound();
-  const { ev, subject, evaluator } = data;
+  const { ev, subject, evaluator, approver } = data;
   const me = access.user.id;
   const admin = canManageCs(access);
   const isEvaluator = ev.evaluatorUserId === me;
@@ -50,6 +50,9 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
               {ev.contact && <div><span className="text-muted">{t("cs.contact")}: </span><span className="text-ink">{ev.contact}</span></div>}
               <div><span className="text-muted">{t("cs.score")}: </span><span className="font-semibold text-ink">{ev.total}</span></div>
               <div><span className="text-muted">{t("cs.normalized")}: </span><span className="font-semibold text-ink">{ev.normalized}%</span></div>
+              {ev.status === "APPROVED" && approver && (
+                <div><span className="text-muted">{t("cs.approvedBy")}: </span><span className="text-ink">{approver}{ev.approvedAt ? ` · ${formatBizDate(ev.approvedAt)}` : ""}</span></div>
+              )}
             </div>
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_TONE[ev.status] ?? "bg-canvas text-muted"}`}>{t(`cs.status.${ev.status}`)}</span>
           </div>
@@ -70,6 +73,7 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
                 <th className="th">{staffView ? t("cs.answer") : t("cs.score")}</th>
                 {staffView && <th className="th text-end">{t("cs.weight")}</th>}
                 {staffView && <th className="th text-end">{t("cs.weighted")}</th>}
+                <th className="th">{t("cs.note")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -79,11 +83,11 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
                     <span className="font-medium text-ink">{localized(a.title, a.titleAr, locale) || localized(a.criteria, a.criteriaAr, locale)}</span>
                     {staffView && a.title && a.criteria && <span className="block text-xs text-muted">{localized(a.criteria, a.criteriaAr, locale)}</span>}
                     {staffView && a.typeName && <span className="block text-[10px] uppercase text-muted">{localized(a.typeName, a.typeNameAr, locale)}</span>}
-                    {a.note && <span className="block text-xs text-muted">“{a.note}”</span>}
                   </td>
                   <td className="td" data-label={staffView ? t("cs.answer") : t("cs.score")}><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span>{staffView && <span className="text-xs text-muted"> ({a.value})</span>}</td>
                   {staffView && <td className="td text-end" data-label={t("cs.weight")}>{a.weight}</td>}
                   {staffView && <td className="td text-end" data-label={t("cs.weighted")}>{a.weighted}</td>}
+                  <td className="td text-muted" data-label={t("cs.note")}>{a.note || "—"}</td>
                 </tr>
               ))}
             </tbody>

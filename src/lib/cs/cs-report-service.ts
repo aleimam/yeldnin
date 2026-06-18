@@ -48,7 +48,7 @@ export interface EvalListRow {
 }
 
 /** Evaluations list (excludes archived). `showEvaluator` reveals the evaluator (hidden from reps). */
-export async function listEvaluations(opts: { status?: string; subjectUserId?: number; evaluatorUserId?: number; showEvaluator: boolean }): Promise<EvalListRow[]> {
+export async function listEvaluations(opts: { status?: string; subjectUserId?: number; evaluatorUserId?: number; showEvaluator: boolean; take?: number }): Promise<EvalListRow[]> {
   const evals = await prisma.csEvaluation.findMany({
     where: {
       archivedAt: null,
@@ -57,7 +57,7 @@ export async function listEvaluations(opts: { status?: string; subjectUserId?: n
       ...(opts.evaluatorUserId ? { evaluatorUserId: opts.evaluatorUserId } : {}),
     },
     orderBy: { createdAt: "desc" },
-    take: 300,
+    take: opts.take ?? 300,
   });
   const [locale, names] = await Promise.all([
     getLocale(),
