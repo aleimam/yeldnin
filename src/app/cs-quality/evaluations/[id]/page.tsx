@@ -21,7 +21,7 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   const { id } = await params;
   const data = await getEvaluationDetail(Number(id));
   if (!data) notFound();
-  const { ev, subject, evaluator, approver } = data;
+  const { ev, subject, evaluator } = data;
   const me = access.user.id;
   const admin = canManageCs(access);
   const isEvaluator = ev.evaluatorUserId === me;
@@ -46,7 +46,6 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
               <div><span className="text-muted">{t("cs.date")}: </span><span className="text-ink">{formatBizDate(ev.scope === "CALL" ? ev.callDate ?? ev.createdAt : ev.createdAt)}</span></div>
               <div><span className="text-muted">{t("cs.score")}: </span><span className="font-semibold text-ink">{ev.total}</span></div>
               <div><span className="text-muted">{t("cs.normalized")}: </span><span className="font-semibold text-ink">{ev.normalized}%</span></div>
-              {approver && <div><span className="text-muted">{t("cs.approvedBy")}: </span><span className="text-ink">{approver}</span></div>}
             </div>
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_TONE[ev.status] ?? "bg-canvas text-muted"}`}>{t(`cs.status.${ev.status}`)}</span>
           </div>

@@ -51,12 +51,15 @@ describe("weightedTotal", () => {
 });
 
 describe("normalizedPct", () => {
-  const map = DEFAULT_VALUES; // best = 1.5
-  it("is 100% when every answer is the top value", () => {
-    expect(normalizedPct([{ weight: 2, value: 1.5 }, { weight: 3, value: 1.5 }], map)).toBe(100);
+  const map = DEFAULT_VALUES; // Perfect = 1 is the 100% mark; Outstanding = 1.5
+  it("is 100% when every answer is Perfect", () => {
+    expect(normalizedPct([{ weight: 2, value: 1 }, { weight: 3, value: 1 }], map)).toBe(100);
   });
-  it("is the weighted fraction of the ceiling", () => {
-    expect(normalizedPct([{ weight: 4, value: 0.5 }], map)).toBe(33.33); // 2 / 6
+  it("exceeds 100% when answers are Outstanding (above Perfect)", () => {
+    expect(normalizedPct([{ weight: 2, value: 1.5 }], map)).toBe(150); // 3 / 2
+  });
+  it("is the weighted fraction of the Perfect ceiling", () => {
+    expect(normalizedPct([{ weight: 4, value: 0.5 }], map)).toBe(50); // 2 / 4
   });
   it("clamps negatives to 0 and handles empty", () => {
     expect(normalizedPct([{ weight: 2, value: -1 }], map)).toBe(0);

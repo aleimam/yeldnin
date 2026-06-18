@@ -30,6 +30,12 @@ export default async function CsMinePage() {
           ))}
         </div>
 
+        <div className="card p-5 text-center">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted">{t("cs.overallAvg")}</div>
+          <div className="mt-1 text-3xl font-bold text-ink">{an.avgNormalized}%</div>
+          <div className="mt-1 text-xs text-muted">{an.count} {t("cs.evaluationsCount")}</div>
+        </div>
+
         {an.byMonth.length > 0 && (
           <div className="card p-5">
             <h2 className="mb-3 font-semibold text-ink">{t("cs.byMonth")}</h2>

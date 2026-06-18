@@ -73,12 +73,12 @@ export function weightedTotal(answers: ScoredAnswer[]): number {
 }
 
 /**
- * Score as a % of the best possible (top answer value × Σ weights). Negative
- * totals clamp to 0; a non-positive ceiling (no answers / non-positive map)
- * yields 0.
+ * Score as a % where a Perfect answer on every question = 100% (ceiling =
+ * PERFECT value × Σ weights). Outstanding sits above Perfect, so a rep can
+ * exceed 100%. Negative totals clamp to 0; a non-positive ceiling yields 0.
  */
 export function normalizedPct(answers: ScoredAnswer[], map: ValueMap): number {
-  const best = Math.max(...CS_LEVELS.map((l) => map[l]));
+  const best = map.PERFECT; // Perfect is the 100% mark; Outstanding can push above it
   const sumW = answers.reduce((s, a) => s + a.weight, 0);
   const ceiling = best * sumW;
   if (ceiling <= 0) return 0;

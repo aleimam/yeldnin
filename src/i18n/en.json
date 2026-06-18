@@ -432,6 +432,7 @@
   "cs.approvedBy": "Approved by",
   "cs.weighted": "Weighted",
   "cs.avgScore": "Avg score",
+  "cs.overallAvg": "Overall average",
   "cs.evaluationsCount": "Evaluations",
   "cs.thisMonthSum": "This month",
   "cs.noEvaluations": "No evaluations yet.",
