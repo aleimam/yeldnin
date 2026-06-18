@@ -21,7 +21,7 @@ export function TripAdvanceButton({ id, status }: { id: number; status: string }
       disabled={pending}
       className="btn-primary px-3 py-1.5 text-sm"
     >
-      {pending ? "…" : `${t("trip.advanceTo")} ${t(`tripstatus.${next}`)}`}
+      {pending ? "…" : t(`tripstatus.${next}`)}
     </button>
   );
 }

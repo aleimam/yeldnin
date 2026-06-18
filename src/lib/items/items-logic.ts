@@ -20,6 +20,23 @@ export function isExceptionFlag(v: unknown): v is ExceptionFlag {
   return typeof v === "string" && (EXCEPTION_FLAGS as readonly string[]).includes(v);
 }
 
+/**
+ * Exception flags that PIN an item in place: it does NOT follow its container
+ * when that container advances. DELAYED is intentionally excluded — a delayed
+ * item is just late and still travels with its trip/patch.
+ */
+export const HOLD_FLAGS: ExceptionFlag[] = ["LOST", "DAMAGED", "ERRANT"];
+
+/**
+ * Prisma `where` fragment selecting items that should follow their container
+ * when it advances: un-flagged (NULL) or DELAYED — never LOST/DAMAGED/ERRANT.
+ * Carries a top-level `OR`, so don't merge it into a `where` that already uses
+ * its own `OR`.
+ */
+export const MOVABLE_ITEMS_WHERE = {
+  OR: [{ exceptionFlag: null }, { exceptionFlag: { notIn: HOLD_FLAGS } }],
+};
+
 export function statusIndex(s: ItemStatus): number {
   return ITEM_STATUS_ORDER.indexOf(s);
 }

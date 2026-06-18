@@ -4,6 +4,7 @@ import { nextUid } from "@/lib/uid";
 import { formatBizDate } from "@/lib/format/dates";
 import { joinTypes } from "@/lib/travelers/travelers-logic";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
+import { MOVABLE_ITEMS_WHERE } from "@/lib/items/items-logic";
 import { nextTripStatus, TRIP_TO_ITEM_STATUS, isTripPurchaseEligible, canManuallyAdvance, type TripStatus } from "./trip-logic";
 
 export interface CreateTripInput {
@@ -53,7 +54,7 @@ export async function advanceTrip(id: number, userId: number) {
   const itemStatus = TRIP_TO_ITEM_STATUS[next as TripStatus];
   if (itemStatus) {
     const items = await prisma.item.findMany({
-      where: { containerType: "TRIP", containerId: id, exceptionFlag: null },
+      where: { containerType: "TRIP", containerId: id, ...MOVABLE_ITEMS_WHERE },
       select: { id: true },
     });
     await moveItems(items.map((i) => i.id), { status: itemStatus, action: `trip:${next}` }, userId);

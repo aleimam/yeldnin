@@ -52,7 +52,7 @@ export function PurchaseActions({
           onClick={() => start(async () => { await advancePurchaseStatusAction(id); router.refresh(); })}
           className="btn-primary px-3 py-1.5 text-sm"
         >
-          {pending ? "…" : `${t("purchasing.advanceTo")} ${t(`purchasestatus.${next}`)}`}
+          {pending ? "…" : t(`purchasestatus.${next}`)}
         </button>
       )}
     </div>

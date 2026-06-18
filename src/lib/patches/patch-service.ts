@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
+import { MOVABLE_ITEMS_WHERE } from "@/lib/items/items-logic";
 
 /** Purchases that still have ORDERED items waiting to be dispatched. */
 export async function listPurchasesWithOrdered(scopes: string[]) {
@@ -88,7 +89,10 @@ export async function createPatch(input: CreatePatchInput, photoAssetIds: string
 }
 
 function patchItemIds(patchId: number) {
-  return prisma.item.findMany({ where: { containerType: "PATCH", containerId: patchId }, select: { id: true } });
+  return prisma.item.findMany({
+    where: { containerType: "PATCH", containerId: patchId, ...MOVABLE_ITEMS_WHERE },
+    select: { id: true },
+  });
 }
 
 /** Mark a patch Delivered → its items DELIVERED. */
