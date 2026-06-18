@@ -49,6 +49,7 @@ export const CAPABILITIES: Capability[] = [
   // code; this entry only documents/labels it. Default MANAGE.
   { key: "managePermissions", module: "settings", labelKey: "cap.settings.managePermissions", defaultLevel: "MANAGE" },
   { key: "manageWorkflow", module: "settings", labelKey: "cap.settings.manageWorkflow", defaultLevel: "MANAGE" },
+  { key: "sendNotifications", module: "settings", labelKey: "cap.settings.sendNotifications", defaultLevel: "MANAGE" },
 
   // ── Sales (order requests) ───────────────────────────────────────────────
   { key: "operate", module: "order_requests", labelKey: "cap.order_requests.operate", defaultLevel: "OPERATE" },

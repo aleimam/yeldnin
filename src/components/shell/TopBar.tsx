@@ -7,6 +7,7 @@ import { getEffectiveTheme, getColorMode } from "@/lib/prefs";
 import { MODULES, childModules } from "@/lib/modules";
 import { canAccessSettings } from "@/lib/module-sections";
 import { canAccessCs } from "@/lib/cs/cs-logic";
+import { unreadCount } from "@/lib/notify/notify-message-service";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { ModuleSwitcher } from "./ModuleSwitcher";
@@ -30,12 +31,13 @@ export async function TopBar({
   user: SessionUser;
   activeModuleKey?: string;
 }) {
-  const [t, access, settings, theme, mode] = await Promise.all([
+  const [t, access, settings, theme, mode, unread] = await Promise.all([
     getT(),
     getAccess(),
     getPlatformSettings(),
     getEffectiveTheme(),
     getColorMode(),
+    unreadCount(user.id),
   ]);
   const showSettings = canAccessSettings(access.can, access.isAdmin);
   const logo = assetUrl(settings.logoUrl);
@@ -97,7 +99,14 @@ export async function TopBar({
             <span className="text-sm font-medium text-ink">{user.name}</span>
             <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
           </div>
-          <Link href="/account" aria-label={t("common.notifications")} className="text-muted hover:text-ink">🔔</Link>
+          <Link href="/notifications" aria-label={t("common.notifications")} className="relative text-muted hover:text-ink">
+            🔔
+            {unread > 0 && (
+              <span className="absolute -end-1 -top-1 grid h-4 min-w-[1rem] place-items-center rounded-full bg-red-600 px-1 text-[10px] font-medium text-white">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
+          </Link>
           <AccountMenu
             name={user.name}
             email={user.email}

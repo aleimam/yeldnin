@@ -80,6 +80,32 @@ model PushSubscription {
   @@index([userId])
 }
 
+// Admin-composed notification broadcast to selected users — shown in the in-app
+// inbox (per-recipient read state) and also web-pushed to subscribed devices.
+model NotificationMessage {
+  id           Int      @id @default(autoincrement())
+  title        String
+  body         String
+  link         String? // app path opened on click
+  imageAssetId String? // optional attached image (asset id)
+  type         String   @default("info") // info | warning | success
+  senderId     Int?
+  createdAt    DateTime @default(now())
+
+  recipients NotificationRecipient[]
+}
+
+model NotificationRecipient {
+  id        Int                 @id @default(autoincrement())
+  messageId Int
+  message   NotificationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    Int
+  readAt    DateTime?
+
+  @@unique([messageId, userId])
+  @@index([userId])
+}
+
 // ─── Teams ──────────────────────────────────────────────────────────────────
 
 model Team {
