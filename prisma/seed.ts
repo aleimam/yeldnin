@@ -118,6 +118,19 @@ async function main() {
     if (!found) await prisma.country.create({ data: { name, sortOrder: i } });
   }
 
+  // CS Quality evaluation types (idempotent). Both lists are admin-editable.
+  const CS_TYPES: { scope: string; names: string[] }[] = [
+    { scope: "CALL", names: ["Normal", "Orders", "Problems"] },
+    { scope: "PERIODICAL", names: ["Attitude", "Effort", "Time"] },
+  ];
+  for (const grp of CS_TYPES) {
+    for (let i = 0; i < grp.names.length; i++) {
+      const name = grp.names[i];
+      const found = await prisma.csEvalType.findFirst({ where: { scope: grp.scope, name } });
+      if (!found) await prisma.csEvalType.create({ data: { scope: grp.scope, name, sortOrder: i } });
+    }
+  }
+
   // Default super-admin (only if there are no users at all)
   const userCount = await prisma.user.count();
   if (userCount === 0) {

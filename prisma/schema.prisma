@@ -260,6 +260,97 @@ model NotificationRule {
   updatedAt          DateTime @updatedAt
 }
 
+// ─── CS Quality module (sales-rep evaluation scorecards) ──────────────────────
+
+// Admin-editable type lists, scoped: CALL → Normal/Orders/Problems;
+// PERIODICAL → Attitude/Effort/Time. Both editable.
+model CsEvalType {
+  id         Int       @id @default(autoincrement())
+  scope      String // CALL | PERIODICAL
+  name       String
+  sortOrder  Int       @default(0)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  questions CsQuestion[]
+
+  @@index([scope])
+}
+
+// A weighted scorecard question. Soft-deleted (archivedAt) so past evaluations stay intact.
+model CsQuestion {
+  id          Int        @id @default(autoincrement())
+  criteria    String
+  weight      Int        @default(1) // 1..10
+  scope       String // CALL | PERIODICAL
+  typeId      Int
+  type        CsEvalType @relation(fields: [typeId], references: [id])
+  active      Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime   @default(now())
+  updatedById Int?
+  updatedAt   DateTime   @updatedAt
+
+  @@index([scope])
+}
+
+// Singleton JSON: per-scope answer-value maps (level → value).
+model CsConfig {
+  id        Int      @id @default(1)
+  config    String   @default("{}")
+  updatedAt DateTime @updatedAt
+}
+
+// One evaluation of a sales rep. User refs are plain ids (resolved separately),
+// matching the rest of the schema. typeName/criteria are snapshotted on answers
+// so later edits/soft-deletes don't rewrite history.
+model CsEvaluation {
+  id              Int       @id @default(autoincrement())
+  uid             String?   @unique // CSE<YY><MM><seq3>
+  subjectUserId   Int // the evaluated sales rep
+  evaluatorUserId Int
+  scope           String // CALL | PERIODICAL
+  typeName        String? // call type snapshot (null for periodical)
+  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  total           Float     @default(0) // Σ weighted
+  normalized      Float     @default(0) // % of best possible
+  approvedById    Int?
+  approvedAt      DateTime?
+  rejectedNote    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  answers CsEvaluationAnswer[]
+  photos  CsEvaluationPhoto[]
+
+  @@index([subjectUserId])
+  @@index([status])
+}
+
+model CsEvaluationAnswer {
+  id           Int          @id @default(autoincrement())
+  evaluationId Int
+  evaluation   CsEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  questionId   Int
+  criteria     String // snapshot
+  typeName     String? // snapshot question type
+  weight       Int // snapshot
+  level        String // CATASTROPHE | BAD | GOOD | PERFECT | OUTSTANDING
+  value        Float // snapshot value for the level
+  weighted     Float // value * weight
+  note         String?
+}
+
+model CsEvaluationPhoto {
+  id           Int          @id @default(autoincrement())
+  evaluationId Int
+  evaluation   CsEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  assetId      String
+}
+
 // ─── Supply chain: master data ────────────────────────────────────────────────
 
 // Product catalog. scope: EGV | XOONX | PERSONAL.
