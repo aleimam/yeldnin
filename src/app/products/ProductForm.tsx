@@ -126,9 +126,14 @@ export function ProductForm({
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
       {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("products.saved")}</div>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={t("products.name")}><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
+      {/* Desktop: Name (3fr) + SKU (1fr) on the first row. */}
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Field label={t("products.name")} className="sm:col-span-3"><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
         <Field label={t("products.sku")}><input className="input" value={f.sku} onChange={(e) => set("sku", e.target.value)} /></Field>
+      </div>
+
+      {/* Desktop: the remaining fields three per row. */}
+      <div className="grid gap-4 sm:grid-cols-3">
         <Field label={t("products.scope")}>
           <select className="input" value={f.scope} onChange={(e) => set("scope", e.target.value)}>
             {allowedScopes.map((s) => <option key={s} value={s}>{t(`scope.${s}`)}</option>)}
@@ -156,7 +161,7 @@ export function ProductForm({
         <Field label={t("products.sellingPrice")}><input type="number" step="any" className="input" value={f.sellingPrice} onChange={(e) => set("sellingPrice", e.target.value)} /></Field>
         <Field label={t("products.size")}><input className="input" value={f.size} onChange={(e) => set("size", e.target.value)} /></Field>
         <Field label={t("products.grade")}><input className="input" value={f.grade} onChange={(e) => set("grade", e.target.value)} /></Field>
-        <Field label={t("products.url")} className="sm:col-span-2"><input className="input" value={f.url} onChange={(e) => set("url", e.target.value)} /></Field>
+        <Field label={t("products.url")} className="sm:col-span-3"><input className="input" value={f.url} onChange={(e) => set("url", e.target.value)} /></Field>
       </div>
 
       <Field label={t("products.notes")}>

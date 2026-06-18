@@ -374,7 +374,7 @@
   "module.cs_quality.name": "CS Quality",
   "module.cs_quality.desc": "Coach the team, call by call",
   "cs.evaluateCall": "Evaluate a call",
-  "cs.evaluatePerformance": "Performance evaluation",
+  "cs.evaluatePerformance": "Evaluate Performance",
   "cs.review": "Review queue",
   "cs.myEvaluations": "My evaluations",
   "cs.analytics": "Analytics",
