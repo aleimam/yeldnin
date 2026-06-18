@@ -47,6 +47,7 @@ export async function getUserTier(id: number): Promise<string | null> {
 
 export interface UserProfileInput {
   name: string;
+  uid?: string; // employee number; doubles as the user UID
   fullName?: string;
   username?: string;
   email: string;
@@ -66,6 +67,17 @@ async function assertUsernameFree(username: string | null, exceptId?: number) {
   if (clash) throw new Error("That username is already taken.");
 }
 
+/** Employee number doubles as the user UID: unique, prefixed YE1101. */
+async function assertUidValid(uid: string | null, exceptId?: number) {
+  if (!uid) return;
+  if (!uid.startsWith("YE1101")) throw new Error("Employee number must start with YE1101.");
+  const clash = await prisma.user.findFirst({
+    where: { uid, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { id: true },
+  });
+  if (clash) throw new Error("That employee number is already taken.");
+}
+
 export async function createUser(input: UserProfileInput & { password: string }) {
   const email = input.email.trim().toLowerCase();
   if (await prisma.user.findUnique({ where: { email } })) {
@@ -73,9 +85,12 @@ export async function createUser(input: UserProfileInput & { password: string })
   }
   const username = clean(input.username);
   await assertUsernameFree(username);
+  const uid = clean(input.uid);
+  await assertUidValid(uid);
   const passwordHash = await hashPassword(input.password);
   return prisma.user.create({
     data: {
+      uid,
       name: input.name.trim(),
       fullName: clean(input.fullName),
       username,
@@ -96,9 +111,12 @@ export async function updateUserProfile(id: number, input: UserProfileInput & { 
   if (clash) throw new Error("A user with that email already exists.");
   const username = clean(input.username);
   await assertUsernameFree(username, id);
+  const uid = clean(input.uid);
+  await assertUidValid(uid, id);
   return prisma.user.update({
     where: { id },
     data: {
+      uid,
       name: input.name.trim(),
       fullName: clean(input.fullName),
       username,

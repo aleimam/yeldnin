@@ -40,6 +40,7 @@ export default async function UsersPage() {
                     )}
                     {u.name}
                   </Link>
+                  {u.uid && <span className="ms-9 block text-xs text-muted">{u.uid}</span>}
                 </td>
                 <td className="td text-muted">{u.email}</td>
                 <td className="td">{t(`tier.${u.tier}`)}</td>

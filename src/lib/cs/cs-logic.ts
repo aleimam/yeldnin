@@ -1,4 +1,5 @@
 // Pure CS Quality scoring logic. No DB/IO. Unit-tested.
+import type { Level } from "@/lib/auth/access-logic";
 
 export const CS_SCOPES = ["CALL", "PERFORMANCE"] as const;
 export type CsScope = (typeof CS_SCOPES)[number];
@@ -85,25 +86,26 @@ export function normalizedPct(answers: ScoredAnswer[], map: ValueMap): number {
   return round2(Math.max(0, (total / ceiling) * 100));
 }
 
-// ── Access (no new role: derive from admin / development team / order_requests) ──
+// ── Access — governed by the per-user `cs_quality` module level (admins always
+// resolve to MANAGE). VIEW = open module (criteria + own evals); OPERATE = create
+// evaluations (calls + performance); MANAGE = approve + manage questions/config. ──
 
-/** The `development` team's key — its members may evaluate calls. */
-export const DEV_TEAM_KEY = "development";
+/** Module key whose per-user level (NONE/VIEW/OPERATE/MANAGE) governs CS access. */
+export const CS_MODULE = "cs_quality";
 /** The `sales` team's key — its members are the evaluated population (pharmacists). */
 export const SALES_TEAM_KEY = "sales";
 
 export interface CsAccess {
   isAdmin: boolean;
   user: { teamKeys: string[] } | null;
-  canModule: (moduleKey: string) => boolean;
+  canModule: (moduleKey: string, min?: Level) => boolean;
 }
 
-export const inDevelopmentTeam = (a: CsAccess): boolean => !!a.user?.teamKeys.includes(DEV_TEAM_KEY);
-/** Call evaluations: admins + the Development team. */
-export const canEvaluateCalls = (a: CsAccess): boolean => a.isAdmin || inDevelopmentTeam(a);
-/** Periodical evaluations + question/config management + approvals: admins only. */
-export const canManageCs = (a: CsAccess): boolean => a.isAdmin;
+/** Open the module — read-only (criteria + one's own evaluations). VIEW+. */
+export const canAccessCs = (a: CsAccess): boolean => a.canModule(CS_MODULE, "VIEW");
+/** Create evaluations (calls + performance). OPERATE+. */
+export const canEvaluate = (a: CsAccess): boolean => a.canModule(CS_MODULE, "OPERATE");
+/** Approve, manage questions/types/values, see all evaluations + analytics. MANAGE. */
+export const canManageCs = (a: CsAccess): boolean => a.canModule(CS_MODULE, "MANAGE");
 /** The evaluated population — members of the Sales team (pharmacists). */
 export const isRep = (a: CsAccess): boolean => !!a.user?.teamKeys.includes(SALES_TEAM_KEY);
-/** Who may open the CS Quality module at all. */
-export const canAccessCs = (a: CsAccess): boolean => a.isAdmin || canEvaluateCalls(a) || isRep(a);

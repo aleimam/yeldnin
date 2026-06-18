@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth/access";
+import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listCsQuestions } from "@/lib/cs/cs-question-service";
@@ -6,7 +6,7 @@ import { listCsTypes } from "@/lib/cs/cs-types-service";
 import { QuestionPool } from "./QuestionPool";
 
 export default async function CsQuestionsPage() {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   const [t, questions, callTypes, periodicalTypes] = await Promise.all([
     getT(),
     listCsQuestions(),

@@ -4,12 +4,12 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
-import { isRep } from "@/lib/cs/cs-logic";
+import { canAccessCs } from "@/lib/cs/cs-logic";
 import { listEvaluations, repAnalytics } from "@/lib/cs/cs-report-service";
 
 export default async function CsMinePage() {
   const access = await requireUser();
-  if (!isRep(access)) redirect("/cs-quality");
+  if (!canAccessCs(access)) redirect("/cs-quality");
   const me = access.user.id;
   const [t, rows, an] = await Promise.all([
     getT(),
@@ -20,9 +20,14 @@ export default async function CsMinePage() {
   return (
     <AppShell access={access} moduleKey="cs_quality" pageTitle={t("cs.myEvaluations")} backHref="/cs-quality">
       <div className="max-w-3xl space-y-6">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="card p-4 text-center"><div className="text-2xl font-bold text-ink">{an.count}</div><div className="text-xs text-muted">{t("cs.evaluationsCount")}</div></div>
-          <div className="card p-4 text-center"><div className="text-2xl font-bold text-ink">{an.avgNormalized}%</div><div className="text-xs text-muted">{t("cs.avgScore")}</div></div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {an.byScope.map((s) => (
+            <div key={s.scope} className="card p-5 text-center">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted">{t(`cs.scope.${s.scope}`)}</div>
+              <div className="mt-1 text-3xl font-bold text-ink">{s.avgNormalized}%</div>
+              <div className="mt-1 text-xs text-muted">{t("cs.avgScore")} · {s.count} {t("cs.evaluationsCount")}</div>
+            </div>
+          ))}
         </div>
 
         {an.byMonth.length > 0 && (
@@ -31,16 +36,6 @@ export default async function CsMinePage() {
             <table className="w-full text-sm">
               <thead><tr className="border-b border-line"><th className="th">{t("cs.month")}</th><th className="th text-end">{t("cs.score")}</th><th className="th text-end">{t("cs.evaluationsCount")}</th></tr></thead>
               <tbody className="divide-y divide-line">{an.byMonth.map((m) => <tr key={m.month}><td className="td">{m.month}</td><td className="td text-end">{m.sum}</td><td className="td text-end text-muted">{m.count}</td></tr>)}</tbody>
-            </table>
-          </div>
-        )}
-
-        {an.byCriteria.length > 0 && (
-          <div className="card p-5">
-            <h2 className="mb-3 font-semibold text-ink">{t("cs.byCriteria")}</h2>
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-line"><th className="th">{t("cs.criteria")}</th><th className="th text-end">{t("cs.avgValue")}</th><th className="th text-end">{t("cs.evaluationsCount")}</th></tr></thead>
-              <tbody className="divide-y divide-line">{an.byCriteria.map((c) => <tr key={c.criteria}><td className="td">{c.criteria}</td><td className="td text-end">{c.avg}</td><td className="td text-end text-muted">{c.count}</td></tr>)}</tbody>
             </table>
           </div>
         )}

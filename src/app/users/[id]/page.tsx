@@ -35,6 +35,7 @@ export default async function EditUserPage({
           user={{
             id: user.id,
             name: user.name,
+            uid: user.uid ?? "",
             fullName: user.fullName ?? "",
             username: user.username ?? "",
             email: user.email,

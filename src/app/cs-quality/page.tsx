@@ -3,20 +3,20 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
-import { canAccessCs, canEvaluateCalls, canManageCs, isRep } from "@/lib/cs/cs-logic";
+import { canAccessCs, canEvaluate, canManageCs, isRep } from "@/lib/cs/cs-logic";
 
 export default async function CsQualityHub() {
   const access = await requireUser();
   if (!canAccessCs(access)) redirect("/");
   const t = await getT();
   const manage = canManageCs(access);
-  const calls = canEvaluateCalls(access);
+  const evaluate = canEvaluate(access);
   const rep = isRep(access);
 
   const cards = [
-    calls && { href: "/cs-quality/evaluate/call", icon: "📞", label: t("cs.evaluateCall") },
-    manage && { href: "/cs-quality/evaluate/performance", icon: "📅", label: t("cs.evaluatePerformance") },
-    calls && { href: "/cs-quality/submitted", icon: "📤", label: t("cs.submitted") },
+    evaluate && { href: "/cs-quality/evaluate/call", icon: "📞", label: t("cs.evaluateCall") },
+    evaluate && { href: "/cs-quality/evaluate/performance", icon: "📅", label: t("cs.evaluatePerformance") },
+    evaluate && { href: "/cs-quality/submitted", icon: "📤", label: t("cs.submitted") },
     manage && { href: "/cs-quality/review", icon: "✅", label: t("cs.review") },
     rep && { href: "/cs-quality/mine", icon: "📋", label: t("cs.myEvaluations") },
     { href: "/cs-quality/criteria", icon: "📖", label: t("cs.criteriaTitle") },

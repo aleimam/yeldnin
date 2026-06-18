@@ -469,6 +469,7 @@
   "users.teams": "الفرق",
   "users.name": "الاسم المعروض",
   "users.fullName": "الاسم الكامل (الرسمي)",
+  "users.employeeNo": "الرقم الوظيفي",
   "users.username": "اسم المستخدم (للدخول)",
   "users.email": "البريد الإلكتروني",
   "users.tier": "المستوى",

@@ -8,6 +8,7 @@ import { saveProfileAction } from "../actions";
 export interface ProfileUser {
   id: number;
   name: string;
+  uid: string;
   fullName: string;
   username: string;
   email: string;
@@ -31,6 +32,7 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
   );
   const [f, setF] = useState({
     name: user.name,
+    uid: user.uid,
     fullName: user.fullName,
     username: user.username,
     email: user.email,
@@ -62,6 +64,7 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("users.name")}><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
         <Field label={t("users.fullName")}><input className="input" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
+        <Field label={t("users.employeeNo")}><input className="input" placeholder="YE1101…" value={f.uid} onChange={(e) => set("uid", e.target.value)} /></Field>
         <Field label={t("users.username")}><input className="input" value={f.username} onChange={(e) => set("username", e.target.value)} /></Field>
         <Field label={t("users.email")}><input type="email" className="input" value={f.email} onChange={(e) => set("email", e.target.value)} /></Field>
         <Field label={t("users.tier")}>

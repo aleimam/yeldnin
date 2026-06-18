@@ -20,6 +20,7 @@ export interface FormState {
 
 interface ProfilePayload {
   name: string;
+  uid?: string;
   fullName?: string;
   username?: string;
   email: string;

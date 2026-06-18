@@ -1,25 +1,25 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireUser } from "@/lib/auth/access";
+import { requireModule, requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import { saveCsConfig } from "@/lib/cs/cs-config-service";
 import { saveCsTypeBatch, type CsTypeRow } from "@/lib/cs/cs-types-service";
 import { createCsQuestion, updateCsQuestion, archiveCsQuestion, type CsQuestionInput } from "@/lib/cs/cs-question-service";
 import { createEvaluation } from "@/lib/cs/cs-eval-service";
 import { approveEvaluation, rejectEvaluation, softDeleteEvaluation } from "@/lib/cs/cs-report-service";
-import { canEvaluateCalls, canManageCs, isCsLevel, type CsConfigShape } from "@/lib/cs/cs-logic";
+import { canEvaluate, canManageCs, isCsLevel, type CsConfigShape } from "@/lib/cs/cs-logic";
 
 export type QResult = { ok: true; id?: number } | { ok: false; error: string };
 
 export async function saveCsConfigAction(config: CsConfigShape): Promise<{ ok: boolean }> {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   await saveCsConfig(config, access.user.id);
   revalidatePath("/cs-quality/values");
   return { ok: true };
 }
 
 export async function saveCsTypesAction(scope: string, rows: CsTypeRow[], add: { name: string } | null): Promise<{ ok: boolean }> {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   await saveCsTypeBatch(scope, rows, add, access.user.id);
   revalidatePath("/cs-quality/types");
   return { ok: true };
@@ -33,7 +33,7 @@ function validateQuestion(p: CsQuestionInput): string | null {
 }
 
 export async function createCsQuestionAction(p: CsQuestionInput): Promise<QResult> {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   const err = validateQuestion(p);
   if (err) return { ok: false, error: err };
   const q = await createCsQuestion(p, access.user.id);
@@ -42,7 +42,7 @@ export async function createCsQuestionAction(p: CsQuestionInput): Promise<QResul
 }
 
 export async function updateCsQuestionAction(id: number, p: CsQuestionInput): Promise<QResult> {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   const err = validateQuestion(p);
   if (err) return { ok: false, error: err };
   await updateCsQuestion(id, p, access.user.id);
@@ -51,7 +51,7 @@ export async function updateCsQuestionAction(id: number, p: CsQuestionInput): Pr
 }
 
 export async function archiveCsQuestionAction(id: number): Promise<void> {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   await archiveCsQuestion(id, access.user.id);
   revalidatePath("/cs-quality/questions");
 }
@@ -67,7 +67,7 @@ export async function createCsEvaluationAction(p: {
   photoIds?: string[];
 }): Promise<EvalResult> {
   const access = await requireUser();
-  const allowed = p.scope === "CALL" ? canEvaluateCalls(access) : canManageCs(access);
+  const allowed = canEvaluate(access);
   if (!allowed) return { ok: false, error: "You can't run that evaluation." };
   if (!p.subjectUserId) return { ok: false, error: "Pick a sales rep." };
   if (p.subjectUserId === access.user.id) return { ok: false, error: "You can't evaluate yourself." };
@@ -92,21 +92,21 @@ export async function createCsEvaluationAction(p: {
 
 export async function deleteCsEvaluationAction(id: number): Promise<void> {
   const access = await requireUser();
-  await softDeleteEvaluation(id, access.user.id, access.isAdmin);
+  await softDeleteEvaluation(id, access.user.id, canManageCs(access));
   revalidatePath("/cs-quality/review");
   revalidatePath("/cs-quality/submitted");
   revalidatePath("/cs-quality/mine");
 }
 
 export async function approveCsEvaluationAction(id: number): Promise<void> {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   await approveEvaluation(id, access.user.id);
   revalidatePath("/cs-quality/review");
   revalidatePath(`/cs-quality/evaluations/${id}`);
 }
 
 export async function rejectCsEvaluationAction(id: number, note: string): Promise<void> {
-  const access = await requireAdmin();
+  const access = await requireModule("cs_quality", "MANAGE");
   await rejectEvaluation(id, note || null, access.user.id);
   revalidatePath("/cs-quality/review");
   revalidatePath(`/cs-quality/evaluations/${id}`);

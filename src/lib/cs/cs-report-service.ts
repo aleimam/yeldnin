@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
-import { round2 } from "./cs-logic";
+import { round2, CS_SCOPES } from "./cs-logic";
 
 const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 // Call evals bucket by the call date; Performance by submission date.
@@ -10,8 +10,8 @@ const evalMonth = (e: { scope: string; callDate: Date | null; createdAt: Date })
 
 async function nameMap(ids: number[]): Promise<Map<number, string>> {
   if (!ids.length) return new Map();
-  const u = await prisma.user.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, name: true, fullName: true } });
-  return new Map(u.map((x) => [x.id, x.fullName || x.name]));
+  const u = await prisma.user.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, name: true, fullName: true, uid: true } });
+  return new Map(u.map((x) => [x.id, x.uid ? `${x.fullName || x.name} (${x.uid})` : x.fullName || x.name]));
 }
 
 export interface EvalListRow {
@@ -90,35 +90,34 @@ export async function softDeleteEvaluation(id: number, userId: number, isAdmin: 
 export interface RepAnalytics {
   count: number;
   avgNormalized: number;
+  byScope: { scope: string; count: number; avgNormalized: number }[];
   byMonth: { month: string; sum: number; count: number }[];
-  byCriteria: { criteria: string; avg: number; count: number }[];
 }
 
-/** Approved-only analytics for one rep: monthly sums + per-criterion averages. */
+/** Approved-only analytics for one rep: per-scope averages + monthly sums. */
 export async function repAnalytics(subjectUserId: number): Promise<RepAnalytics> {
   const evals = await prisma.csEvaluation.findMany({ where: { subjectUserId, status: "APPROVED", archivedAt: null }, select: { total: true, normalized: true, scope: true, callDate: true, createdAt: true } });
   const months = new Map<string, { sum: number; count: number }>();
+  const scopes = new Map<string, { normSum: number; count: number }>();
   for (const e of evals) {
     const m = evalMonth(e);
     const cur = months.get(m) ?? { sum: 0, count: 0 };
     cur.sum += e.total;
     cur.count += 1;
     months.set(m, cur);
-  }
-  const answers = await prisma.csEvaluationAnswer.findMany({ where: { evaluation: { subjectUserId, status: "APPROVED", archivedAt: null } }, select: { title: true, criteria: true, value: true } });
-  const crit = new Map<string, { sum: number; count: number }>();
-  for (const a of answers) {
-    const key = a.title || a.criteria;
-    const c = crit.get(key) ?? { sum: 0, count: 0 };
-    c.sum += a.value;
-    c.count += 1;
-    crit.set(key, c);
+    const sc = scopes.get(e.scope) ?? { normSum: 0, count: 0 };
+    sc.normSum += e.normalized;
+    sc.count += 1;
+    scopes.set(e.scope, sc);
   }
   return {
     count: evals.length,
     avgNormalized: evals.length ? round2(evals.reduce((s, e) => s + e.normalized, 0) / evals.length) : 0,
+    byScope: CS_SCOPES.map((scope) => {
+      const v = scopes.get(scope);
+      return { scope, count: v?.count ?? 0, avgNormalized: v ? round2(v.normSum / v.count) : 0 };
+    }),
     byMonth: [...months.entries()].map(([month, v]) => ({ month, sum: round2(v.sum), count: v.count })).sort((a, b) => a.month.localeCompare(b.month)),
-    byCriteria: [...crit.entries()].map(([criteria, v]) => ({ criteria, avg: round2(v.sum / v.count), count: v.count })).sort((a, b) => b.avg - a.avg),
   };
 }
 

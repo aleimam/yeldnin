@@ -13,6 +13,7 @@ export function CreateUserForm() {
   const [avatar, setAvatar] = useState<UploadedPhoto | null>(null);
   const [f, setF] = useState({
     name: "",
+    uid: "",
     fullName: "",
     username: "",
     email: "",
@@ -43,6 +44,7 @@ export function CreateUserForm() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("users.name")}><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
         <Field label={t("users.fullName")}><input className="input" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
+        <Field label={t("users.employeeNo")}><input className="input" placeholder="YE1101…" value={f.uid} onChange={(e) => set("uid", e.target.value)} /></Field>
         <Field label={t("users.username")}><input className="input" value={f.username} onChange={(e) => set("username", e.target.value)} /></Field>
         <Field label={t("users.email")}><input type="email" className="input" value={f.email} onChange={(e) => set("email", e.target.value)} /></Field>
         <Field label={t("users.tier")}>

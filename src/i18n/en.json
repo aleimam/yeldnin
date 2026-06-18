@@ -469,6 +469,7 @@
   "users.teams": "Teams",
   "users.name": "Display name",
   "users.fullName": "Full name (official)",
+  "users.employeeNo": "Employee number",
   "users.username": "Username (for login)",
   "users.email": "Email",
   "users.tier": "Tier",
