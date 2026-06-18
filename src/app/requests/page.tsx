@@ -63,7 +63,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       )}
 
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-cards">
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("requests.uid")}</th>
@@ -79,14 +79,14 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
               const st = slaByReq.get(r.id);
               return (
                 <tr key={r.id} className={`hover:bg-canvas/60 ${slaRowClass(st)}`}>
-                  <td className="td font-mono text-xs text-muted">
+                  <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>
                     <Link href={`/requests/${r.id}`} className="text-brand hover:underline">{r.uid ?? r.id}</Link>
                   </td>
-                  <td className="td">{t(`reqtype.${r.type}`)}</td>
-                  <td className="td text-muted">{t(`scope.${r.scope}`)}</td>
-                  <td className="td text-muted">{r.customer?.name ?? "—"}</td>
-                  <td className="td"><ItemCounts counts={counts.get(r.id) ?? emptyCategoryCounts()} labels={labels} /></td>
-                  <td className="td">{st ? <SlaBadge status={st} label={t(`sla.${st.toLowerCase()}`)} /> : <span className="text-muted">—</span>}</td>
+                  <td className="td" data-label={t("requests.type")}>{t(`reqtype.${r.type}`)}</td>
+                  <td className="td text-muted" data-label={t("requests.scope")}>{t(`scope.${r.scope}`)}</td>
+                  <td className="td text-muted" data-label={t("requests.customer")}>{r.customer?.name ?? "—"}</td>
+                  <td className="td" data-label={t("requests.items")}><ItemCounts counts={counts.get(r.id) ?? emptyCategoryCounts()} labels={labels} /></td>
+                  <td className="td" data-label="SLA">{st ? <SlaBadge status={st} label={t(`sla.${st.toLowerCase()}`)} /> : <span className="text-muted">—</span>}</td>
                 </tr>
               );
             })}

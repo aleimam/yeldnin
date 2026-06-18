@@ -35,7 +35,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
       }
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-cards">
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("products.sku")}</th>
@@ -53,20 +53,20 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               const s = stats.get(p.id);
               return (
               <tr key={p.id} className="hover:bg-canvas/60">
-                <td className="td font-mono text-xs text-muted">{p.sku ?? "—"}</td>
-                <td className="td">
+                <td className="td font-mono text-xs text-muted" data-label={t("products.sku")}>{p.sku ?? "—"}</td>
+                <td className="td" data-label={t("products.name")}>
                   <Link href={`/products/${p.id}`} className="font-medium text-brand hover:underline">
                     {p.name}
                   </Link>
                   {p._count.photos > 0 && <span className="ms-2 text-xs text-muted">📎{p._count.photos}</span>}
                   {!p.active && <span className="ms-2 rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t("products.inactive")}</span>}
                 </td>
-                <td className="td">{t(`scope.${p.scope}`)}</td>
-                <td className="td text-muted">{t(`ptype.${p.type}`)}</td>
-                <td className="td text-muted">{p.defaultSupplier?.name ?? "—"}</td>
-                <td className="td text-end text-muted">{s?.requested || "—"}</td>
-                <td className="td text-end text-muted">{s?.inPipeline || "—"}</td>
-                <td className="td text-end text-muted">{s ? `${s.arrived30} / ${s.arrived90}` : "—"}</td>
+                <td className="td" data-label={t("products.scope")}>{t(`scope.${p.scope}`)}</td>
+                <td className="td text-muted" data-label={t("products.type")}>{t(`ptype.${p.type}`)}</td>
+                <td className="td text-muted" data-label={t("products.supplier")}>{p.defaultSupplier?.name ?? "—"}</td>
+                <td className="td text-end text-muted" data-label={t("products.requested")}>{s?.requested || "—"}</td>
+                <td className="td text-end text-muted" data-label={t("products.inPipeline")}>{s?.inPipeline || "—"}</td>
+                <td className="td text-end text-muted" data-label={t("products.arrived")}>{s ? `${s.arrived30} / ${s.arrived90}` : "—"}</td>
               </tr>
               );
             })}

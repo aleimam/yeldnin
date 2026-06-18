@@ -55,15 +55,15 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.products")}</h2>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-cards">
             <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("requests.count")}</th>{canSeeSelling && <th className="th text-end">{t("requests.sell")}</th>}<th className="th text-end">{t("requests.buy")}</th></tr></thead>
             <tbody className="divide-y divide-line">
               {req.lines.map((l) => (
                 <tr key={l.id}>
-                  <td className="td"><Link href={`/products/${l.product.id}`} className="text-brand hover:underline">{l.product.name}</Link></td>
-                  <td className="td text-end">{l.count}</td>
-                  {canSeeSelling && <td className="td text-end text-muted">{l.sellingPrice ?? "—"}</td>}
-                  <td className="td text-end text-muted">{l.purchasePrice ?? "—"}</td>
+                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${l.product.id}`} className="text-brand hover:underline">{l.product.name}</Link></td>
+                  <td className="td text-end" data-label={t("requests.count")}>{l.count}</td>
+                  {canSeeSelling && <td className="td text-end text-muted" data-label={t("requests.sell")}>{l.sellingPrice ?? "—"}</td>}
+                  <td className="td text-end text-muted" data-label={t("requests.buy")}>{l.purchasePrice ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -72,7 +72,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.items")} ({items.length})</h2>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-cards">
             <thead>
               <tr className="border-b border-line">
                 <th className="th">{t("requests.uid")}</th>
@@ -88,12 +88,12 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 const s = slaMap.get(it.id);
                 return (
                   <tr key={it.id}>
-                    <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
-                    <td className="td"><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
-                    <td className="td">{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
-                    {isSpecial && <td className="td text-muted">{s ? formatBizDate(s.promised) : "—"}</td>}
-                    {isSpecial && <td className="td text-muted">{s ? formatBizDate(s.expected) : "—"}</td>}
-                    {isSpecial && <td className="td">{s ? <SlaBadge status={s.status} label={t(`sla.${s.status.toLowerCase()}`)} /> : "—"}</td>}
+                    <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>{it.uid ?? it.id}</td>
+                    <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
+                    <td className="td" data-label={t("requests.status")}>{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
+                    {isSpecial && <td className="td text-muted" data-label={t("sla.promised")}>{s ? formatBizDate(s.promised) : "—"}</td>}
+                    {isSpecial && <td className="td text-muted" data-label={t("sla.expected")}>{s ? formatBizDate(s.expected) : "—"}</td>}
+                    {isSpecial && <td className="td" data-label="SLA">{s ? <SlaBadge status={s.status} label={t(`sla.${s.status.toLowerCase()}`)} /> : "—"}</td>}
                   </tr>
                 );
               })}

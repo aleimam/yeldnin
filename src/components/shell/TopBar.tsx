@@ -72,7 +72,7 @@ export async function TopBar({
             <span className="grid h-7 w-7 place-items-center rounded-md bg-brand text-brand-fg">✦</span>
           )}
           <span className="text-lg font-bold text-ink">{settings.appName}</span>
-          <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] font-medium text-muted">
+          <span className="hidden rounded bg-canvas px-1.5 py-0.5 text-[10px] font-medium text-muted sm:inline">
             v{settings.version}
           </span>
         </Link>

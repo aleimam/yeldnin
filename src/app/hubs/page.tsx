@@ -28,7 +28,7 @@ export default async function HubsPage() {
       actions={canManage ? <Link href="/hubs/new" className="btn-primary">+ {t("hubs.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-cards">
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("hubs.uid")}</th>
@@ -43,15 +43,15 @@ export default async function HubsPage() {
               const pending = inbound.get(h.id)?.count ?? 0;
               return (
               <tr key={h.id} className={`hover:bg-canvas/60 ${slaRowClass(sla.get(h.id))}`}>
-                <td className="td font-mono text-xs text-muted">{h.uid ?? "—"}</td>
-                <td className="td">
+                <td className="td font-mono text-xs text-muted" data-label={t("hubs.uid")}>{h.uid ?? "—"}</td>
+                <td className="td" data-label={t("hubs.name")}>
                   <Link href={`/hubs/${h.id}`} className="font-medium text-brand hover:underline">{h.name}</Link>
                   {h._count.photos > 0 && <span className="ms-2 text-xs text-muted">📎{h._count.photos}</span>}
                   {!h.active && <span className="ms-2 rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t("hubs.inactive")}</span>}
                 </td>
-                <td className="td text-muted">{h.country}</td>
-                <td className="td"><ItemCounts counts={inv.get(h.id) ?? emptyCategoryCounts()} labels={labels} /></td>
-                <td className="td text-end text-muted">{pending || "—"}</td>
+                <td className="td text-muted" data-label={t("hubs.country")}>{h.country}</td>
+                <td className="td" data-label={t("trip.inventory")}><ItemCounts counts={inv.get(h.id) ?? emptyCategoryCounts()} labels={labels} /></td>
+                <td className="td text-end text-muted" data-label={t("trip.inbound")}>{pending || "—"}</td>
               </tr>
               );
             })}

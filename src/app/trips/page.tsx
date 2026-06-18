@@ -32,7 +32,7 @@ export default async function TripsPage() {
       actions={canManage ? <Link href="/trips/new" className="btn-primary">+ {t("trip.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-cards">
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("trip.traveler")}</th>
@@ -48,12 +48,12 @@ export default async function TripsPage() {
               const pending = inbound.get(tr.id)?.count ?? 0;
               return (
               <tr key={tr.id} className={`hover:bg-canvas/60 ${slaRowClass(sla.get(tr.id))}`}>
-                <td className="td"><Link href={`/trips/${tr.id}`} className="text-brand hover:underline">{tr.traveler.name}</Link></td>
-                <td className="td text-muted">{tr.country}</td>
-                <td className="td text-muted">{formatBizDate(tr.lastReceivingDate)}</td>
-                <td className="td"><ItemCounts counts={inv.get(tr.id) ?? emptyCategoryCounts()} labels={labels} /></td>
-                <td className="td text-end text-muted">{pending || "—"}</td>
-                <td className="td">
+                <td className="td" data-label={t("trip.traveler")}><Link href={`/trips/${tr.id}`} className="text-brand hover:underline">{tr.traveler.name}</Link></td>
+                <td className="td text-muted" data-label={t("trip.country")}>{tr.country}</td>
+                <td className="td text-muted" data-label={t("trip.lastReceiving")}>{formatBizDate(tr.lastReceivingDate)}</td>
+                <td className="td" data-label={t("trip.inventory")}><ItemCounts counts={inv.get(tr.id) ?? emptyCategoryCounts()} labels={labels} /></td>
+                <td className="td text-end text-muted" data-label={t("trip.inbound")}>{pending || "—"}</td>
+                <td className="td" data-label={t("trip.status")}>
                   {tr.status === "NEW" && access.isAdmin
                     ? <TripApproveButtons id={tr.id} />
                     : t(`tripstatus.${tr.status}`)}

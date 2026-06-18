@@ -28,7 +28,7 @@ export default async function TravelersPage() {
       actions={canManage ? <Link href="/travelers/new" className="btn-primary">+ {t("travelers.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full table-cards">
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("travelers.name")}</th>
@@ -43,16 +43,16 @@ export default async function TravelersPage() {
           <tbody className="divide-y divide-line">
             {rows.map((tr) => (
               <tr key={tr.id} className={`hover:bg-canvas/60 ${slaRowClass(travelerSla(tr.stats.tripIds))}`}>
-                <td className="td">
+                <td className="td" data-label={t("travelers.name")}>
                   <Link href={`/travelers/${tr.id}`} className="font-medium text-brand hover:underline">{tr.name}</Link>
                   {tr._count.photos > 0 && <span className="ms-2 text-xs text-muted">📎{tr._count.photos}</span>}
                 </td>
-                <td className="td text-muted">{tr.contact ?? "—"}</td>
-                <td className="td text-muted">{tr.stats.nextTrip ? formatBizDate(tr.stats.nextTrip) : "—"}</td>
-                <td className="td text-end text-muted">{tr.stats.itemCount || "—"}</td>
-                <td className="td text-end text-muted">{tr.stats.tripCount || "—"}</td>
-                <td className="td">{tr.carriesMaleSupport ? <span className="text-green-600">✓</span> : <span className="text-muted">—</span>}</td>
-                <td className="td">
+                <td className="td text-muted" data-label={t("travelers.contact")}>{tr.contact ?? "—"}</td>
+                <td className="td text-muted" data-label={t("travelers.nextTrip")}>{tr.stats.nextTrip ? formatBizDate(tr.stats.nextTrip) : "—"}</td>
+                <td className="td text-end text-muted" data-label={t("requests.items")}>{tr.stats.itemCount || "—"}</td>
+                <td className="td text-end text-muted" data-label={t("travelers.trips")}>{tr.stats.tripCount || "—"}</td>
+                <td className="td" data-label={t("travelers.maleSupport")}>{tr.carriesMaleSupport ? <span className="text-green-600">✓</span> : <span className="text-muted">—</span>}</td>
+                <td className="td" data-label={t("travelers.status")}>
                   {tr.blacklisted && <span className="me-1 rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">{t("travelers.blacklisted")}</span>}
                   {!tr.active && <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t("travelers.inactive")}</span>}
                   {tr.active && !tr.blacklisted && <span className="text-green-600">●</span>}

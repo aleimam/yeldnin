@@ -114,6 +114,46 @@
     @apply px-3 py-2 text-sm text-ink;
   }
 
+  /* Mobile (< sm): a table tagged `table-cards` collapses to one card per row —
+     each cell becomes a small uppercase label above its value, and the header
+     row is hidden. Desktop (sm+) renders the normal table. Give every data
+     <td> a `data-label`; omit it on full-width empty-state cells. */
+  @media (max-width: 639px) {
+    table.table-cards {
+      display: block;
+      width: 100%;
+    }
+    table.table-cards thead {
+      display: none;
+    }
+    table.table-cards tbody {
+      display: block;
+    }
+    table.table-cards tr {
+      display: block;
+      margin-bottom: 0.5rem;
+      border: 1px solid rgb(var(--line));
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+    }
+    table.table-cards td {
+      display: block;
+      border: 0;
+      padding: 0.25rem 0;
+      text-align: start;
+    }
+    table.table-cards td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 0.0625rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: rgb(var(--muted));
+    }
+  }
+
   .role-badge {
     @apply inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/40 dark:text-purple-300;
   }
