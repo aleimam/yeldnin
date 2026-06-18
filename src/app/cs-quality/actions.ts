@@ -10,7 +10,7 @@ import type { BonusTier } from "@/lib/cs/cs-logic";
 import { createCsQuestion, updateCsQuestion, archiveCsQuestion, type CsQuestionInput } from "@/lib/cs/cs-question-service";
 import { createEvaluation } from "@/lib/cs/cs-eval-service";
 import { approveEvaluation, rejectEvaluation, softDeleteEvaluation } from "@/lib/cs/cs-report-service";
-import { canEvaluateCalls, canManageCs, isCsLevel, type CsConfigShape } from "@/lib/cs/cs-logic";
+import { canEvaluateCalls, canManageCs, isCsLevel, isCsChannel, type CsConfigShape } from "@/lib/cs/cs-logic";
 
 export type QResult = { ok: true; id?: number } | { ok: false; error: string };
 
@@ -81,6 +81,8 @@ export async function createCsEvaluationAction(p: {
   scope: string;
   typeName?: string | null;
   callDate?: string | null;
+  channel?: string | null;
+  contact?: string | null;
   answers: { questionId: number; level: string; note?: string }[];
   photoIds?: string[];
 }): Promise<EvalResult> {
@@ -93,12 +95,17 @@ export async function createCsEvaluationAction(p: {
   if (!p.callDate) return { ok: false, error: t("cs.pickDate") };
   const answers = (p.answers ?? []).filter((a) => a.questionId && isCsLevel(a.level));
   if (!answers.length) return { ok: false, error: t("cs.answerAll") };
+  const isCall = p.scope === "CALL";
   const ev = await createEvaluation(
     {
       subjectUserId: p.subjectUserId,
       scope: p.scope,
       typeName: p.typeName ?? null,
       callDate: p.callDate ? new Date(p.callDate) : null,
+      // Channel/contact are call-only metadata; channel is validated against the
+      // fixed list so a tampered client can't store an arbitrary value.
+      channel: isCall && isCsChannel(p.channel) ? p.channel : null,
+      contact: isCall ? p.contact?.trim() || null : null,
       answers,
       photoAssetIds: p.photoIds ?? [],
     },

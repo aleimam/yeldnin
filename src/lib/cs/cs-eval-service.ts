@@ -43,6 +43,8 @@ export interface CreateEvalInput {
   scope: string;
   typeName?: string | null; // call type (null for performance)
   callDate?: Date | null; // call evals: the date of the call
+  channel?: string | null; // call evals: contact channel key
+  contact?: string | null; // call evals: customer name / phone
   answers: EvalAnswerInput[];
   photoAssetIds: string[];
 }
@@ -90,6 +92,8 @@ export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: 
       scope: input.scope,
       typeName: input.typeName ?? null,
       callDate: input.callDate ?? null,
+      channel: input.channel ?? null,
+      contact: input.contact ?? null,
       status: "PENDING",
       total: weightedTotal(scored),
       normalized: normalizedPct(scored, map),

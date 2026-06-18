@@ -366,6 +366,8 @@ model CsEvaluation {
   scope           String // CALL | PERFORMANCE
   typeName        String? // call type snapshot (null for performance)
   callDate        DateTime? // Call evals: the date of the call (drives analytics month)
+  channel         String? // Call evals: contact channel key (WHATSAPP|PHONE|FACEBOOK|INSTAGRAM)
+  contact         String? // Call evals: customer name / phone (free text)
   status          String    @default("PENDING") // PENDING | APPROVED | REJECTED
   total           Float     @default(0) // Σ weighted
   normalized      Float     @default(0) // % of best possible

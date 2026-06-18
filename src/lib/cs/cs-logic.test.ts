@@ -10,6 +10,8 @@ import {
   compositeOverall,
   bonusPctFor,
   expectedBonus,
+  isCsChannel,
+  CS_CHANNELS,
 } from "./cs-logic";
 
 describe("resolveCsConfig", () => {
@@ -147,5 +149,20 @@ describe("bonus tiers", () => {
     expect(expectedBonus(96, 5000, tiers)).toBe(5000); // 100%
     expect(expectedBonus(130, 5000, tiers)).toBe(6000); // 120%
     expect(expectedBonus(null, 5000, tiers)).toBe(0);
+  });
+});
+
+describe("isCsChannel", () => {
+  it("accepts the four fixed channel keys", () => {
+    expect(CS_CHANNELS).toEqual(["WHATSAPP", "PHONE", "FACEBOOK", "INSTAGRAM"]);
+    for (const c of CS_CHANNELS) expect(isCsChannel(c)).toBe(true);
+  });
+  it("rejects unknown / non-string values", () => {
+    expect(isCsChannel("whatsapp")).toBe(false); // case-sensitive key
+    expect(isCsChannel("EMAIL")).toBe(false);
+    expect(isCsChannel("")).toBe(false);
+    expect(isCsChannel(null)).toBe(false);
+    expect(isCsChannel(undefined)).toBe(false);
+    expect(isCsChannel(42)).toBe(false);
   });
 });

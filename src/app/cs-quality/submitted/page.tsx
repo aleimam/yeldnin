@@ -30,7 +30,10 @@ export default async function CsSubmittedPage() {
             {rows.map((e) => (
               <tr key={e.id} className="hover:bg-canvas/60">
                 <td className="td" data-label={t("cs.salesRep")}>{e.subject}</td>
-                <td className="td text-muted" data-label={t("cs.scope")}>{t(`cs.scope.${e.scope}`)}{e.typeName ? ` · ${e.typeName}` : ""}</td>
+                <td className="td text-muted" data-label={t("cs.scope")}>
+                  {t(`cs.scope.${e.scope}`)}{e.typeName ? ` · ${e.typeName}` : ""}
+                  {(e.channel || e.contact) && <span className="block text-xs">{[e.channel ? t(`cs.channel.${e.channel}`) : null, e.contact].filter(Boolean).join(" · ")}</span>}
+                </td>
                 <td className="td" data-label={t("cs.status")}>{t(`cs.status.${e.status}`)}</td>
                 <td className="td text-end" data-label={t("cs.score")}>{e.total}</td>
                 <td className="td text-muted" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>

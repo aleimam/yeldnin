@@ -39,6 +39,8 @@ export interface EvalListRow {
   evaluator: string | null; // null when hidden (rep view)
   scope: string;
   typeName: string | null;
+  channel: string | null; // call-only channel key (label via i18n)
+  contact: string | null; // call-only customer name / phone
   status: string;
   total: number;
   normalized: number;
@@ -71,6 +73,8 @@ export async function listEvaluations(opts: { status?: string; subjectUserId?: n
     evaluator: opts.showEvaluator ? names.get(e.evaluatorUserId) ?? `#${e.evaluatorUserId}` : null,
     scope: e.scope,
     typeName: e.typeName ? typeArMap.get(e.typeName) ?? e.typeName : null,
+    channel: e.channel,
+    contact: e.contact,
     status: e.status,
     total: e.total,
     normalized: e.normalized,

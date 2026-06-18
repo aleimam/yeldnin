@@ -8,6 +8,13 @@ export type CsScope = (typeof CS_SCOPES)[number];
 export const CS_LEVELS = ["CATASTROPHE", "BAD", "GOOD", "PERFECT", "OUTSTANDING"] as const;
 export type CsLevel = (typeof CS_LEVELS)[number];
 
+// Contact channels for a call evaluation (fixed list). Stored as the key on the
+// evaluation; the label is i18n'd via `cs.channel.<KEY>` (bilingual).
+export const CS_CHANNELS = ["WHATSAPP", "PHONE", "FACEBOOK", "INSTAGRAM"] as const;
+export type CsChannel = (typeof CS_CHANNELS)[number];
+export const isCsChannel = (v: unknown): v is CsChannel =>
+  typeof v === "string" && (CS_CHANNELS as readonly string[]).includes(v);
+
 export type ValueMap = Record<CsLevel, number>;
 
 export const round2 = (n: number) => Math.round(n * 100) / 100;

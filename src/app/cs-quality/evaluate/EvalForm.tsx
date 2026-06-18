@@ -3,7 +3,7 @@ import { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
-import { CS_LEVELS, valueFor, weightedTotal, normalizedPct, localized, type ValueMap } from "@/lib/cs/cs-logic";
+import { CS_LEVELS, CS_CHANNELS, valueFor, weightedTotal, normalizedPct, localized, type ValueMap } from "@/lib/cs/cs-logic";
 import { createCsEvaluationAction } from "../actions";
 
 type Q = { id: number; title: string; titleAr: string | null; criteria: string; criteriaAr: string | null; tags: string | null; tagsAr: string | null; weight: number; typeId: number; typeName: string; typeNameAr: string | null };
@@ -43,6 +43,8 @@ export function EvalForm({
   const [subjectId, setSubjectId] = useState("");
   const [callTypeId, setCallTypeId] = useState(scope === "CALL" && callTypes[0] ? String(callTypes[0].id) : "");
   const [callDate, setCallDate] = useState(today());
+  const [channel, setChannel] = useState(""); // call-only; optional
+  const [contact, setContact] = useState(""); // call-only; optional
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
@@ -72,6 +74,8 @@ export function EvalForm({
         scope,
         typeName: scope === "CALL" ? callTypeName : null,
         callDate,
+        channel: scope === "CALL" ? channel || null : null,
+        contact: scope === "CALL" ? contact || null : null,
         answers: shown.map((q) => ({ questionId: q.id, level: answers[q.id], note: notes[q.id] || undefined })),
         photoIds: photos.map((p) => p.id),
       });
@@ -102,6 +106,21 @@ export function EvalForm({
           <label className="label">{scope === "CALL" ? t("cs.callDate") : t("cs.evalDate")}</label>
           <input type="date" max={today()} className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
         </div>
+        {scope === "CALL" && (
+          <>
+            <div>
+              <label className="label">{t("cs.channel")}</label>
+              <select className="input" value={channel} onChange={(e) => setChannel(e.target.value)}>
+                <option value="">—</option>
+                {CS_CHANNELS.map((c) => <option key={c} value={c}>{t(`cs.channel.${c}`)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="label">{t("cs.contact")}</label>
+              <input className="input" value={contact} onChange={(e) => setContact(e.target.value)} />
+            </div>
+          </>
+        )}
       </div>
 
       {shown.length === 0 ? (
