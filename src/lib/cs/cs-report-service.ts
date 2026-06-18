@@ -11,6 +11,13 @@ const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 
 const evalMonth = (e: { scope: string; callDate: Date | null; createdAt: Date }) =>
   monthKey(e.scope === "CALL" ? e.callDate ?? e.createdAt : e.createdAt);
 
+/** Current CALL type English name → Arabic name, for localizing snapshot/
+ *  analytics labels (which key off the English name). Empty when none set. */
+export async function callTypeArNames(): Promise<Map<string, string>> {
+  const types = await prisma.csEvalType.findMany({ where: { scope: "CALL", nameAr: { not: null } }, select: { name: true, nameAr: true } });
+  return new Map(types.map((tp) => [tp.name, tp.nameAr as string]));
+}
+
 async function nameMap(ids: number[]): Promise<Map<number, string>> {
   if (!ids.length) return new Map();
   const [locale, u] = await Promise.all([
@@ -56,13 +63,7 @@ export async function listEvaluations(opts: { status?: string; subjectUserId?: n
   ]);
   // The eval-level type label is an English snapshot; in Arabic, map it to the
   // current call type's Arabic name when one exists (best-effort by name).
-  const typeArMap =
-    locale === "ar"
-      ? new Map(
-          (await prisma.csEvalType.findMany({ where: { scope: "CALL", nameAr: { not: null } }, select: { name: true, nameAr: true } }))
-            .map((tp) => [tp.name, tp.nameAr as string]),
-        )
-      : new Map<string, string>();
+  const typeArMap = locale === "ar" ? await callTypeArNames() : new Map<string, string>();
   return evals.map((e) => ({
     id: e.id,
     uid: e.uid,
