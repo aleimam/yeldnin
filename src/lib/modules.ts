@@ -31,6 +31,7 @@ export const MODULES: ModuleDef[] = [
   { key: "couriers", route: "/couriers", section: "main", icon: "🛵" },
   { key: "issues", route: "/issues", section: "main", icon: "⚠️" },
   { key: "history", route: "/history", section: "main", icon: "🕐" },
+  { key: "cs_quality", route: "/cs-quality", section: "main", icon: "🎧" },
   { key: "settings", route: "/settings", section: "admin", icon: "⚙️" },
   { key: "user_access", route: "/users", section: "admin", icon: "👥" },
   { key: "audit_log", route: "/audit", section: "admin", icon: "📜" },

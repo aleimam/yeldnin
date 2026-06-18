@@ -4,6 +4,7 @@ import { TopBar } from "@/components/shell/TopBar";
 import { MAIN_MODULES, ADMIN_MODULES, childModules, type ModuleDef } from "@/lib/modules";
 import { requireUser } from "@/lib/auth/access";
 import { canAccessSettings } from "@/lib/module-sections";
+import { canAccessCs } from "@/lib/cs/cs-logic";
 import { SiteFooter } from "@/components/shell/SiteFooter";
 import { ModuleGlyph } from "@/components/shell/ModuleGlyph";
 import type { TFunction } from "@/i18n";
@@ -34,7 +35,9 @@ export default async function DashboardPage() {
   const canSee = (key: string) =>
     key === "settings"
       ? canAccessSettings(access.can, access.isAdmin)
-      : access.canModule(key) || childModules(key).some((c) => access.canModule(c));
+      : key === "cs_quality"
+        ? canAccessCs(access)
+        : access.canModule(key) || childModules(key).some((c) => access.canModule(c));
   // Folded-in modules (purchasing → logistics) have no separate dashboard tile.
   const mainVisible = MAIN_MODULES.filter((m) => !m.foldedInto && canSee(m.key));
   const adminVisible = ADMIN_MODULES.filter((m) => canSee(m.key));

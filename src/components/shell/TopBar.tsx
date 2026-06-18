@@ -6,6 +6,7 @@ import { assetUrl } from "@/lib/assets/assets-service";
 import { getEffectiveTheme, getColorMode } from "@/lib/prefs";
 import { MODULES, childModules } from "@/lib/modules";
 import { canAccessSettings } from "@/lib/module-sections";
+import { canAccessCs } from "@/lib/cs/cs-logic";
 import { PreferencesMenu } from "./PreferencesMenu";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { AccountMenu } from "./AccountMenu";
@@ -43,7 +44,9 @@ export async function TopBar({
   const canSee = (key: string) =>
     key === "settings"
       ? canAccessSettings(access.can, access.isAdmin)
-      : access.canModule(key) || childModules(key).some((c) => access.canModule(c));
+      : key === "cs_quality"
+        ? canAccessCs(access)
+        : access.canModule(key) || childModules(key).some((c) => access.canModule(c));
   // Folded-in modules (e.g. purchasing → logistics) don't get their own tile.
   const switcherModules = MODULES.filter((m) => !m.foldedInto && canSee(m.key)).map((m) => ({
     key: m.key,
