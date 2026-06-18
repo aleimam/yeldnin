@@ -468,6 +468,8 @@
   "cs.qTagsHint": "comma-separated, optional",
   "cs.callDate": "Call date",
   "cs.pickCallDate": "Pick the call date.",
+  "cs.evalDate": "Evaluation date",
+  "cs.pickDate": "Pick the evaluation date.",
   "cs.submitted": "Submitted by me",
   "cs.status": "Status",
   "cs.deleteEval": "Delete",

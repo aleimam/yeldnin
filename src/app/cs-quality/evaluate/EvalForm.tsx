@@ -63,14 +63,14 @@ export function EvalForm({
   function submit() {
     setError("");
     if (!subjectId) return setError(t("cs.pickRep"));
-    if (scope === "CALL" && !callDate) return setError(t("cs.pickCallDate"));
+    if (!callDate) return setError(t("cs.pickDate"));
     if (!allAnswered) return setError(t("cs.answerAll"));
     start(async () => {
       const res = await createCsEvaluationAction({
         subjectUserId: Number(subjectId),
         scope,
         typeName: scope === "CALL" ? callTypeName : null,
-        callDate: scope === "CALL" ? callDate : null,
+        callDate,
         answers: shown.map((q) => ({ questionId: q.id, level: answers[q.id], note: notes[q.id] || undefined })),
         photoIds: photos.map((p) => p.id),
       });
@@ -89,22 +89,18 @@ export function EvalForm({
             {reps.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         </div>
-        {scope === "CALL" && (
-          <>
-            {multiType && (
-              <div>
-                <label className="label">{t("cs.callType")}</label>
-                <select className="input" value={callTypeId} onChange={(e) => { setCallTypeId(e.target.value); setAnswers({}); }}>
-                  {callTypes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-            )}
-            <div>
-              <label className="label">{t("cs.callDate")}</label>
-              <input type="date" max={today()} className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
-            </div>
-          </>
+        {scope === "CALL" && multiType && (
+          <div>
+            <label className="label">{t("cs.callType")}</label>
+            <select className="input" value={callTypeId} onChange={(e) => { setCallTypeId(e.target.value); setAnswers({}); }}>
+              {callTypes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
         )}
+        <div>
+          <label className="label">{scope === "CALL" ? t("cs.callDate") : t("cs.evalDate")}</label>
+          <input type="date" max={today()} className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
+        </div>
       </div>
 
       {shown.length === 0 ? (

@@ -73,8 +73,8 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
                 <tr key={a.id}>
                   <td className="td" data-label={t("cs.criteria")}>
                     <span className="font-medium text-ink">{a.title || a.criteria}</span>
-                    {a.title && a.criteria && <span className="block text-xs text-muted">{a.criteria}</span>}
-                    <span className="block text-[10px] uppercase text-muted">{a.typeName}</span>
+                    {staffView && a.title && a.criteria && <span className="block text-xs text-muted">{a.criteria}</span>}
+                    {staffView && a.typeName && <span className="block text-[10px] uppercase text-muted">{a.typeName}</span>}
                     {a.note && <span className="block text-xs text-muted">“{a.note}”</span>}
                   </td>
                   <td className="td" data-label={staffView ? t("cs.answer") : t("cs.score")}><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span>{staffView && <span className="text-xs text-muted"> ({a.value})</span>}</td>

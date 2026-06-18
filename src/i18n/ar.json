@@ -468,6 +468,8 @@
   "cs.qTagsHint": "اختياري، مفصولة بفواصل",
   "cs.callDate": "تاريخ المكالمة",
   "cs.pickCallDate": "اختر تاريخ المكالمة.",
+  "cs.evalDate": "تاريخ التقييم",
+  "cs.pickDate": "اختر تاريخ التقييم.",
   "cs.submitted": "المقدّمة مني",
   "cs.status": "الحالة",
   "cs.deleteEval": "حذف",
