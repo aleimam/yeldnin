@@ -813,6 +813,8 @@
   "cap.operations.operate": "Manage shipments (review, photos)",
   "cap.couriers.operate": "Add & edit couriers",
   "cap.issues.operate": "Open, resolve & compensate issues",
+  "cap.cs_quality.operate": "Evaluate calls",
+  "cap.cs_quality.manage": "Evaluate performance, approve & manage criteria",
   "pages.new": "New page",
   "pages.slug": "Slug (URL)",
   "pages.slugHint": "Lower-case letters, numbers and dashes. Public at /p/<slug>.",

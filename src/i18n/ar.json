@@ -813,6 +813,8 @@
   "cap.operations.operate": "إدارة الشحنات (المراجعة والصور)",
   "cap.couriers.operate": "إضافة وتعديل المندوبين",
   "cap.issues.operate": "فتح البلاغات ومعالجتها والتعويض",
+  "cap.cs_quality.operate": "تقييم المكالمات",
+  "cap.cs_quality.manage": "تقييم الأداء والاعتماد وإدارة المعايير",
   "pages.new": "صفحة جديدة",
   "pages.slug": "المُعرّف (الرابط)",
   "pages.slugHint": "أحرف إنجليزية صغيرة وأرقام وشرطات. عامة على /p/<slug>.",

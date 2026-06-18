@@ -100,13 +100,14 @@ export interface CsAccess {
   isAdmin: boolean;
   user: { teamKeys: string[] } | null;
   canModule: (moduleKey: string, min?: Level) => boolean;
+  can: (moduleKey: string, capability: string) => boolean;
 }
 
 /** Open the module — read-only (criteria + one's own evaluations). VIEW+. */
 export const canAccessCs = (a: CsAccess): boolean => a.canModule(CS_MODULE, "VIEW");
-/** Evaluate calls. OPERATE+ (the Development team's level). */
-export const canEvaluateCalls = (a: CsAccess): boolean => a.canModule(CS_MODULE, "OPERATE");
-/** Evaluate performance + approve + manage questions/types/values + analytics. MANAGE. */
-export const canManageCs = (a: CsAccess): boolean => a.canModule(CS_MODULE, "MANAGE");
+/** Evaluate calls — cs_quality `operate` capability (default OPERATE). */
+export const canEvaluateCalls = (a: CsAccess): boolean => a.can(CS_MODULE, "operate");
+/** Evaluate performance + approve + manage criteria — cs_quality `manage` (default MANAGE). */
+export const canManageCs = (a: CsAccess): boolean => a.can(CS_MODULE, "manage");
 /** The evaluated population — members of the Sales team (pharmacists). */
 export const isRep = (a: CsAccess): boolean => !!a.user?.teamKeys.includes(SALES_TEAM_KEY);
