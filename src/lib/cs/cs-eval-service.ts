@@ -3,20 +3,25 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { getCsConfig } from "./cs-config-service";
 import { valueFor, weightedTotal, normalizedPct, SALES_TEAM_KEY } from "./cs-logic";
+import { getLocale } from "@/i18n/server";
+import { displayName } from "@/lib/users/users-logic";
 
 /** The evaluated population = active members of the Sales team (pharmacists). */
 export async function listRepOptions(excludeUserId?: number): Promise<{ id: number; name: string }[]> {
-  const users = await prisma.user.findMany({
-    where: {
-      active: true,
-      archivedAt: null,
-      ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
-      teamMembers: { some: { team: { key: SALES_TEAM_KEY } } },
-    },
-    select: { id: true, name: true, fullName: true },
-    orderBy: { name: "asc" },
-  });
-  return users.map((u) => ({ id: u.id, name: u.fullName || u.name }));
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({
+      where: {
+        active: true,
+        archivedAt: null,
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+        teamMembers: { some: { team: { key: SALES_TEAM_KEY } } },
+      },
+      select: { id: true, name: true, nameAr: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+  return users.map((u) => ({ id: u.id, name: displayName(u, locale) }));
 }
 
 /** Active questions for a scope (Call filtered by type; Periodical = all). */

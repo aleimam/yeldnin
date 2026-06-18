@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { getAccess, type SessionUser } from "@/lib/auth/access";
+import { displayName } from "@/lib/users/users-logic";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getEffectiveTheme, getColorMode } from "@/lib/prefs";
@@ -31,14 +32,16 @@ export async function TopBar({
   user: SessionUser;
   activeModuleKey?: string;
 }) {
-  const [t, access, settings, theme, mode, unread] = await Promise.all([
+  const [t, locale, access, settings, theme, mode, unread] = await Promise.all([
     getT(),
+    getLocale(),
     getAccess(),
     getPlatformSettings(),
     getEffectiveTheme(),
     getColorMode(),
     unreadCount(user.id),
   ]);
+  const dn = displayName(user, locale);
   const showSettings = canAccessSettings(access.can, access.isAdmin);
   const logo = assetUrl(settings.logoUrl);
   const darkLogo = assetUrl(settings.darkLogoUrl) ?? logo;
@@ -97,7 +100,7 @@ export async function TopBar({
           <LocaleSwitcher />
           <PreferencesMenu theme={theme} mode={mode} />
           <div className="hidden items-center gap-2 sm:flex">
-            <span className="text-sm font-medium text-ink">{user.name}</span>
+            <span className="text-sm font-medium text-ink">{dn}</span>
             <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
           </div>
           <Link href="/notifications" aria-label={t("common.notifications")} className="relative text-muted hover:text-ink">
@@ -109,7 +112,7 @@ export async function TopBar({
             )}
           </Link>
           <AccountMenu
-            name={user.name}
+            name={dn}
             email={user.email}
             tier={user.tier}
             avatarUrl={assetUrl(user.avatarUrl)}

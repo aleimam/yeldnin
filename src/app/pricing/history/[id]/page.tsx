@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { getCalculation } from "@/lib/pricing/pricing-service";
+import { displayName } from "@/lib/users/users-logic";
 import { assetUrl } from "@/lib/assets/assets-service";
 
 export default async function CalculationDetailPage({
@@ -13,7 +14,7 @@ export default async function CalculationDetailPage({
 }) {
   const access = await requireModule("pricing", "VIEW");
   const { id } = await params;
-  const [calc, t] = await Promise.all([getCalculation(Number(id)), getT()]);
+  const [calc, t, locale] = await Promise.all([getCalculation(Number(id)), getT(), getLocale()]);
   const canManageHistory = access.can("pricing", "deleteAny");
   // Those without deleteAny never see soft-deleted records.
   if (!calc || (calc.deletedAt && !canManageHistory)) notFound();
@@ -103,7 +104,7 @@ export default async function CalculationDetailPage({
         )}
 
         <p className="text-xs text-muted">
-          {calc.user.name} · {new Date(calc.createdAt).toLocaleString()}
+          {displayName(calc.user, locale)} · {new Date(calc.createdAt).toLocaleString()}
         </p>
       </div>
     </AppShell>

@@ -1,5 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { getLocale } from "@/i18n/server";
+import { displayName } from "@/lib/users/users-logic";
 
 /** Latest item movements across the system, enriched with item + actor names. */
 export async function listRecentEvents(take = 100) {
@@ -9,8 +11,11 @@ export async function listRecentEvents(take = 100) {
     include: { item: { select: { uid: true, product: { select: { name: true } } } } },
   });
   const ids = [...new Set(events.map((e) => e.byUserId).filter((x): x is number => typeof x === "number"))];
-  const users = ids.length ? await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }) : [];
-  const nameOf = new Map(users.map((u) => [u.id, u.name]));
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    ids.length ? prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, nameAr: true } }) : Promise.resolve([]),
+  ]);
+  const nameOf = new Map(users.map((u) => [u.id, displayName(u, locale)]));
   return events.map((e) => ({
     id: e.id,
     createdAt: e.createdAt,

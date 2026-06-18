@@ -12,7 +12,7 @@ export function getTeamDetail(id: number) {
   return prisma.team.findUnique({
     where: { id },
     include: {
-      members: { include: { user: { select: { id: true, name: true, email: true } } } },
+      members: { include: { user: { select: { id: true, name: true, nameAr: true, email: true } } } },
     },
   });
 }
@@ -21,7 +21,7 @@ export function listAllUsers() {
   return prisma.user.findMany({
     where: { archivedAt: null },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, nameAr: true, email: true },
   });
 }
 

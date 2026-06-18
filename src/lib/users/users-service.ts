@@ -47,8 +47,10 @@ export async function getUserTier(id: number): Promise<string | null> {
 
 export interface UserProfileInput {
   name: string;
+  nameAr?: string; // Arabic display name
   uid?: string; // employee number; doubles as the user UID
   fullName?: string;
+  fullNameAr?: string; // Arabic official full name
   username?: string;
   email: string;
   tier: string;
@@ -92,7 +94,9 @@ export async function createUser(input: UserProfileInput & { password: string })
     data: {
       uid,
       name: input.name.trim(),
+      nameAr: clean(input.nameAr),
       fullName: clean(input.fullName),
+      fullNameAr: clean(input.fullNameAr),
       username,
       email,
       tier: isTier(input.tier) ? input.tier : "MEMBER",
@@ -118,7 +122,9 @@ export async function updateUserProfile(id: number, input: UserProfileInput & { 
     data: {
       uid,
       name: input.name.trim(),
+      nameAr: clean(input.nameAr),
       fullName: clean(input.fullName),
+      fullNameAr: clean(input.fullNameAr),
       username,
       email,
       tier: isTier(input.tier) ? input.tier : "MEMBER",

@@ -1,6 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
+import { getLocale } from "@/i18n/server";
+import { displayName } from "@/lib/users/users-logic";
 import type { Access, SessionUser } from "@/lib/auth/access";
 import {
   canEditExpense,
@@ -34,11 +36,14 @@ export async function userNameMap(
 ): Promise<Map<number, string>> {
   const clean = [...new Set(ids.filter((x): x is number => typeof x === "number"))];
   if (!clean.length) return new Map();
-  const users = await prisma.user.findMany({
-    where: { id: { in: clean } },
-    select: { id: true, name: true },
-  });
-  return new Map(users.map((u) => [u.id, u.name]));
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({
+      where: { id: { in: clean } },
+      select: { id: true, name: true, nameAr: true },
+    }),
+  ]);
+  return new Map(users.map((u) => [u.id, displayName(u, locale)]));
 }
 
 async function categorySnapshot(categoryId: number): Promise<{ name: string; type: string }> {
@@ -139,7 +144,7 @@ export async function deleteExpenseTransaction(id: number, access: AuthedAccess)
 export function getTransaction(id: number) {
   return prisma.expenseTransaction.findUnique({
     where: { id },
-    include: { createdBy: { select: { name: true } }, attachments: true },
+    include: { createdBy: { select: { name: true, nameAr: true } }, attachments: true },
   });
 }
 
@@ -155,7 +160,7 @@ export async function listTransactions(opts: {
       ...(opts.search ? { note: { contains: opts.search } } : {}),
     },
     orderBy: { createdAt: "desc" },
-    include: { createdBy: { select: { name: true } }, attachments: true },
+    include: { createdBy: { select: { name: true, nameAr: true } }, attachments: true },
     take: opts.take ?? 100,
     skip: opts.skip ?? 0,
   });
@@ -195,7 +200,8 @@ export async function getExpensesDashboard(): Promise<DashboardData> {
   const m = now.getMonth() + 1;
   const { gte, lt } = monthRange(y, m);
 
-  const [monthExp, monthTr, topCats, recentExp, recentDel] = await Promise.all([
+  const [locale, monthExp, monthTr, topCats, recentExp, recentDel] = await Promise.all([
+    getLocale(),
     prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte, lt } } }),
     prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "TRANSFER", createdAt: { gte, lt } } }),
     prisma.expenseTransaction.groupBy({
@@ -205,8 +211,8 @@ export async function getExpensesDashboard(): Promise<DashboardData> {
       orderBy: { _sum: { amount: "desc" } },
       take: 5,
     }),
-    prisma.expenseTransaction.findMany({ where: { categoryTypeSnapshot: "EXPENSE" }, orderBy: { createdAt: "desc" }, take: 5, include: { createdBy: { select: { name: true } } } }),
-    prisma.expenseTransaction.findMany({ where: { categoryTypeSnapshot: "TRANSFER" }, orderBy: { createdAt: "desc" }, take: 5, include: { createdBy: { select: { name: true } } } }),
+    prisma.expenseTransaction.findMany({ where: { categoryTypeSnapshot: "EXPENSE" }, orderBy: { createdAt: "desc" }, take: 5, include: { createdBy: { select: { name: true, nameAr: true } } } }),
+    prisma.expenseTransaction.findMany({ where: { categoryTypeSnapshot: "TRANSFER" }, orderBy: { createdAt: "desc" }, take: 5, include: { createdBy: { select: { name: true, nameAr: true } } } }),
   ]);
 
   const byMonth: DashboardData["byMonth"] = [];
@@ -232,8 +238,8 @@ export async function getExpensesDashboard(): Promise<DashboardData> {
     monthExpensesTotal: monthExp._sum.amount ?? 0,
     monthTransfersTotal: monthTr._sum.amount ?? 0,
     topCategories: topCats.map((c) => ({ name: c.categoryNameSnapshot, total: c._sum.amount ?? 0 })),
-    recentExpenses: recentExp.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: r.createdBy.name })),
-    recentDeliveries: recentDel.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: r.createdBy.name })),
+    recentExpenses: recentExp.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: displayName(r.createdBy, locale) })),
+    recentDeliveries: recentDel.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: displayName(r.createdBy, locale) })),
     byMonth,
     latestReconciliation,
   };

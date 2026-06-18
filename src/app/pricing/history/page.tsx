@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { listHistory } from "@/lib/pricing/pricing-service";
+import { displayName } from "@/lib/users/users-logic";
 import { DeleteButton } from "../DeleteButton";
 import { HardDeleteButton, PurgeHistoryButton } from "../HistoryActions";
 
 export default async function HistoryPage() {
   const access = await requireModule("pricing", "VIEW");
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   const canManageHistory = access.can("pricing", "deleteAny");
   const rows = await listHistory({ isAdmin: canManageHistory });
   const canSoftDelete = access.can("pricing", "deleteOwn");
@@ -54,7 +55,7 @@ export default async function HistoryPage() {
                 <td className="td" data-label={t("pricer.hist.section")}>
                   {r.section === "SUPPLEMENT" ? t("pricer.supplements") : t("pricer.devices")}
                 </td>
-                <td className="td text-muted" data-label={t("pricer.hist.user")}>{r.user.name}</td>
+                <td className="td text-muted" data-label={t("pricer.hist.user")}>{displayName(r.user, locale)}</td>
                 <td className="td text-end font-medium" data-label={t("pricer.hist.price")}>{r.price.toLocaleString()} EGP</td>
                 <td className="td" data-label="">
                   <div className="flex items-center justify-end gap-3">

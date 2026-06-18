@@ -27,7 +27,9 @@ model User {
   id             Int      @id @default(autoincrement())
   uid            String?  @unique
   name           String
+  nameAr         String? // Arabic display name (shown in the Arabic UI; falls back to `name`)
   fullName       String? // official full name (for documents); `name` is the display name
+  fullNameAr     String? // Arabic official full name
   username       String? // optional login handle (login with username OR email); uniqueness enforced in code
   email          String   @unique
   primaryPhone   String?
@@ -294,6 +296,7 @@ model CsEvalType {
   id         Int       @id @default(autoincrement())
   scope      String // CALL | PERIODICAL
   name       String
+  nameAr     String? // Arabic name (Arabic UI; falls back to `name`)
   sortOrder  Int       @default(0)
   weight     Int       @default(0) // CALL types: % weight within the Calls block of the overall average
   archivedAt DateTime?
@@ -325,8 +328,11 @@ model CsBonusTier {
 model CsQuestion {
   id          Int        @id @default(autoincrement())
   title       String     @default("")
+  titleAr     String? // Arabic title (Arabic UI; falls back to `title`)
   criteria    String // the question body
+  criteriaAr  String? // Arabic question body
   tags        String? // optional, comma-separated descriptive tags
+  tagsAr      String? // Arabic tags (comma-separated)
   weight      Int        @default(1) // 1..10
   scope       String // CALL | PERFORMANCE
   typeId      Int
@@ -383,8 +389,11 @@ model CsEvaluationAnswer {
   evaluation   CsEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   questionId   Int
   title        String   @default("") // snapshot
+  titleAr      String? // Arabic snapshot
   criteria     String // snapshot (question body)
+  criteriaAr   String? // Arabic snapshot
   typeName     String? // snapshot question type
+  typeNameAr   String? // Arabic snapshot
   weight       Int // snapshot
   level        String // CATASTROPHE | BAD | GOOD | PERFECT | OUTSTANDING
   value        Float // snapshot value for the level

@@ -20,8 +20,10 @@ export interface FormState {
 
 interface ProfilePayload {
   name: string;
+  nameAr?: string;
   uid?: string;
   fullName?: string;
+  fullNameAr?: string;
   username?: string;
   email: string;
   tier: string;

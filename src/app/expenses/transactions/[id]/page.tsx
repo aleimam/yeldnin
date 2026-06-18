@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { prisma } from "@/lib/db";
 import { assetUrl } from "@/lib/assets/assets-service";
+import { displayName } from "@/lib/users/users-logic";
 import { getTransaction, listCategories } from "@/lib/expenses/expenses-service";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { canEditExpense } from "@/lib/expenses/expenses-logic";
@@ -19,7 +20,7 @@ export default async function TransactionDetailPage({
   const { id } = await params;
   const tx = await getTransaction(Number(id));
   if (!tx) notFound();
-  const [t, categories] = await Promise.all([getT(), listCategories()]);
+  const [t, locale, categories] = await Promise.all([getT(), getLocale(), listCategories()]);
 
   const editable = canEditExpense({
     isManager: access.can("expenses", "editAny"),
@@ -56,7 +57,7 @@ export default async function TransactionDetailPage({
 
         <div className="card space-y-4 p-6">
           <div className="text-sm text-muted">
-            {t("exp.createdBy")}: {tx.createdBy.name} · {new Date(tx.createdAt).toLocaleString()}
+            {t("exp.createdBy")}: {displayName(tx.createdBy, locale)} · {new Date(tx.createdAt).toLocaleString()}
           </div>
 
           <div>

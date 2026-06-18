@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { listTransactions } from "@/lib/expenses/expenses-service";
+import { displayName } from "@/lib/users/users-logic";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TransactionsPage() {
   const access = await requireModule("expenses", "VIEW");
-  const [t, rows] = await Promise.all([getT(), listTransactions({})]);
+  const [t, locale, rows] = await Promise.all([getT(), getLocale(), listTransactions({})]);
   const canCreate = access.can("expenses", "createTxn");
 
   return (
@@ -43,7 +44,7 @@ export default async function TransactionsPage() {
                 <td className="td" data-label={t("exp.type")}>
                   {r.categoryTypeSnapshot === "TRANSFER" ? t("exp.transfer") : t("exp.expense")}
                 </td>
-                <td className="td text-muted" data-label={t("exp.createdBy")}>{r.createdBy.name}</td>
+                <td className="td text-muted" data-label={t("exp.createdBy")}>{displayName(r.createdBy, locale)}</td>
                 <td className="td text-end font-medium" data-label={t("exp.amount")}>{Math.round(r.amount).toLocaleString()}</td>
               </tr>
             ))}

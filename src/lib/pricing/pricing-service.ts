@@ -92,7 +92,7 @@ export function listHistory(opts: {
         : {}),
     },
     orderBy: { createdAt: "desc" },
-    include: { user: { select: { name: true } }, photos: true },
+    include: { user: { select: { name: true, nameAr: true } }, photos: true },
     take: opts.take ?? 100,
     skip: opts.skip ?? 0,
   });
@@ -101,7 +101,7 @@ export function listHistory(opts: {
 export function getCalculation(id: number) {
   return prisma.pricingCalculation.findUnique({
     where: { id },
-    include: { user: { select: { name: true } }, photos: true },
+    include: { user: { select: { name: true, nameAr: true } }, photos: true },
   });
 }
 

@@ -8,8 +8,10 @@ import { saveProfileAction } from "../actions";
 export interface ProfileUser {
   id: number;
   name: string;
+  nameAr: string;
   uid: string;
   fullName: string;
+  fullNameAr: string;
   username: string;
   email: string;
   tier: string;
@@ -32,8 +34,10 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
   );
   const [f, setF] = useState({
     name: user.name,
+    nameAr: user.nameAr,
     uid: user.uid,
     fullName: user.fullName,
+    fullNameAr: user.fullNameAr,
     username: user.username,
     email: user.email,
     tier: user.tier,
@@ -63,7 +67,9 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("users.name")}><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
+        <Field label={t("users.nameAr")}><input className="input" dir="rtl" value={f.nameAr} onChange={(e) => set("nameAr", e.target.value)} /></Field>
         <Field label={t("users.fullName")}><input className="input" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
+        <Field label={t("users.fullNameAr")}><input className="input" dir="rtl" value={f.fullNameAr} onChange={(e) => set("fullNameAr", e.target.value)} /></Field>
         <Field label={t("users.employeeNo")}><input className="input" placeholder="YE1101…" value={f.uid} onChange={(e) => set("uid", e.target.value)} /></Field>
         <Field label={t("users.username")}><input className="input" value={f.username} onChange={(e) => set("username", e.target.value)} /></Field>
         <Field label={t("users.email")}><input type="email" className="input" value={f.email} onChange={(e) => set("email", e.target.value)} /></Field>

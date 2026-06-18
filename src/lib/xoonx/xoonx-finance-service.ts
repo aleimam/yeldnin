@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
+import { getLocale } from "@/i18n/server";
 import { monthKey, monthRange, monthCloseable, toEgp, validateStaffShares, PETTY_CASH_START, STAFF_POOL_PCT, YELDN_PCT, round2 } from "./xoonx-finance-logic";
 
 const XOONX = "xoonx"; // audit module key + the Request scope value (uppercased below)
@@ -142,12 +143,22 @@ export async function isMonthClosed(month: string): Promise<boolean> {
 // XOONX staff = MEMBER-tier users who hold a xoonx module permission (admins who
 // hold xoonx for access are not profit-sharing staff).
 export async function listXoonxStaff(): Promise<{ id: number; name: string }[]> {
-  const rows = await prisma.user.findMany({
-    where: { active: true, archivedAt: null, tier: "MEMBER", modulePerms: { some: { moduleKey: XOONX, level: { not: "NONE" } } } },
-    select: { id: true, name: true, fullName: true },
-    orderBy: { name: "asc" },
-  });
-  return rows.map((u) => ({ id: u.id, name: u.fullName || u.name }));
+  const [locale, rows] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({
+      where: { active: true, archivedAt: null, tier: "MEMBER", modulePerms: { some: { moduleKey: XOONX, level: { not: "NONE" } } } },
+      select: { id: true, name: true, nameAr: true, fullName: true, fullNameAr: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+  // Profit-split roster prefers the official full name; in Arabic, the Arabic
+  // official/display name when present.
+  return rows.map((u) => ({
+    id: u.id,
+    name: locale === "ar"
+      ? u.fullNameAr || u.nameAr || u.fullName || u.name
+      : u.fullName || u.name,
+  }));
 }
 /** Each staff member's share % of the 25% pool (defaults to an equal split). */
 export async function getStaffShares(): Promise<{ id: number; name: string; sharePct: number }[]> {

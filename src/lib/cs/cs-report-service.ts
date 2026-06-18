@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { compositeOverall, type CompositeResult } from "./cs-logic";
 import { getCsConfig } from "./cs-config-service";
+import { getLocale } from "@/i18n/server";
+import { displayName } from "@/lib/users/users-logic";
 
 const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 // Call evals bucket by the call date; Performance by submission date.
@@ -11,8 +13,16 @@ const evalMonth = (e: { scope: string; callDate: Date | null; createdAt: Date })
 
 async function nameMap(ids: number[]): Promise<Map<number, string>> {
   if (!ids.length) return new Map();
-  const u = await prisma.user.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, name: true, fullName: true, uid: true } });
-  return new Map(u.map((x) => [x.id, x.uid ? `${x.fullName || x.name} (${x.uid})` : x.fullName || x.name]));
+  const [locale, u] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, name: true, nameAr: true, uid: true } }),
+  ]);
+  return new Map(
+    u.map((x) => {
+      const dn = displayName(x, locale);
+      return [x.id, x.uid ? `${dn} (${x.uid})` : dn];
+    }),
+  );
 }
 
 export interface EvalListRow {

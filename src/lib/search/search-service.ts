@@ -1,6 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import type { Access } from "@/lib/auth/access";
+import { getLocale } from "@/i18n/server";
+import { displayName } from "@/lib/users/users-logic";
 import { productScopes } from "@/lib/products/products-logic";
 import { requestScopes } from "@/lib/requests/request-logic";
 import { customerScopes } from "@/lib/customers/customers-logic";
@@ -241,13 +243,16 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
       type: "user",
       labelKey: "users.users",
       run: async () => {
-        const rows = await prisma.user.findMany({
-          where: { archivedAt: null, OR: [{ name: { contains: parsed.text } }, { email: { contains: parsed.text } }, { username: { contains: parsed.text } }] },
-          select: { id: true, name: true, email: true },
-          take: perType,
-          orderBy: { name: "asc" },
-        });
-        return rows.map((r) => ({ type: "user", id: r.id, uid: null, title: r.name, subtitle: r.email, href: `/users/${r.id}` }));
+        const [locale, rows] = await Promise.all([
+          getLocale(),
+          prisma.user.findMany({
+            where: { archivedAt: null, OR: [{ name: { contains: parsed.text } }, { nameAr: { contains: parsed.text } }, { email: { contains: parsed.text } }, { username: { contains: parsed.text } }] },
+            select: { id: true, name: true, nameAr: true, email: true },
+            take: perType,
+            orderBy: { name: "asc" },
+          }),
+        ]);
+        return rows.map((r) => ({ type: "user", id: r.id, uid: null, title: displayName(r, locale), subtitle: r.email, href: `/users/${r.id}` }));
       },
     });
   }

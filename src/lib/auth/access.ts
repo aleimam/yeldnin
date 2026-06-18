@@ -16,6 +16,7 @@ import { getAccessPolicy } from "./access-policy-service";
 export interface SessionUser {
   id: number;
   name: string;
+  nameAr: string | null;
   email: string;
   tier: Tier;
   locale: string;
@@ -63,6 +64,7 @@ export const getAccess = cache(async (): Promise<Access> => {
   const sessionUser: SessionUser = {
     id: user.id,
     name: user.name,
+    nameAr: user.nameAr ?? null,
     email: user.email,
     tier,
     locale: user.locale,
