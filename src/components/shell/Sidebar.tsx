@@ -114,8 +114,8 @@ export function Sidebar({
           type="button"
           onClick={toggleCollapsed}
           className="m-2 flex items-center justify-center rounded-lg px-3 py-2 text-muted hover:bg-canvas"
-          aria-label={collapsed ? "Expand" : "Collapse"}
-          title={collapsed ? "Expand" : "Collapse"}
+          aria-label={collapsed ? t("common.expand") : t("common.collapse")}
+          title={collapsed ? t("common.expand") : t("common.collapse")}
         >
           <span>{collapsed ? "»" : "«"}</span>
         </button>
@@ -129,8 +129,8 @@ export function Sidebar({
           type="button"
           onClick={openDrawer}
           className="m-2 flex items-center justify-center rounded-lg px-3 py-2 text-muted hover:bg-canvas"
-          aria-label="Expand"
-          title="Expand"
+          aria-label={t("common.expand")}
+          title={t("common.expand")}
         >
           <span>»</span>
         </button>
@@ -143,7 +143,7 @@ export function Sidebar({
           <aside className="absolute bottom-0 start-0 top-0 w-64 border-e border-line bg-surface shadow-xl">
             <div className="flex h-14 items-center justify-between border-b border-line px-3">
               <span className="font-semibold text-ink">{t("common.modules")}</span>
-              <button onClick={closeDrawer} className="text-muted hover:text-ink" aria-label="Collapse">
+              <button onClick={closeDrawer} className="text-muted hover:text-ink" aria-label={t("common.collapse")}>
                 «
               </button>
             </div>

@@ -13,7 +13,7 @@ export default async function EvaluateCallPage() {
   if (!canEvaluateCalls(access)) redirect("/cs-quality");
   const [t, reps, questions, callTypes, config] = await Promise.all([
     getT(),
-    listRepOptions(),
+    listRepOptions(access.user.id),
     questionsForScope("CALL"),
     listCsTypes("CALL"),
     getCsConfig(),

@@ -70,6 +70,7 @@ export async function createCsEvaluationAction(p: {
   const allowed = p.scope === "CALL" ? canEvaluateCalls(access) : canManageCs(access);
   if (!allowed) return { ok: false, error: "You can't run that evaluation." };
   if (!p.subjectUserId) return { ok: false, error: "Pick a sales rep." };
+  if (p.subjectUserId === access.user.id) return { ok: false, error: "You can't evaluate yourself." };
   if (p.scope === "CALL" && !p.callDate) return { ok: false, error: "Pick the call date." };
   const answers = (p.answers ?? []).filter((a) => a.questionId && isCsLevel(a.level));
   if (!answers.length) return { ok: false, error: "Answer the questions." };

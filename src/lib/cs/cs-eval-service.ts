@@ -5,11 +5,12 @@ import { getCsConfig } from "./cs-config-service";
 import { valueFor, weightedTotal, normalizedPct } from "./cs-logic";
 
 /** Sales reps = active users holding an order_requests permission. */
-export async function listRepOptions(): Promise<{ id: number; name: string }[]> {
+export async function listRepOptions(excludeUserId?: number): Promise<{ id: number; name: string }[]> {
   const users = await prisma.user.findMany({
     where: {
       active: true,
       archivedAt: null,
+      ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
       modulePerms: { some: { moduleKey: "order_requests", level: { not: "NONE" } } },
     },
     select: { id: true, name: true, fullName: true },

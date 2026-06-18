@@ -13,7 +13,7 @@ export default async function EvaluatePerformancePage() {
   if (!canManageCs(access)) redirect("/cs-quality");
   const [t, reps, questions, types, config] = await Promise.all([
     getT(),
-    listRepOptions(),
+    listRepOptions(access.user.id),
     questionsForScope("PERFORMANCE"),
     listCsTypes("PERFORMANCE"),
     getCsConfig(),

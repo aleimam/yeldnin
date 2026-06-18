@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/i18n/client";
 
 export interface UploadedPhoto {
   id: string;
@@ -30,6 +31,7 @@ export function PhotoUpload({
   accept?: string;
   allowPdf?: boolean;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +100,7 @@ export function PhotoUpload({
         tabIndex={0}
       >
         <span className="text-2xl">🖼️</span>
-        <span>{busy ? "Uploading…" : "Click, drop, or paste images (max 32 MB)"}</span>
+        <span>{busy ? t("common.uploading") : t("upload.hint")}</span>
         <input
           ref={inputRef}
           type="file"
@@ -124,7 +126,7 @@ export function PhotoUpload({
                 type="button"
                 onClick={() => onChange(photos.filter((x) => x.id !== p.id))}
                 className="absolute -end-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-xs text-white opacity-0 transition group-hover:opacity-100"
-                aria-label="Remove"
+                aria-label={t("common.remove")}
               >
                 ×
               </button>
