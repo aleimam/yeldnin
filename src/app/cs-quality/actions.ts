@@ -93,6 +93,9 @@ export async function createCsEvaluationAction(p: {
   if (!p.subjectUserId) return { ok: false, error: t("cs.pickRep") };
   if (p.subjectUserId === access.user.id) return { ok: false, error: t("cs.err.cantEvaluateSelf") };
   if (!p.callDate) return { ok: false, error: t("cs.pickDate") };
+  // Call evaluations require a channel + a name/phone (none of the call form is optional).
+  if (p.scope === "CALL" && !isCsChannel(p.channel)) return { ok: false, error: t("cs.pickChannel") };
+  if (p.scope === "CALL" && !p.contact?.trim()) return { ok: false, error: t("cs.enterContact") };
   const answers = (p.answers ?? []).filter((a) => a.questionId && isCsLevel(a.level));
   if (!answers.length) return { ok: false, error: t("cs.answerAll") };
   const isCall = p.scope === "CALL";

@@ -67,6 +67,8 @@ export function EvalForm({
     setError("");
     if (!subjectId) return setError(t("cs.pickRep"));
     if (!callDate) return setError(t("cs.pickDate"));
+    if (scope === "CALL" && !channel) return setError(t("cs.pickChannel"));
+    if (scope === "CALL" && !contact.trim()) return setError(t("cs.enterContact"));
     if (!allAnswered) return setError(t("cs.answerAll"));
     start(async () => {
       const res = await createCsEvaluationAction({

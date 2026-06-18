@@ -53,16 +53,20 @@ export default async function DashboardPage() {
           <p className="mt-1 text-muted">{t("dashboard.choose")}</p>
         </div>
 
-        {groups.map(({ cat, modules }) => (
-          <section key={cat} className="mb-10">
-            <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted">{t(`section.${cat}`)}</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {modules.map((m) => (
-                <ModuleCard key={m.key} m={m} t={t} />
-              ))}
-            </div>
-          </section>
-        ))}
+        {/* Two category sections per row on wide screens (masonry-packed to
+            minimise empty space, since sections vary a lot in module count). */}
+        <div className="columns-1 gap-8 lg:columns-2">
+          {groups.map(({ cat, modules }) => (
+            <section key={cat} className="mb-8 break-inside-avoid">
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted">{t(`section.${cat}`)}</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {modules.map((m) => (
+                  <ModuleCard key={m.key} m={m} t={t} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       </main>
 
       <SiteFooter />

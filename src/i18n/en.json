@@ -492,6 +492,8 @@
   "cs.channel.FACEBOOK": "Facebook",
   "cs.channel.INSTAGRAM": "Instagram",
   "cs.contact": "Name / Phone",
+  "cs.pickChannel": "Pick a channel.",
+  "cs.enterContact": "Enter the name or phone.",
   "cs.submitted": "Submitted by me",
   "cs.status": "Status",
   "cs.deleteEval": "Delete",

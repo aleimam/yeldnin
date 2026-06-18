@@ -23,7 +23,13 @@ export default async function CsMinePage() {
   ]);
   const cur = an.current.overall;
   const prev = an.previous.overall;
-  const delta = cur !== null && prev !== null ? Math.round((cur - prev) * 100) / 100 : null;
+  const diff = (a: number | null, b: number | null) => (a !== null && b !== null ? Math.round((a - b) * 100) / 100 : null);
+  const delta = diff(cur, prev);
+  // Per-block score cards (Calls / Performance) with their own month-over-month delta + count.
+  const blockCards = [
+    { label: t("cs.callsBlock"), score: an.current.callsBlock, count: an.current.callsCount, delta: diff(an.current.callsBlock, an.previous.callsBlock), prev: an.previous.callsBlock },
+    { label: t("cs.perfBlock"), score: an.current.perfBlock, count: an.current.perfCount, delta: diff(an.current.perfBlock, an.previous.perfBlock), prev: an.previous.perfBlock },
+  ];
   const bonusPct = bonusPctFor(cur, tiers);
   const exp = expectedBonus(cur, maxBonus, tiers);
 
@@ -54,23 +60,40 @@ export default async function CsMinePage() {
         {/* Breakdown: Calls block / Performance block / per call type */}
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("cs.breakdown")}</h2>
-          <div className="mb-3 flex flex-wrap gap-x-8 gap-y-1 text-sm">
-            <div><span className="text-muted">{t("cs.callsBlock")}: </span><span className="font-medium text-ink">{an.current.callsBlock === null ? "—" : `${an.current.callsBlock}%`}</span></div>
-            <div><span className="text-muted">{t("cs.perfBlock")}: </span><span className="font-medium text-ink">{an.current.perfBlock === null ? "—" : `${an.current.perfBlock}%`}</span></div>
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            {blockCards.map((b) => (
+              <div key={b.label} className="rounded-lg border border-line p-4">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted">{b.label}</div>
+                {b.count === 0 ? (
+                  <div className="mt-2 text-sm text-muted">{t("cs.noEvaluations")}</div>
+                ) : (
+                  <>
+                    <div className="mt-1 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-ink">{b.score === null ? "—" : `${b.score}%`}</span>
+                      {b.delta !== null && <span className={`text-xs font-medium ${b.delta >= 0 ? "text-green-600" : "text-red-600"}`}>{b.delta >= 0 ? "▲" : "▼"} {Math.abs(b.delta)}</span>}
+                    </div>
+                    <div className="mt-1 text-xs text-muted">
+                      {b.count} {t("cs.evaluationsCount")} · {b.prev === null ? t("cs.noLastMonth") : `${t("cs.lastMonth")}: ${b.prev}%`}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
-          <table className="w-full text-sm" data-cards>
-            <thead><tr className="border-b border-line"><th className="th">{t("cs.callType")}</th><th className="th text-end">{t("cs.weight")}</th><th className="th text-end">{t("cs.avgScore")}</th></tr></thead>
-            <tbody className="divide-y divide-line">
-              {an.current.byType.map((ty) => (
-                <tr key={ty.name}>
-                  <td className="td" data-label={t("cs.callType")}>{localized(ty.name, typeAr.get(ty.name), locale)}</td>
-                  <td className="td text-end text-muted" data-label={t("cs.weight")}>{ty.weight}%</td>
-                  <td className="td text-end" data-label={t("cs.avgScore")}>{ty.avg === null ? "—" : `${ty.avg}%`}</td>
-                </tr>
-              ))}
-              {an.current.byType.length === 0 && <tr><td className="td text-muted" colSpan={3}>—</td></tr>}
-            </tbody>
-          </table>
+          {an.current.callsCount > 0 && (
+            <table className="w-full text-sm" data-cards>
+              <thead><tr className="border-b border-line"><th className="th">{t("cs.callType")}</th><th className="th text-end">{t("cs.weight")}</th><th className="th text-end">{t("cs.avgScore")}</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {an.current.byType.map((ty) => (
+                  <tr key={ty.name}>
+                    <td className="td" data-label={t("cs.callType")}>{localized(ty.name, typeAr.get(ty.name), locale)}</td>
+                    <td className="td text-end text-muted" data-label={t("cs.weight")}>{ty.weight}%</td>
+                    <td className="td text-end" data-label={t("cs.avgScore")}>{ty.avg === null ? "—" : `${ty.avg}%`}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Bonus tiers (read-only) */}

@@ -492,6 +492,8 @@
   "cs.channel.FACEBOOK": "فيسبوك",
   "cs.channel.INSTAGRAM": "إنستغرام",
   "cs.contact": "الاسم / الهاتف",
+  "cs.pickChannel": "اختر القناة.",
+  "cs.enterContact": "أدخل الاسم أو الهاتف.",
   "cs.submitted": "المقدّمة مني",
   "cs.status": "الحالة",
   "cs.deleteEval": "حذف",

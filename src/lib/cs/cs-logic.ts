@@ -167,6 +167,8 @@ export interface CompositeResult {
   overall: number | null; // null = no evaluations at all this month
   callsBlock: number | null;
   perfBlock: number | null;
+  callsCount: number; // # of call evaluations this month
+  perfCount: number; // # of performance evaluations this month
   byType: CompositeType[];
 }
 
@@ -190,7 +192,7 @@ export function compositeOverall(input: CompositeInput): CompositeResult {
   const blocks: { weight: number; value: number }[] = [];
   if (callsBlock !== null) blocks.push({ weight: input.callsWeight, value: callsBlock });
   if (perfBlock !== null) blocks.push({ weight: input.perfWeight, value: perfBlock });
-  return { overall: blend(blocks), callsBlock, perfBlock, byType };
+  return { overall: blend(blocks), callsBlock, perfBlock, callsCount: input.callEvals.length, perfCount: input.perfEvals.length, byType };
 }
 
 // ── Bonus ("bounce") ───────────────────────────────────────────────────────────
