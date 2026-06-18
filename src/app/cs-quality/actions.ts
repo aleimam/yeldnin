@@ -7,7 +7,7 @@ import { saveCsTypeBatch, type CsTypeRow } from "@/lib/cs/cs-types-service";
 import { createCsQuestion, updateCsQuestion, archiveCsQuestion, type CsQuestionInput } from "@/lib/cs/cs-question-service";
 import { createEvaluation } from "@/lib/cs/cs-eval-service";
 import { approveEvaluation, rejectEvaluation, softDeleteEvaluation } from "@/lib/cs/cs-report-service";
-import { canEvaluate, canManageCs, isCsLevel, type CsConfigShape } from "@/lib/cs/cs-logic";
+import { canEvaluateCalls, canManageCs, isCsLevel, type CsConfigShape } from "@/lib/cs/cs-logic";
 
 export type QResult = { ok: true; id?: number } | { ok: false; error: string };
 
@@ -67,7 +67,7 @@ export async function createCsEvaluationAction(p: {
   photoIds?: string[];
 }): Promise<EvalResult> {
   const access = await requireUser();
-  const allowed = canEvaluate(access);
+  const allowed = p.scope === "CALL" ? canEvaluateCalls(access) : canManageCs(access);
   if (!allowed) return { ok: false, error: "You can't run that evaluation." };
   if (!p.subjectUserId) return { ok: false, error: "Pick a sales rep." };
   if (p.subjectUserId === access.user.id) return { ok: false, error: "You can't evaluate yourself." };

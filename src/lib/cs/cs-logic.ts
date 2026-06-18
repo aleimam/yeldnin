@@ -87,8 +87,9 @@ export function normalizedPct(answers: ScoredAnswer[], map: ValueMap): number {
 }
 
 // ── Access — governed by the per-user `cs_quality` module level (admins always
-// resolve to MANAGE). VIEW = open module (criteria + own evals); OPERATE = create
-// evaluations (calls + performance); MANAGE = approve + manage questions/config. ──
+// resolve to MANAGE). VIEW = open module (criteria + own evals); OPERATE = evaluate
+// CALLS (the Development team's level); MANAGE = evaluate performance + approve +
+// manage questions/config. ──
 
 /** Module key whose per-user level (NONE/VIEW/OPERATE/MANAGE) governs CS access. */
 export const CS_MODULE = "cs_quality";
@@ -103,9 +104,9 @@ export interface CsAccess {
 
 /** Open the module — read-only (criteria + one's own evaluations). VIEW+. */
 export const canAccessCs = (a: CsAccess): boolean => a.canModule(CS_MODULE, "VIEW");
-/** Create evaluations (calls + performance). OPERATE+. */
-export const canEvaluate = (a: CsAccess): boolean => a.canModule(CS_MODULE, "OPERATE");
-/** Approve, manage questions/types/values, see all evaluations + analytics. MANAGE. */
+/** Evaluate calls. OPERATE+ (the Development team's level). */
+export const canEvaluateCalls = (a: CsAccess): boolean => a.canModule(CS_MODULE, "OPERATE");
+/** Evaluate performance + approve + manage questions/types/values + analytics. MANAGE. */
 export const canManageCs = (a: CsAccess): boolean => a.canModule(CS_MODULE, "MANAGE");
 /** The evaluated population — members of the Sales team (pharmacists). */
 export const isRep = (a: CsAccess): boolean => !!a.user?.teamKeys.includes(SALES_TEAM_KEY);

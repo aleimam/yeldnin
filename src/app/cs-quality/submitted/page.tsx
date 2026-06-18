@@ -4,12 +4,12 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
-import { canEvaluate } from "@/lib/cs/cs-logic";
+import { canEvaluateCalls } from "@/lib/cs/cs-logic";
 import { listEvaluations } from "@/lib/cs/cs-report-service";
 
 export default async function CsSubmittedPage() {
   const access = await requireUser();
-  if (!canEvaluate(access)) redirect("/cs-quality");
+  if (!canEvaluateCalls(access)) redirect("/cs-quality");
   const [t, rows] = await Promise.all([getT(), listEvaluations({ evaluatorUserId: access.user.id, showEvaluator: false })]);
 
   return (

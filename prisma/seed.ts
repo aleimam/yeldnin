@@ -76,7 +76,7 @@ async function main() {
 
   // CS Quality access bridge: CS is governed by the per-user cs_quality module
   // level, so seed sensible defaults from team membership — Sales → VIEW (see own
-  // evals + criteria), Development → OPERATE (run evaluations) — so existing
+  // evals + criteria), Development → OPERATE (evaluate calls) — so existing
   // reps/evaluators aren't locked out by the new matrix. Fills only users with no
   // cs_quality permission yet, so manual grants survive re-seed (admins get
   // MANAGE via tier). New users added later need a grant via Settings → Access.

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
-import { canEvaluate } from "@/lib/cs/cs-logic";
+import { canEvaluateCalls } from "@/lib/cs/cs-logic";
 import { listRepOptions, questionsForScope } from "@/lib/cs/cs-eval-service";
 import { listCsTypes } from "@/lib/cs/cs-types-service";
 import { getCsConfig } from "@/lib/cs/cs-config-service";
@@ -10,7 +10,7 @@ import { EvalForm } from "../EvalForm";
 
 export default async function EvaluateCallPage() {
   const access = await requireUser();
-  if (!canEvaluate(access)) redirect("/cs-quality");
+  if (!canEvaluateCalls(access)) redirect("/cs-quality");
   const [t, reps, questions, callTypes, config] = await Promise.all([
     getT(),
     listRepOptions(access.user.id),
