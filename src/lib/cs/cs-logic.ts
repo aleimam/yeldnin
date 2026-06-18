@@ -89,6 +89,8 @@ export function normalizedPct(answers: ScoredAnswer[], map: ValueMap): number {
 
 /** The `development` team's key — its members may evaluate calls. */
 export const DEV_TEAM_KEY = "development";
+/** The `sales` team's key — its members are the evaluated population (pharmacists). */
+export const SALES_TEAM_KEY = "sales";
 
 export interface CsAccess {
   isAdmin: boolean;
@@ -101,7 +103,7 @@ export const inDevelopmentTeam = (a: CsAccess): boolean => !!a.user?.teamKeys.in
 export const canEvaluateCalls = (a: CsAccess): boolean => a.isAdmin || inDevelopmentTeam(a);
 /** Periodical evaluations + question/config management + approvals: admins only. */
 export const canManageCs = (a: CsAccess): boolean => a.isAdmin;
-/** A sales rep (the evaluated population) — anyone who can see Sales requests. */
-export const isRep = (a: CsAccess): boolean => a.canModule("order_requests");
+/** The evaluated population — members of the Sales team (pharmacists). */
+export const isRep = (a: CsAccess): boolean => !!a.user?.teamKeys.includes(SALES_TEAM_KEY);
 /** Who may open the CS Quality module at all. */
 export const canAccessCs = (a: CsAccess): boolean => a.isAdmin || canEvaluateCalls(a) || isRep(a);

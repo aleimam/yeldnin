@@ -29,6 +29,7 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   // Subject sees only their own approved; evaluator sees their own; admins all.
   if (!(admin || isEvaluator || (isSubject && ev.status === "APPROVED"))) redirect("/cs-quality");
   const showEvaluator = admin || isEvaluator; // the rep never sees who evaluated them
+  const staffView = admin || isEvaluator; // reps don't see weight/weighted/value mechanics
   const canDelete = admin || (isEvaluator && ev.status === "PENDING");
   const backHref = admin ? "/cs-quality/review" : isSubject ? "/cs-quality/mine" : "/cs-quality/submitted";
   const t = await getT();
@@ -63,9 +64,9 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
             <thead className="border-b border-line bg-canvas">
               <tr>
                 <th className="th">{t("cs.criteria")}</th>
-                <th className="th">{t("cs.answer")}</th>
-                <th className="th text-end">{t("cs.weight")}</th>
-                <th className="th text-end">{t("cs.weighted")}</th>
+                <th className="th">{staffView ? t("cs.answer") : t("cs.score")}</th>
+                {staffView && <th className="th text-end">{t("cs.weight")}</th>}
+                {staffView && <th className="th text-end">{t("cs.weighted")}</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -77,9 +78,9 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
                     <span className="block text-[10px] uppercase text-muted">{a.typeName}</span>
                     {a.note && <span className="block text-xs text-muted">“{a.note}”</span>}
                   </td>
-                  <td className="td"><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span> <span className="text-xs text-muted">({a.value})</span></td>
-                  <td className="td text-end">{a.weight}</td>
-                  <td className="td text-end">{a.weighted}</td>
+                  <td className="td"><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span>{staffView && <span className="text-xs text-muted"> ({a.value})</span>}</td>
+                  {staffView && <td className="td text-end">{a.weight}</td>}
+                  {staffView && <td className="td text-end">{a.weighted}</td>}
                 </tr>
               ))}
             </tbody>

@@ -108,7 +108,7 @@
   }
 
   .th {
-    @apply px-3 py-2 text-start text-xs font-semibold uppercase tracking-wide text-muted;
+    @apply px-3 py-2 text-start text-xs font-semibold uppercase tracking-wide text-brand;
   }
   .td {
     @apply px-3 py-2 text-sm text-ink;

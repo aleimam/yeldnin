@@ -2,16 +2,16 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { getCsConfig } from "./cs-config-service";
-import { valueFor, weightedTotal, normalizedPct } from "./cs-logic";
+import { valueFor, weightedTotal, normalizedPct, SALES_TEAM_KEY } from "./cs-logic";
 
-/** Sales reps = active users holding an order_requests permission. */
+/** The evaluated population = active members of the Sales team (pharmacists). */
 export async function listRepOptions(excludeUserId?: number): Promise<{ id: number; name: string }[]> {
   const users = await prisma.user.findMany({
     where: {
       active: true,
       archivedAt: null,
       ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
-      modulePerms: { some: { moduleKey: "order_requests", level: { not: "NONE" } } },
+      teamMembers: { some: { team: { key: SALES_TEAM_KEY } } },
     },
     select: { id: true, name: true, fullName: true },
     orderBy: { name: "asc" },
