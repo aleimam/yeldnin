@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { productScopes, primaryProductModule } from "@/lib/products/products-logic";
-import { listProducts } from "@/lib/products/products-service";
+import { listProducts, productPipelineStats } from "@/lib/products/products-service";
 import { moduleContextScopes } from "@/lib/module-context";
 
 export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
@@ -18,6 +18,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
   const canManage = productScopes(access, "OPERATE").length > 0;
   const [t, rows] = await Promise.all([getT(), listProducts({ scopes })]);
+  const stats = await productPipelineStats(rows.map((r) => r.id));
 
   return (
     <AppShell
@@ -42,10 +43,15 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               <th className="th">{t("products.scope")}</th>
               <th className="th">{t("products.type")}</th>
               <th className="th">{t("products.supplier")}</th>
+              <th className="th text-end">{t("products.requested")}</th>
+              <th className="th text-end">{t("products.inPipeline")}</th>
+              <th className="th text-end">{t("products.arrived")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {rows.map((p) => (
+            {rows.map((p) => {
+              const s = stats.get(p.id);
+              return (
               <tr key={p.id} className="hover:bg-canvas/60">
                 <td className="td font-mono text-xs text-muted">{p.sku ?? "—"}</td>
                 <td className="td">
@@ -58,10 +64,14 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 <td className="td">{t(`scope.${p.scope}`)}</td>
                 <td className="td text-muted">{t(`ptype.${p.type}`)}</td>
                 <td className="td text-muted">{p.defaultSupplier?.name ?? "—"}</td>
+                <td className="td text-end text-muted">{s?.requested || "—"}</td>
+                <td className="td text-end text-muted">{s?.inPipeline || "—"}</td>
+                <td className="td text-end text-muted">{s ? `${s.arrived30} / ${s.arrived90}` : "—"}</td>
               </tr>
-            ))}
+              );
+            })}
             {rows.length === 0 && (
-              <tr><td className="td text-muted" colSpan={5}>{t("products.empty")}</td></tr>
+              <tr><td className="td text-muted" colSpan={8}>{t("products.empty")}</td></tr>
             )}
           </tbody>
         </table>

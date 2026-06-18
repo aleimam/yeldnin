@@ -36,6 +36,58 @@ export function listProducts(opts: { scopes: Scope[]; search?: string }) {
   });
 }
 
+export interface ProductPipelineStats {
+  requested: number; // REQUESTED — requested, not yet ordered
+  inPipeline: number; // purchased but not yet on the website (incl. gifts + compensations)
+  arrived30: number; // reached WEBSITE in the last 30 days
+  arrived90: number; // reached WEBSITE in the last 90 days
+}
+
+const DAY_MS = 86_400_000;
+
+/** Per-product pipeline counts for the products list (#12). */
+export async function productPipelineStats(
+  ids: number[],
+  now: Date = new Date(),
+): Promise<Map<number, ProductPipelineStats>> {
+  const out = new Map<number, ProductPipelineStats>();
+  if (!ids.length) return out;
+  for (const id of ids) out.set(id, { requested: 0, inPipeline: 0, arrived30: 0, arrived90: 0 });
+
+  // (a) requested-not-ordered and (b) purchased-not-arrived, from current status.
+  const items = await prisma.item.findMany({
+    where: { productId: { in: ids } },
+    select: { productId: true, status: true },
+  });
+  for (const it of items) {
+    const s = out.get(it.productId);
+    if (!s) continue;
+    if (it.status === "REQUESTED") s.requested++;
+    else if (it.status !== "WEBSITE") s.inPipeline++;
+  }
+
+  // (c)/(d) arrivals on the website within the last 30 / 90 days, from the event log.
+  const cut90 = new Date(now.getTime() - 90 * DAY_MS);
+  const cut30 = new Date(now.getTime() - 30 * DAY_MS);
+  const events = await prisma.itemEvent.findMany({
+    where: { toStatus: "WEBSITE", createdAt: { gte: cut90 }, item: { productId: { in: ids } } },
+    select: { itemId: true, createdAt: true, item: { select: { productId: true } } },
+  });
+  // Earliest WEBSITE arrival per item (dedupe any repeat events).
+  const firstArrival = new Map<number, { productId: number; at: Date }>();
+  for (const e of events) {
+    const cur = firstArrival.get(e.itemId);
+    if (!cur || e.createdAt < cur.at) firstArrival.set(e.itemId, { productId: e.item.productId, at: e.createdAt });
+  }
+  for (const { productId, at } of firstArrival.values()) {
+    const s = out.get(productId);
+    if (!s) continue;
+    s.arrived90++;
+    if (at >= cut30) s.arrived30++;
+  }
+  return out;
+}
+
 export function getProduct(id: number) {
   return prisma.product.findFirst({
     where: { id, archivedAt: null },
