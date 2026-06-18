@@ -21,13 +21,22 @@ export const DEFAULT_VALUES: ValueMap = {
   OUTSTANDING: 1.5,
 };
 
+/** Overall-average weighting between the Calls block and the Performance block (percent). */
+export interface CsSplit {
+  calls: number;
+  performance: number;
+}
+export const DEFAULT_SPLIT: CsSplit = { calls: 50, performance: 50 };
+
 export interface CsConfigShape {
   call: ValueMap;
   performance: ValueMap;
+  split: CsSplit;
 }
 export const DEFAULT_CS_CONFIG: CsConfigShape = {
   call: { ...DEFAULT_VALUES },
   performance: { ...DEFAULT_VALUES },
+  split: { ...DEFAULT_SPLIT },
 };
 
 function num(v: unknown, fallback: number): number {
@@ -43,9 +52,15 @@ function mergeMap(raw: Partial<ValueMap> | undefined): ValueMap {
   };
 }
 
+function mergeSplit(raw: Partial<CsSplit> | undefined): CsSplit {
+  return { calls: num(raw?.calls, DEFAULT_SPLIT.calls), performance: num(raw?.performance, DEFAULT_SPLIT.performance) };
+}
+
 /** Merge a stored (possibly partial) config over the defaults. Tolerant of junk. */
-export function resolveCsConfig(raw?: { call?: Partial<ValueMap>; performance?: Partial<ValueMap> } | null): CsConfigShape {
-  return { call: mergeMap(raw?.call), performance: mergeMap(raw?.performance) };
+export function resolveCsConfig(
+  raw?: { call?: Partial<ValueMap>; performance?: Partial<ValueMap>; split?: Partial<CsSplit> } | null,
+): CsConfigShape {
+  return { call: mergeMap(raw?.call), performance: mergeMap(raw?.performance), split: mergeSplit(raw?.split) };
 }
 
 export function isCsLevel(v: unknown): v is CsLevel {
@@ -111,3 +126,84 @@ export const canEvaluateCalls = (a: CsAccess): boolean => a.can(CS_MODULE, "oper
 export const canManageCs = (a: CsAccess): boolean => a.can(CS_MODULE, "manage");
 /** The evaluated population — members of the Sales team (pharmacists). */
 export const isRep = (a: CsAccess): boolean => !!a.user?.teamKeys.includes(SALES_TEAM_KEY);
+
+// ── Monthly overall average: a weighted composite ──────────────────────────────
+// Calls block + Performance block (split, default 50/50). The Calls block is a
+// weighted blend of each call TYPE's monthly average (weights live on the call
+// type). Components with no evaluations this month drop out and the remaining
+// weights renormalize to fill 100% (so a rep isn't punished for not being
+// evaluated on something). All inputs are monthly, approved-only, unclamped.
+
+const mean = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : 0);
+const normName = (s: string | null | undefined) => (s ?? "").trim().toLowerCase();
+
+export interface CompositeInput {
+  callTypes: { name: string; weight: number }[]; // active call types + their weights
+  callEvals: { typeName: string | null; normalized: number }[];
+  perfEvals: { normalized: number }[];
+  callsWeight: number; // split %, e.g. 50
+  perfWeight: number; // split %, e.g. 50
+}
+export interface CompositeType {
+  name: string;
+  weight: number;
+  avg: number | null; // null = no evals of this type this month
+  count: number;
+}
+export interface CompositeResult {
+  overall: number | null; // null = no evaluations at all this month
+  callsBlock: number | null;
+  perfBlock: number | null;
+  byType: CompositeType[];
+}
+
+/** Renormalized weighted mean over the present (non-null) components; if every
+ *  present component has weight 0, falls back to an equal-weight mean. */
+function blend(parts: { weight: number; value: number }[]): number | null {
+  if (!parts.length) return null;
+  const totalW = parts.reduce((s, p) => s + (p.weight > 0 ? p.weight : 0), 0);
+  if (totalW > 0) return round2(parts.reduce((s, p) => s + ((p.weight > 0 ? p.weight : 0) / totalW) * p.value, 0));
+  return round2(mean(parts.map((p) => p.value)));
+}
+
+/** The month's overall average as the weighted composite (see header). */
+export function compositeOverall(input: CompositeInput): CompositeResult {
+  const byType: CompositeType[] = input.callTypes.map((ct) => {
+    const evs = input.callEvals.filter((e) => normName(e.typeName) === normName(ct.name));
+    return { name: ct.name, weight: ct.weight, avg: evs.length ? round2(mean(evs.map((e) => e.normalized))) : null, count: evs.length };
+  });
+  const callsBlock = blend(byType.filter((t) => t.avg !== null).map((t) => ({ weight: t.weight, value: t.avg as number })));
+  const perfBlock = input.perfEvals.length ? round2(mean(input.perfEvals.map((e) => e.normalized))) : null;
+  const blocks: { weight: number; value: number }[] = [];
+  if (callsBlock !== null) blocks.push({ weight: input.callsWeight, value: callsBlock });
+  if (perfBlock !== null) blocks.push({ weight: input.perfWeight, value: perfBlock });
+  return { overall: blend(blocks), callsBlock, perfBlock, byType };
+}
+
+// ── Bonus ("bounce") ───────────────────────────────────────────────────────────
+// Per-employee max bonus (EGP) × the tier % their monthly overall average earns.
+// Tiers are ascending thresholds: the employee gets the highest tier whose
+// `fromPct` they meet. Below the lowest threshold → 0%.
+
+export interface BonusTier {
+  fromPct: number; // overall-average threshold (inclusive)
+  bonusPct: number; // % of max bonus (may exceed 100)
+}
+
+/** Sort tiers ascending by threshold (defensive). */
+export function sortTiers(tiers: BonusTier[]): BonusTier[] {
+  return [...tiers].sort((a, b) => a.fromPct - b.fromPct);
+}
+
+/** The bonus % for an overall average — the highest tier reached, else 0. */
+export function bonusPctFor(overall: number | null, tiers: BonusTier[]): number {
+  if (overall === null) return 0;
+  let pct = 0;
+  for (const t of sortTiers(tiers)) if (overall >= t.fromPct) pct = t.bonusPct;
+  return pct;
+}
+
+/** Expected bonus (EGP) = maxBonus × tier% / 100, rounded to whole EGP. */
+export function expectedBonus(overall: number | null, maxBonus: number, tiers: BonusTier[]): number {
+  return Math.round((maxBonus * bonusPctFor(overall, tiers)) / 100);
+}

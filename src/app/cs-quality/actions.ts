@@ -18,7 +18,7 @@ export async function saveCsConfigAction(config: CsConfigShape): Promise<{ ok: b
   return { ok: true };
 }
 
-export async function saveCsTypesAction(scope: string, rows: CsTypeRow[], add: { name: string } | null): Promise<{ ok: boolean }> {
+export async function saveCsTypesAction(scope: string, rows: CsTypeRow[], add: { name: string; weight?: number } | null): Promise<{ ok: boolean }> {
   const access = await requireCapability("cs_quality", "manage");
   await saveCsTypeBatch(scope, rows, add, access.user.id);
   revalidatePath("/cs-quality/types");

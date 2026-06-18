@@ -295,6 +295,7 @@ model CsEvalType {
   scope      String // CALL | PERIODICAL
   name       String
   sortOrder  Int       @default(0)
+  weight     Int       @default(0) // CALL types: % weight within the Calls block of the overall average
   archivedAt DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -302,6 +303,22 @@ model CsEvalType {
   questions CsQuestion[]
 
   @@index([scope])
+}
+
+// Per-employee maximum monthly bonus (EGP) — earned in full at the top bonus tier.
+model CsRepBonus {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique // the evaluated sales rep
+  maxBonus  Float    @default(0) // EGP at 100%+ of the bonus scale
+  updatedAt DateTime @updatedAt
+}
+
+// Bonus tiers: ascending overall-average thresholds → % of the employee's max bonus.
+model CsBonusTier {
+  id        Int   @id @default(autoincrement())
+  fromPct   Float // overall-average threshold (inclusive)
+  bonusPct  Float // % of the max bonus (may exceed 100)
+  sortOrder Int   @default(0)
 }
 
 // A weighted scorecard question. Soft-deleted (archivedAt) so past evaluations stay intact.

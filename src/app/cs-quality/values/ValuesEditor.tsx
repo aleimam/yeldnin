@@ -22,6 +22,10 @@ export function ValuesEditor({ initial }: { initial: CsConfigShape }) {
     setSaved(false);
     setCfg((p) => ({ ...p, [scope]: { ...p[scope], [level]: v } }));
   };
+  const setSplit = (k: "calls" | "performance", v: number) => {
+    setSaved(false);
+    setCfg((p) => ({ ...p, split: { ...p.split, [k]: v } }));
+  };
 
   function save() {
     setSaved(false);
@@ -53,6 +57,16 @@ export function ValuesEditor({ initial }: { initial: CsConfigShape }) {
           ))}
         </tbody>
       </table>
+
+      <div className="border-t border-line pt-4">
+        <p className="label mb-1">{t("cs.splitTitle")}</p>
+        <p className="mb-2 text-xs text-muted">{t("cs.splitHint")}</p>
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <label className="flex items-center gap-2 text-ink">{t("cs.scope.CALL")}<input type="number" className="input w-24 text-end" value={cfg.split.calls} onChange={(e) => setSplit("calls", Number(e.target.value) || 0)} />%</label>
+          <label className="flex items-center gap-2 text-ink">{t("cs.scope.PERFORMANCE")}<input type="number" className="input w-24 text-end" value={cfg.split.performance} onChange={(e) => setSplit("performance", Number(e.target.value) || 0)} />%</label>
+        </div>
+      </div>
+
       <div className="flex items-center gap-3">
         <button type="button" onClick={save} disabled={pending} className="btn-primary">{pending ? "…" : t("common.save")}</button>
         {saved && <span className="text-sm text-green-600">{t("cs.saved")}</span>}

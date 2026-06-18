@@ -1,7 +1,8 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
-import { round2, CS_SCOPES } from "./cs-logic";
+import { compositeOverall, type CompositeResult } from "./cs-logic";
+import { getCsConfig } from "./cs-config-service";
 
 const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 // Call evals bucket by the call date; Performance by submission date.
@@ -85,64 +86,92 @@ export async function softDeleteEvaluation(id: number, userId: number, isAdmin: 
   return true;
 }
 
-// ── Analytics ─────────────────────────────────────────────────────────────────
+// ── Analytics: monthly overall average (weighted composite) ─────────────────────
 
-export interface RepAnalytics {
-  count: number;
-  avgNormalized: number;
-  byScope: { scope: string; count: number; avgNormalized: number }[];
-  byMonth: { month: string; sum: number; count: number }[];
+const monthKeyOf = (y: number, m0: number) => `${y}-${String(m0 + 1).padStart(2, "0")}`;
+function prevMonthKey(now: Date): string {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  return m === 0 ? monthKeyOf(y - 1, 11) : monthKeyOf(y, m - 1);
 }
 
-/** Approved-only analytics for one rep: per-scope averages + monthly sums. */
-export async function repAnalytics(subjectUserId: number): Promise<RepAnalytics> {
-  const evals = await prisma.csEvaluation.findMany({ where: { subjectUserId, status: "APPROVED", archivedAt: null }, select: { total: true, normalized: true, scope: true, callDate: true, createdAt: true } });
-  const months = new Map<string, { sum: number; count: number }>();
-  const scopes = new Map<string, { normSum: number; count: number }>();
-  for (const e of evals) {
-    const m = evalMonth(e);
-    const cur = months.get(m) ?? { sum: 0, count: 0 };
-    cur.sum += e.total;
-    cur.count += 1;
-    months.set(m, cur);
-    const sc = scopes.get(e.scope) ?? { normSum: 0, count: 0 };
-    sc.normSum += e.normalized;
-    sc.count += 1;
-    scopes.set(e.scope, sc);
-  }
+type MonthEval = { scope: string; typeName: string | null; normalized: number; callDate: Date | null; createdAt: Date };
+
+async function callTypeWeights(): Promise<{ name: string; weight: number }[]> {
+  const ts = await prisma.csEvalType.findMany({ where: { scope: "CALL", archivedAt: null }, select: { name: true, weight: true } });
+  return ts.map((t) => ({ name: t.name, weight: t.weight }));
+}
+
+/** The composite overall average for one month from a rep's approved evaluations. */
+function compositeForMonth(evals: MonthEval[], monthK: string, callTypes: { name: string; weight: number }[], split: { calls: number; performance: number }): CompositeResult {
+  const m = evals.filter((e) => evalMonth(e) === monthK);
+  return compositeOverall({
+    callTypes,
+    callEvals: m.filter((e) => e.scope === "CALL").map((e) => ({ typeName: e.typeName, normalized: e.normalized })),
+    perfEvals: m.filter((e) => e.scope === "PERFORMANCE").map((e) => ({ normalized: e.normalized })),
+    callsWeight: split.calls,
+    perfWeight: split.performance,
+  });
+}
+
+export interface RepAnalytics {
+  count: number; // total approved evals (all-time)
+  current: CompositeResult; // this month-to-date
+  previous: CompositeResult; // last month
+  byMonth: { month: string; overall: number | null; count: number }[];
+}
+
+/** Approved-only monthly composite for one rep: this month + last month + history. */
+export async function repAnalytics(subjectUserId: number, now: Date = new Date()): Promise<RepAnalytics> {
+  const [evals, callTypes, cfg] = await Promise.all([
+    prisma.csEvaluation.findMany({ where: { subjectUserId, status: "APPROVED", archivedAt: null }, select: { scope: true, typeName: true, normalized: true, callDate: true, createdAt: true } }),
+    callTypeWeights(),
+    getCsConfig(),
+  ]);
+  const counts = new Map<string, number>();
+  for (const e of evals) counts.set(evalMonth(e), (counts.get(evalMonth(e)) ?? 0) + 1);
+  const byMonth = [...counts.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([month, count]) => ({ month, overall: compositeForMonth(evals, month, callTypes, cfg.split).overall, count }));
   return {
     count: evals.length,
-    avgNormalized: evals.length ? round2(evals.reduce((s, e) => s + e.normalized, 0) / evals.length) : 0,
-    byScope: CS_SCOPES.map((scope) => {
-      const v = scopes.get(scope);
-      return { scope, count: v?.count ?? 0, avgNormalized: v ? round2(v.normSum / v.count) : 0 };
-    }),
-    byMonth: [...months.entries()].map(([month, v]) => ({ month, sum: round2(v.sum), count: v.count })).sort((a, b) => a.month.localeCompare(b.month)),
+    current: compositeForMonth(evals, monthKey(now), callTypes, cfg.split),
+    previous: compositeForMonth(evals, prevMonthKey(now), callTypes, cfg.split),
+    byMonth,
   };
 }
 
 export interface RepSummary {
   id: number;
   name: string;
-  count: number;
-  avgNormalized: number;
-  monthSum: number; // this month's Σ total
+  count: number; // total approved (all-time)
+  current: number | null; // this month's overall average
+  previous: number | null; // last month's overall average
 }
 
-/** Approved-only per-rep leaderboard (avg normalized + this month's sum). */
+/** Per-rep leaderboard: this-month & last-month composite overall average. */
 export async function allRepsAnalytics(now: Date): Promise<RepSummary[]> {
-  const mk = monthKey(now);
-  const evals = await prisma.csEvaluation.findMany({ where: { status: "APPROVED", archivedAt: null }, select: { subjectUserId: true, total: true, normalized: true, scope: true, callDate: true, createdAt: true } });
-  const by = new Map<number, { count: number; normSum: number; monthSum: number }>();
+  const [evals, callTypes, cfg] = await Promise.all([
+    prisma.csEvaluation.findMany({ where: { status: "APPROVED", archivedAt: null }, select: { subjectUserId: true, scope: true, typeName: true, normalized: true, callDate: true, createdAt: true } }),
+    callTypeWeights(),
+    getCsConfig(),
+  ]);
+  const curK = monthKey(now);
+  const prevK = prevMonthKey(now);
+  const bySubject = new Map<number, MonthEval[]>();
   for (const e of evals) {
-    const cur = by.get(e.subjectUserId) ?? { count: 0, normSum: 0, monthSum: 0 };
-    cur.count += 1;
-    cur.normSum += e.normalized;
-    if (evalMonth(e) === mk) cur.monthSum += e.total;
-    by.set(e.subjectUserId, cur);
+    const arr = bySubject.get(e.subjectUserId) ?? [];
+    arr.push(e);
+    bySubject.set(e.subjectUserId, arr);
   }
-  const names = await nameMap([...by.keys()]);
-  return [...by.entries()]
-    .map(([id, v]) => ({ id, name: names.get(id) ?? `#${id}`, count: v.count, avgNormalized: round2(v.normSum / v.count), monthSum: round2(v.monthSum) }))
-    .sort((a, b) => b.avgNormalized - a.avgNormalized);
+  const names = await nameMap([...bySubject.keys()]);
+  return [...bySubject.entries()]
+    .map(([id, list]) => ({
+      id,
+      name: names.get(id) ?? `#${id}`,
+      count: list.length,
+      current: compositeForMonth(list, curK, callTypes, cfg.split).overall,
+      previous: compositeForMonth(list, prevK, callTypes, cfg.split).overall,
+    }))
+    .sort((a, b) => (b.current ?? -Infinity) - (a.current ?? -Infinity));
 }

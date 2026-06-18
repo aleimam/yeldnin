@@ -19,8 +19,8 @@ export default async function CsAnalyticsPage() {
             <tr>
               <th className="th">{t("cs.salesRep")}</th>
               <th className="th text-end">{t("cs.evaluationsCount")}</th>
-              <th className="th text-end">{t("cs.avgScore")}</th>
-              <th className="th text-end">{t("cs.thisMonthSum")}</th>
+              <th className="th text-end">{t("cs.thisMonth")}</th>
+              <th className="th text-end">{t("cs.lastMonth")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -28,8 +28,8 @@ export default async function CsAnalyticsPage() {
               <tr key={r.id} className="hover:bg-canvas/60">
                 <td className="td" data-label={t("cs.salesRep")}>{r.name}</td>
                 <td className="td text-end text-muted" data-label={t("cs.evaluationsCount")}>{r.count}</td>
-                <td className="td text-end font-medium" data-label={t("cs.avgScore")}>{r.avgNormalized}%</td>
-                <td className="td text-end" data-label={t("cs.thisMonthSum")}>{r.monthSum}</td>
+                <td className="td text-end font-medium" data-label={t("cs.thisMonth")}>{r.current === null ? "—" : `${r.current}%`}</td>
+                <td className="td text-end text-muted" data-label={t("cs.lastMonth")}>{r.previous === null ? "—" : `${r.previous}%`}</td>
               </tr>
             ))}
             {reps.length === 0 && <tr><td className="td text-muted" colSpan={4}>{t("cs.noEvaluations")}</td></tr>}
