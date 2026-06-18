@@ -13,7 +13,7 @@ export default async function CsQuestionsPage() {
     listCsTypes("CALL"),
     listCsTypes("PERFORMANCE"),
   ]);
-  const types = [...callTypes, ...periodicalTypes].map((ty) => ({ id: ty.id, name: ty.name, scope: ty.scope }));
+  const types = [...callTypes, ...periodicalTypes].map((ty) => ({ id: ty.id, name: ty.name, nameAr: ty.nameAr, scope: ty.scope }));
   const rows = questions.map((q) => ({
     id: q.id,
     title: q.title,

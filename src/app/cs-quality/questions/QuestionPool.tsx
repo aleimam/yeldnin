@@ -5,7 +5,7 @@ import { useT, useLocale } from "@/i18n/client";
 import { clampWeight, localized } from "@/lib/cs/cs-logic";
 import { createCsQuestionAction, updateCsQuestionAction, archiveCsQuestionAction } from "../actions";
 
-type TypeOpt = { id: number; name: string; scope: string };
+type TypeOpt = { id: number; name: string; nameAr: string | null; scope: string };
 type Q = { id: number; title: string; titleAr: string | null; criteria: string; criteriaAr: string | null; tags: string | null; tagsAr: string | null; weight: number; scope: string; typeId: number; active: boolean; typeName: string; typeNameAr: string | null };
 
 const blank = { title: "", titleAr: "", criteria: "", criteriaAr: "", tags: "", tagsAr: "", scope: "CALL", typeId: "", weight: "5", active: true };
@@ -97,7 +97,7 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
             <label className="label">{t("cs.type")}</label>
             <select className="input" value={f.typeId} onChange={(e) => set("typeId", e.target.value)}>
               <option value="">…</option>
-              {typesForScope.map((ty) => <option key={ty.id} value={ty.id}>{ty.name}</option>)}
+              {typesForScope.map((ty) => <option key={ty.id} value={ty.id}>{localized(ty.name, ty.nameAr, locale)}</option>)}
             </select>
           </div>
           <div>

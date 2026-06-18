@@ -161,6 +161,22 @@ async function main() {
     }
   }
 
+  // Translate common evaluation-type names to Arabic on any existing type that
+  // has no Arabic name yet (covers renamed variants like "Normal Call"). Fills
+  // only — never creates — so it's safe against admin renames (no duplicates).
+  const TYPE_AR: Record<string, string> = {
+    "Normal": "عادية", "Normal Call": "مكالمة عادية",
+    "Orders": "طلبات", "Order": "طلب", "Order Call": "مكالمة طلب",
+    "Problems": "مشاكل", "Problem": "مشكلة", "Problem Call": "مكالمة مشكلة",
+    "Attitude": "السلوك", "Effort": "الجهد", "Time": "الوقت",
+  };
+  let typesTranslated = 0;
+  for (const [name, nameAr] of Object.entries(TYPE_AR)) {
+    const res = await prisma.csEvalType.updateMany({ where: { name, nameAr: null }, data: { nameAr } });
+    typesTranslated += res.count;
+  }
+  if (typesTranslated) console.log(`  Translated ${typesTranslated} evaluation-type name(s) to Arabic.`);
+
   // Recompute stored normalized % for existing evaluations under the current
   // rule (Perfect value = 100% ceiling, unclamped). Idempotent — writes only on
   // change. Uses the current answer-value config's PERFECT per scope.
