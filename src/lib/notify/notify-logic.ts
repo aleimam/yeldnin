@@ -56,8 +56,7 @@ export function slaAlertPayload(args: { uid?: string | null; status: "RISK" | "D
 
 /**
  * Default unit-status milestones that notify the order's creator. The admin
- * event→recipient matrix (#27) will later let admins override which statuses
- * notify whom; until then these are the sales-meaningful checkpoints.
+ * event→recipient matrix (#27) lets admins override these per event.
  */
 export const UNIT_NOTIFY_STATUSES = ["ORDERED", "SHIPPED", "OFFICE", "WEBSITE"];
 

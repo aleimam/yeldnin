@@ -21,7 +21,7 @@ export async function listRepOptions(): Promise<{ id: number; name: string }[]> 
 /** Active questions for a scope (Call filtered by type; Periodical = all). */
 export async function questionsForScope(scope: string, typeId?: number) {
   return prisma.csQuestion.findMany({
-    where: { archivedAt: null, active: true, scope, ...(typeId ? { typeId } : {}) },
+    where: { archivedAt: null, active: true, scope, type: { archivedAt: null }, ...(typeId ? { typeId } : {}) },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     include: { type: { select: { id: true, name: true } } },
   });
@@ -45,8 +45,10 @@ export interface CreateEvalInput {
 export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: number) {
   const config = await getCsConfig();
   const map = input.scope === "CALL" ? config.call : config.performance;
+  // Re-fetch under the submitted scope so a stale/tampered client can't score
+  // cross-scope, archived, or inactive questions; unmatched answers drop below.
   const questions = await prisma.csQuestion.findMany({
-    where: { id: { in: input.answers.map((a) => a.questionId) } },
+    where: { id: { in: input.answers.map((a) => a.questionId) }, scope: input.scope, active: true, archivedAt: null },
     include: { type: { select: { name: true } } },
   });
   const qById = new Map(questions.map((q) => [q.id, q]));

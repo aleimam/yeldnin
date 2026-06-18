@@ -42,7 +42,7 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
               <div><span className="text-muted">{t("cs.salesRep")}: </span><span className="text-ink">{subject}</span></div>
               <div><span className="text-muted">{t("cs.scope")}: </span><span className="text-ink">{t(`cs.scope.${ev.scope}`)}{ev.typeName ? ` · ${ev.typeName}` : ""}</span></div>
               {showEvaluator && <div><span className="text-muted">{t("cs.evaluator")}: </span><span className="text-ink">{evaluator}</span></div>}
-              <div><span className="text-muted">{t("cs.date")}: </span><span className="text-ink">{formatBizDate(ev.createdAt)}</span></div>
+              <div><span className="text-muted">{t("cs.date")}: </span><span className="text-ink">{formatBizDate(ev.scope === "CALL" ? ev.callDate ?? ev.createdAt : ev.createdAt)}</span></div>
               <div><span className="text-muted">{t("cs.score")}: </span><span className="font-semibold text-ink">{ev.total}</span></div>
               <div><span className="text-muted">{t("cs.normalized")}: </span><span className="font-semibold text-ink">{ev.normalized}%</span></div>
               {approver && <div><span className="text-muted">{t("cs.approvedBy")}: </span><span className="text-ink">{approver}</span></div>}

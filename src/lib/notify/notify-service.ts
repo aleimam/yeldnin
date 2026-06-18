@@ -79,10 +79,6 @@ export async function adminUserIds(): Promise<number[]> {
   return users.filter((u) => isAdminTier(u.tier as Tier)).map((u) => u.id);
 }
 
-export async function notifyAdmins(payload: PushPayload): Promise<void> {
-  await sendToUsers(await adminUserIds(), payload);
-}
-
 /** Active users who should hear about a module event: admins + anyone with
  *  >= `min` (default OPERATE) on one of `moduleKeys`. */
 export async function moduleOperatorIds(moduleKeys: string[], min: Level = "OPERATE"): Promise<number[]> {
@@ -106,15 +102,6 @@ export async function moduleOperatorIds(moduleKeys: string[], min: Level = "OPER
     .map((u) => u.id);
 }
 
-export async function notifyModuleOperators(moduleKeys: string[], payload: PushPayload): Promise<void> {
-  await sendToUsers(await moduleOperatorIds(moduleKeys), payload);
-}
-
-/**
- * Notify the creator of each affected order that its units reached a new
- * milestone. De-duped per (order, status); skips the actor so people aren't
- * pinged for their own actions. Best-effort — never throws.
- */
 /**
  * Resolve recipient user-ids for an event from the admin matrix. Recipients =
  * admins (if notifyAdmins) + operators of the configured modules (or

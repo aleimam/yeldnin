@@ -59,6 +59,7 @@ export async function markDeliveredAction(id: number, delivered: boolean): Promi
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Something went wrong." };
   }
+  revalidatePath("/requests");
   revalidatePath(`/requests/${id}`);
   revalidatePath("/xoonx/reports");
   return { ok: true };

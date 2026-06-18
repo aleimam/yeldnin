@@ -95,7 +95,7 @@ export function EvalForm({
             </div>
             <div>
               <label className="label">{t("cs.callDate")}</label>
-              <input type="date" className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
+              <input type="date" max={today()} className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
             </div>
           </>
         )}
@@ -151,7 +151,7 @@ export function EvalForm({
           <span className="text-muted">{t("cs.normalized")}: <span className="font-semibold text-ink">{normalized}%</span></span>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button type="button" onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : t("cs.submitEval")}</button>
+        <button type="button" onClick={submit} disabled={pending || shown.length === 0} className="btn-primary">{pending ? "…" : t("cs.submitEval")}</button>
       </div>
     </div>
   );

@@ -1,10 +1,11 @@
 import "server-only";
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
 import { DEFAULT_NOTIFY_RULES, type NotifyRule } from "./notify-logic";
 
 /** All event rules — DB overrides merged over the code-defined defaults. */
-export async function getNotifyRules(): Promise<Record<string, NotifyRule>> {
+export const getNotifyRules = cache(async (): Promise<Record<string, NotifyRule>> => {
   const rows = await prisma.notificationRule.findMany();
   const merged: Record<string, NotifyRule> = {};
   for (const [event, def] of Object.entries(DEFAULT_NOTIFY_RULES)) merged[event] = { ...def };
@@ -20,7 +21,7 @@ export async function getNotifyRules(): Promise<Record<string, NotifyRule>> {
     };
   }
   return merged;
-}
+});
 
 /** Persist the edited rules (known events only). */
 export async function saveNotifyRules(rules: NotifyRule[], userId: number): Promise<void> {

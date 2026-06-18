@@ -7,7 +7,7 @@ import {
   type Scope,
   type ProductType,
 } from "@/lib/products/products-logic";
-import { createProduct, updateProduct, archiveProduct } from "@/lib/products/products-service";
+import { createProduct, updateProduct, archiveProduct, getProduct } from "@/lib/products/products-service";
 import { writeAudit } from "@/lib/audit";
 
 export interface ProductPayload {
@@ -65,7 +65,8 @@ export async function saveProductAction(p: ProductPayload & { id: number; active
 
 export async function archiveProductAction(id: number): Promise<void> {
   const access = await requireUser();
-  if (!productScopes(access, "OPERATE").length) return;
+  const product = await getProduct(id);
+  if (!product || !productScopes(access, "OPERATE").includes(product.scope as Scope)) return;
   await archiveProduct(id);
   await writeAudit(access.user.id, "purchasing", "product.archive", "product", id);
   revalidatePath("/products");
