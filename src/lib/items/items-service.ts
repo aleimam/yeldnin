@@ -3,7 +3,16 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { autoAdvanceSchedule } from "@/lib/workflow/workflow-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
-import { dueAutoAdvance, itemBucket, ITEM_BUCKETS } from "./items-logic";
+import {
+  dueAutoAdvance,
+  itemBucket,
+  ITEM_BUCKETS,
+  tallyCategories,
+  emptyCategoryCounts,
+  PRE_RECEIPT_STATUSES,
+  MOVABLE_ITEMS_WHERE,
+  type CategoryCounts,
+} from "./items-logic";
 import { sendLocalizedToUsers, resolveRecipients, notifyUnitMilestones } from "@/lib/notify/notify-service";
 import { itemsFlaggedPayload } from "@/lib/notify/notify-logic";
 
@@ -162,6 +171,147 @@ export async function itemsInContainerHistory(containerType: string, containerId
     orderBy: { id: "asc" },
     include: { product: { select: { id: true, name: true } } },
   });
+}
+
+/** Category buckets for items CURRENTLY in each container (e.g. trip/hub inventory). */
+export async function categoryCountsByCurrentContainer(
+  containerType: string,
+  ids: number[],
+): Promise<Map<number, CategoryCounts>> {
+  const out = new Map<number, CategoryCounts>();
+  if (!ids.length) return out;
+  const items = await prisma.item.findMany({
+    where: { containerType, containerId: { in: ids } },
+    select: { containerId: true, scope: true, product: { select: { type: true } } },
+  });
+  const byContainer = new Map<number, { scope: string; productType: string | null }[]>();
+  for (const it of items) {
+    if (it.containerId == null) continue;
+    const arr = byContainer.get(it.containerId) ?? [];
+    arr.push({ scope: it.scope, productType: it.product?.type ?? null });
+    byContainer.set(it.containerId, arr);
+  }
+  for (const id of ids) out.set(id, tallyCategories(byContainer.get(id) ?? []));
+  return out;
+}
+
+/** Category buckets for items that EVER entered each container — i.e. every unit
+ *  of a purchase/patch, regardless of where it sits now (via the event log). */
+export async function categoryCountsByContainerHistory(
+  containerType: string,
+  ids: number[],
+): Promise<Map<number, CategoryCounts>> {
+  const out = new Map<number, CategoryCounts>();
+  if (!ids.length) return out;
+  for (const id of ids) out.set(id, emptyCategoryCounts());
+  const events = await prisma.itemEvent.findMany({
+    where: { containerType, containerId: { in: ids } },
+    select: { containerId: true, itemId: true },
+  });
+  const itemsByContainer = new Map<number, Set<number>>();
+  const allItemIds = new Set<number>();
+  for (const e of events) {
+    if (e.containerId == null) continue;
+    let s = itemsByContainer.get(e.containerId);
+    if (!s) {
+      s = new Set();
+      itemsByContainer.set(e.containerId, s);
+    }
+    s.add(e.itemId);
+    allItemIds.add(e.itemId);
+  }
+  if (!allItemIds.size) return out;
+  const items = await prisma.item.findMany({
+    where: { id: { in: [...allItemIds] } },
+    select: { id: true, scope: true, product: { select: { type: true } } },
+  });
+  const meta = new Map(items.map((it) => [it.id, { scope: it.scope, productType: it.product?.type ?? null }]));
+  for (const id of ids) {
+    const set = itemsByContainer.get(id);
+    if (!set) continue;
+    const rows = [...set].flatMap((iid) => {
+      const m = meta.get(iid);
+      return m ? [m] : [];
+    });
+    out.set(id, tallyCategories(rows));
+  }
+  return out;
+}
+
+/** Category buckets for the items of each request (Item.requestId). */
+export async function categoryCountsByRequest(ids: number[]): Promise<Map<number, CategoryCounts>> {
+  const out = new Map<number, CategoryCounts>();
+  if (!ids.length) return out;
+  const items = await prisma.item.findMany({
+    where: { requestId: { in: ids } },
+    select: { requestId: true, scope: true, product: { select: { type: true } } },
+  });
+  const byReq = new Map<number, { scope: string; productType: string | null }[]>();
+  for (const it of items) {
+    if (it.requestId == null) continue;
+    const arr = byReq.get(it.requestId) ?? [];
+    arr.push({ scope: it.scope, productType: it.product?.type ?? null });
+    byReq.set(it.requestId, arr);
+  }
+  for (const id of ids) out.set(id, tallyCategories(byReq.get(id) ?? []));
+  return out;
+}
+
+export interface InboundPending {
+  count: number;
+  weightG: number;
+}
+
+/**
+ * Items heading to a destination (TRIP/HUB) via a purchase or patch that haven't
+ * been received yet (status before HUB). LOST/DAMAGED/ERRANT are excluded — they
+ * won't arrive. Returns count + total weight (grams) per destination id.
+ */
+export async function inboundPendingByDestination(
+  destType: "TRIP" | "HUB",
+  ids: number[],
+): Promise<Map<number, InboundPending>> {
+  const out = new Map<number, InboundPending>();
+  if (!ids.length) return out;
+  for (const id of ids) out.set(id, { count: 0, weightG: 0 });
+  const [purchases, patches] = await Promise.all([
+    prisma.purchase.findMany({
+      where: { destinationType: destType, destinationId: { in: ids }, archivedAt: null },
+      select: { id: true, destinationId: true },
+    }),
+    prisma.patch.findMany({
+      where: { destinationType: destType, destinationId: { in: ids }, archivedAt: null },
+      select: { id: true, destinationId: true },
+    }),
+  ]);
+  const purchaseToDest = new Map(purchases.map((p) => [p.id, p.destinationId!]));
+  const patchToDest = new Map(patches.map((p) => [p.id, p.destinationId!]));
+  if (!purchaseToDest.size && !patchToDest.size) return out;
+  const items = await prisma.item.findMany({
+    where: {
+      status: { in: PRE_RECEIPT_STATUSES },
+      AND: [
+        MOVABLE_ITEMS_WHERE,
+        {
+          OR: [
+            { containerType: "PURCHASE", containerId: { in: [...purchaseToDest.keys()] } },
+            { containerType: "PATCH", containerId: { in: [...patchToDest.keys()] } },
+          ],
+        },
+      ],
+    },
+    select: { containerType: true, containerId: true, product: { select: { weightG: true } } },
+  });
+  for (const it of items) {
+    if (it.containerId == null) continue;
+    const destId = it.containerType === "PURCHASE" ? purchaseToDest.get(it.containerId) : patchToDest.get(it.containerId);
+    if (destId == null) continue;
+    const cur = out.get(destId);
+    if (!cur) continue;
+    cur.count++;
+    cur.weightG += it.product?.weightG ?? 0;
+  }
+  return out;
 }
 
 /**

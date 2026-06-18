@@ -32,11 +32,12 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
   const hasOrdered = items.some((it) => it.status === "ORDERED");
 
   return (
-    <AppShell access={access} moduleKey="logistics" pageTitle={purchase.uid ?? `#${purchase.id}`} backHref="/purchasing/purchases">
+    <AppShell access={access} moduleKey="logistics" pageTitle={t("purchase.friendly", { count: items.length, supplier: purchase.supplierName ?? "—", dest: purchase.destinationName ?? "—" })} backHref="/purchasing/purchases">
       <div className="max-w-3xl space-y-6">
         <div className="card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+              <div><span className="text-muted">{t("purchasing.uid")}: </span><span className="font-mono text-ink">{purchase.uid ?? purchase.id}</span></div>
               <div><span className="text-muted">{t("requests.scope")}: </span><span className="text-ink">{t(`scope.${purchase.scope}`)}</span></div>
               <div><span className="text-muted">{t("purchasing.country")}: </span><span className="text-ink">{purchase.country}</span></div>
               <div><span className="text-muted">{t("purchasing.supplier")}: </span><span className="text-ink">{purchase.supplierName ?? "—"}</span></div>

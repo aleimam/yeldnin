@@ -1,5 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { nextStatus, isForward, dueAutoAdvance, poolKey, isExceptionFlag, itemBucket } from "./items-logic";
+import {
+  nextStatus,
+  isForward,
+  dueAutoAdvance,
+  poolKey,
+  isExceptionFlag,
+  itemBucket,
+  categoryBucket,
+  tallyCategories,
+  PRE_RECEIPT_STATUSES,
+  HOLD_FLAGS,
+} from "./items-logic";
 
 describe("status progression", () => {
   it("advances along the canonical line and stops at the end", () => {
@@ -54,5 +65,39 @@ describe("dashboard buckets", () => {
   it("an exception flag always wins → problems", () => {
     expect(itemBucket("REQUESTED", "DELAYED")).toBe("problems");
     expect(itemBucket("WEBSITE", "LOST")).toBe("problems");
+  });
+});
+
+describe("category buckets", () => {
+  it("scope wins for personal/xoonx, then product type under EGV", () => {
+    expect(categoryBucket("PERSONAL", "DEVICE")).toBe("personal");
+    expect(categoryBucket("XOONX", "SUPPLEMENT")).toBe("xoonx");
+    expect(categoryBucket("EGV", "INJECTION")).toBe("injection");
+    expect(categoryBucket("EGV", "DEVICE")).toBe("devices");
+    expect(categoryBucket("EGV", "SUPPLEMENT")).toBe("items");
+    expect(categoryBucket("EGV", "HEAVY_SUPPLEMENT")).toBe("items");
+    expect(categoryBucket("EGV", null)).toBe("items");
+  });
+  it("tally is exclusive — buckets sum to the total", () => {
+    const c = tallyCategories([
+      { scope: "EGV", productType: "SUPPLEMENT" },
+      { scope: "EGV", productType: "SUPPLEMENT" },
+      { scope: "EGV", productType: "INJECTION" },
+      { scope: "EGV", productType: "DEVICE" },
+      { scope: "XOONX", productType: "XOONX" },
+      { scope: "PERSONAL", productType: "SUPPLEMENT" },
+    ]);
+    expect(c).toEqual({ total: 6, items: 2, injection: 1, devices: 1, xoonx: 1, personal: 1 });
+    expect(c.items + c.injection + c.devices + c.xoonx + c.personal).toBe(c.total);
+  });
+});
+
+describe("movement constants", () => {
+  it("pre-receipt statuses are everything before HUB", () => {
+    expect(PRE_RECEIPT_STATUSES).toEqual(["REQUESTED", "ORDERED", "SHIPPED", "DELIVERED"]);
+  });
+  it("hold flags pin items in place but never DELAYED", () => {
+    expect(HOLD_FLAGS).toEqual(["LOST", "DAMAGED", "ERRANT"]);
+    expect(HOLD_FLAGS).not.toContain("DELAYED");
   });
 });

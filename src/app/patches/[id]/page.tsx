@@ -20,11 +20,12 @@ export default async function PatchDetailPage({ params }: { params: Promise<{ id
   const loc = locale === "ar" ? "ar" : "en";
 
   return (
-    <AppShell access={access} moduleKey="logistics" pageTitle={patch.uid ?? `#${patch.id}`} backHref="/patches">
+    <AppShell access={access} moduleKey="logistics" pageTitle={t("patch.friendly", { count: items.length, supplier: patch.supplierName ?? "—", dest: patch.destinationName ?? "—" })} backHref="/patches">
       <div className="max-w-3xl space-y-6">
         <div className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+              <div><span className="text-muted">{t("patches.uid")}: </span><span className="font-mono text-ink">{patch.uid ?? patch.id}</span></div>
               <div><span className="text-muted">{t("patches.supplier")}: </span><span className="text-ink">{patch.supplierName ?? "—"} · {patch.country}</span></div>
               <div><span className="text-muted">{t("patches.destination")}: </span><span className="text-ink">{patch.destinationName ?? "—"}</span></div>
               <div><span className="text-muted">{t("patches.tracking")}: </span><span className="text-ink">{patch.tracking ?? "—"}</span></div>

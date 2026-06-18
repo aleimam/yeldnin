@@ -93,3 +93,53 @@ export function poolKey(item: { exceptionFlag?: string | null; containerType?: s
   if (item.exceptionFlag) return `EXC:${item.exceptionFlag}`;
   return item.containerType ? `CON:${item.containerType}` : "NONE";
 }
+
+/** Item statuses before an item has been received at its destination (pre-HUB). */
+export const PRE_RECEIPT_STATUSES: ItemStatus[] = ITEM_STATUS_ORDER.slice(0, ITEM_STATUS_ORDER.indexOf("HUB")) as ItemStatus[];
+
+/**
+ * Exclusive category buckets shown in container item-count summaries. An item
+ * lands in exactly one, so the buckets sum to the total:
+ *   PERSONAL scope → personal · XOONX scope → xoonx · else (EGV) by product
+ *   type → injection / devices / items (supplements & everything else).
+ */
+export const CATEGORY_BUCKETS = ["items", "injection", "devices", "xoonx", "personal"] as const;
+export type CategoryBucket = (typeof CATEGORY_BUCKETS)[number];
+
+export function categoryBucket(scope: string, productType: string | null | undefined): CategoryBucket {
+  if (scope === "PERSONAL") return "personal";
+  if (scope === "XOONX") return "xoonx";
+  if (productType === "INJECTION") return "injection";
+  if (productType === "DEVICE") return "devices";
+  return "items";
+}
+
+export type CategoryCounts = Record<CategoryBucket, number> & { total: number };
+export function emptyCategoryCounts(): CategoryCounts {
+  return { total: 0, items: 0, injection: 0, devices: 0, xoonx: 0, personal: 0 };
+}
+
+/** Tally a list of items into the exclusive category buckets (+ total). */
+export function tallyCategories(rows: { scope: string; productType?: string | null }[]): CategoryCounts {
+  const c = emptyCategoryCounts();
+  for (const r of rows) {
+    c[categoryBucket(r.scope, r.productType)]++;
+    c.total++;
+  }
+  return c;
+}
+
+/** i18n key for each bucket's label — reuses the existing product-type / scope
+ *  labels; only the generic "items" bucket needs its own key. */
+const CATEGORY_LABEL_KEYS: Record<CategoryBucket, string> = {
+  items: "itemcat.items",
+  injection: "ptype.INJECTION",
+  devices: "ptype.DEVICE",
+  xoonx: "ptype.XOONX",
+  personal: "scope.PERSONAL",
+};
+
+/** Build the {bucket → label} map from a translator. */
+export function categoryLabels(t: (k: string) => string): Record<CategoryBucket, string> {
+  return Object.fromEntries(CATEGORY_BUCKETS.map((b) => [b, t(CATEGORY_LABEL_KEYS[b])])) as Record<CategoryBucket, string>;
+}
