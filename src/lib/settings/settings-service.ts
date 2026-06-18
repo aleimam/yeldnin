@@ -17,7 +17,7 @@ const FALLBACK: PlatformSettingsView = {
   logoUrl: null,
   darkLogoUrl: null,
   faviconUrl: null,
-  version: "0.1.0",
+  version: "1.2",
 };
 
 /** Read the single platform-settings row (memoized per request). */

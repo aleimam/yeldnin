@@ -25,6 +25,7 @@ export default async function EvaluateCallPage() {
         reps={reps}
         questions={questions.map((q) => ({ id: q.id, title: q.title, criteria: q.criteria, tags: q.tags, weight: q.weight, typeId: q.typeId, typeName: q.type.name }))}
         callTypes={callTypes.map((c) => ({ id: c.id, name: c.name }))}
+        typeCount={callTypes.length}
         valueMap={config.call}
       />
     </AppShell>

@@ -40,8 +40,8 @@ async function main() {
   // Platform settings (single row, id=1)
   await prisma.platformSettings.upsert({
     where: { id: 1 },
-    update: {},
-    create: { id: 1, appName: "YeldnIN", version: "0.1.0" },
+    update: { version: "1.2" },
+    create: { id: 1, appName: "YeldnIN", version: "1.2" },
   });
 
   // One-time rename: egv_pricer -> pricing (module key, permissions, audit). Idempotent.

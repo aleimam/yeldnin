@@ -26,12 +26,14 @@ export function EvalForm({
   reps,
   questions,
   callTypes,
+  typeCount,
   valueMap,
 }: {
   scope: "CALL" | "PERFORMANCE";
   reps: Rep[];
   questions: Q[];
   callTypes: CallType[];
+  typeCount: number;
   valueMap: ValueMap;
 }) {
   const t = useT();
@@ -44,6 +46,8 @@ export function EvalForm({
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [error, setError] = useState("");
+  // Type is only meaningful when a scope has more than one — otherwise hide picker & chip.
+  const multiType = typeCount > 1;
 
   const shown = useMemo(
     () => (scope === "CALL" ? questions.filter((q) => String(q.typeId) === callTypeId) : questions),
@@ -87,12 +91,14 @@ export function EvalForm({
         </div>
         {scope === "CALL" && (
           <>
-            <div>
-              <label className="label">{t("cs.callType")}</label>
-              <select className="input" value={callTypeId} onChange={(e) => { setCallTypeId(e.target.value); setAnswers({}); }}>
-                {callTypes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
+            {multiType && (
+              <div>
+                <label className="label">{t("cs.callType")}</label>
+                <select className="input" value={callTypeId} onChange={(e) => { setCallTypeId(e.target.value); setAnswers({}); }}>
+                  {callTypes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
             <div>
               <label className="label">{t("cs.callDate")}</label>
               <input type="date" max={today()} className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
@@ -109,7 +115,7 @@ export function EvalForm({
             <div>
               <div className="flex items-baseline justify-between gap-3">
                 <p className="font-semibold text-ink">{q.title}</p>
-                <span className="shrink-0 text-xs text-muted">{q.typeName} · ×{q.weight}</span>
+                <span className="shrink-0 text-xs text-muted">{multiType ? `${q.typeName} · ` : ""}×{q.weight}</span>
               </div>
               {q.criteria && <p className="mt-0.5 text-sm text-muted">{q.criteria}</p>}
               {q.tags && (

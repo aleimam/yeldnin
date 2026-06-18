@@ -15,14 +15,19 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
   const router = useRouter();
   const [pending, start] = useTransition();
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [f, setF] = useState({ ...blank });
+  // When a scope has exactly one type there's nothing to choose — preselect it.
+  const defaultTypeFor = (scope: string) => {
+    const ts = types.filter((ty) => ty.scope === scope);
+    return ts.length === 1 ? String(ts[0].id) : "";
+  };
+  const [f, setF] = useState({ ...blank, typeId: defaultTypeFor(blank.scope) });
   const [error, setError] = useState("");
   const set = (k: keyof typeof f, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
   const typesForScope = types.filter((ty) => ty.scope === f.scope);
 
   function reset() {
     setEditingId(null);
-    setF({ ...blank });
+    setF({ ...blank, typeId: defaultTypeFor(blank.scope) });
     setError("");
   }
   function edit(q: Q) {
@@ -68,7 +73,7 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
         <div className="grid gap-3 sm:grid-cols-4">
           <div>
             <label className="label">{t("cs.scope")}</label>
-            <select className="input" value={f.scope} onChange={(e) => { set("scope", e.target.value); set("typeId", ""); }}>
+            <select className="input" value={f.scope} onChange={(e) => { set("scope", e.target.value); set("typeId", defaultTypeFor(e.target.value)); }}>
               <option value="CALL">{t("cs.scope.CALL")}</option>
               <option value="PERFORMANCE">{t("cs.scope.PERFORMANCE")}</option>
             </select>
