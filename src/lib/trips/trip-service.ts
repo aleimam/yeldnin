@@ -118,5 +118,6 @@ export async function eligibleTripsForPurchase() {
     .map((tr) => ({
       id: tr.id,
       name: `${tr.traveler.name} · ${tr.lastReceivingDate ? formatBizDate(tr.lastReceivingDate) : "—"}`,
+      country: tr.country,
     }));
 }

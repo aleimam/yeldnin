@@ -92,18 +92,22 @@ export async function updatePurchaseAction(
 ): Promise<PurchaseResult> {
   const access = await requirePurchaseManage();
   if (!p.country?.trim()) return { ok: false, error: "Country is required." };
-  await updatePurchase(
-    id,
-    {
-      country: p.country.trim(),
-      supplierId: p.supplierId ?? null,
-      purchasePrice: p.purchasePrice ?? null,
-      notes: p.notes ?? null,
-      handlingFee: p.handlingFee ?? null,
-      handlingFeeCurrency: p.handlingFeeCurrency ?? null,
-    },
-    access.user.id,
-  );
+  try {
+    await updatePurchase(
+      id,
+      {
+        country: p.country.trim(),
+        supplierId: p.supplierId ?? null,
+        purchasePrice: p.purchasePrice ?? null,
+        notes: p.notes ?? null,
+        handlingFee: p.handlingFee ?? null,
+        handlingFeeCurrency: p.handlingFeeCurrency ?? null,
+      },
+      access.user.id,
+    );
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not save the purchase." };
+  }
   await writeAudit(access.user.id, "purchasing", "purchase.update", "purchase", id);
   revalidatePath(`/purchasing/purchases/${id}`);
   revalidatePath("/purchasing/purchases");

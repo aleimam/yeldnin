@@ -26,7 +26,7 @@ export default async function NewPurchasePage() {
       <PurchaseForm
         allowedScopes={scopes}
         pool={pool}
-        suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s) }))}
+        suppliers={suppliers.map((s) => ({ id: s.id, label: supplierLabel(s), availableUSA: s.availableUSA, availableUK: s.availableUK, availableEU: s.availableEU }))}
         hubs={hubs}
         trips={trips}
         countries={countries}

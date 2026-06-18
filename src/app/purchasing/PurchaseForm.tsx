@@ -26,9 +26,9 @@ export function PurchaseForm({
 }: {
   allowedScopes: Scope[];
   pool: PoolRow[];
-  suppliers: { id: number; label: string }[];
+  suppliers: { id: number; label: string; availableUSA: boolean; availableUK: boolean; availableEU: boolean }[];
   hubs: { id: number; name: string; country: string }[];
-  trips: { id: number; name: string }[];
+  trips: { id: number; name: string; country: string }[];
   countries: string[];
 }) {
   const t = useT();
@@ -48,6 +48,15 @@ export function PurchaseForm({
   const [priceTouched, setPriceTouched] = useState(false);
 
   const scopePool = pool.filter((p) => p.scope === scope);
+  // A purchase can only go to a destination in its own country; suppliers are
+  // filtered to those serving that country's region (USA/UK/EU). Custom (non-
+  // region) countries show all suppliers but still constrain the destination.
+  const region = country === "USA" ? "USA" : country === "UK" ? "UK" : country === "EU" ? "EU" : null;
+  const visibleSuppliers = region
+    ? suppliers.filter((s) => (region === "USA" ? s.availableUSA : region === "UK" ? s.availableUK : s.availableEU))
+    : suppliers;
+  const visibleHubs = hubs.filter((h) => h.country === country);
+  const visibleTrips = trips.filter((tr) => tr.country === country);
   // #13: total purchase price auto-fills as sum(qty x product price); editable.
   const computeTotal = (q: Record<number, string>) =>
     scopePool.reduce((sum, p) => sum + (Number(q[p.productId]) || 0) * (p.purchasePrice ?? 0), 0);
@@ -98,7 +107,7 @@ export function PurchaseForm({
         </div>
         <div>
           <label className="label">{t("purchasing.country")}</label>
-          <select className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
+          <select className="input" value={country} onChange={(e) => { setCountry(e.target.value); setSupplierId(""); setDestinationId(""); }}>
             {countries.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
@@ -106,7 +115,7 @@ export function PurchaseForm({
           <label className="label">{t("purchasing.supplier")}</label>
           <select className="input" value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
             <option value="">{t("pricer.f.choose")}</option>
-            {suppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {visibleSuppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
         </div>
       </div>
@@ -129,8 +138,8 @@ export function PurchaseForm({
           <select className="input" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
             <option value="">{destinationType === "HUB" ? t("purchasing.pickHub") : t("purchasing.pickTrip")}</option>
             {destinationType === "HUB"
-              ? hubs.map((h) => <option key={h.id} value={h.id}>{h.name} ({h.country})</option>)
-              : trips.map((tr) => <option key={tr.id} value={tr.id}>{tr.name}</option>)}
+              ? visibleHubs.map((h) => <option key={h.id} value={h.id}>{h.name} ({h.country})</option>)
+              : visibleTrips.map((tr) => <option key={tr.id} value={tr.id}>{tr.name}</option>)}
           </select>
         </div>
       </div>

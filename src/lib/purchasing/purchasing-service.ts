@@ -97,15 +97,21 @@ export async function createPurchase(input: CreatePurchaseInput, userId: number)
     : null;
   let destinationName: string | null = null;
   if (input.destinationId && input.destinationType === "HUB") {
-    const hub = await prisma.hub.findUnique({ where: { id: input.destinationId }, select: { name: true } });
+    const hub = await prisma.hub.findUnique({ where: { id: input.destinationId }, select: { name: true, country: true } });
+    if (hub && hub.country !== input.country) {
+      throw new Error("The destination must be in the same country as the purchase.");
+    }
     destinationName = hub?.name ?? null;
   } else if (input.destinationId && input.destinationType === "TRIP") {
     const trip = await prisma.trip.findUnique({
       where: { id: input.destinationId },
-      select: { traveler: { select: { name: true } }, status: true, lastReceivingDate: true, allowedProductTypes: true },
+      select: { traveler: { select: { name: true } }, status: true, lastReceivingDate: true, allowedProductTypes: true, country: true },
     });
     if (!trip || !isTripPurchaseEligible(trip, new Date())) {
       throw new Error("Selected trip is not open for purchases (must be Approved/Started Shipping with a future last-receiving date).");
+    }
+    if (trip.country !== input.country) {
+      throw new Error("The destination must be in the same country as the purchase.");
     }
     // The trip must accept all the product types being purchased to it.
     const allowed = parseTypes(trip.allowedProductTypes) as string[];
@@ -226,6 +232,16 @@ export interface UpdatePurchaseInput {
 export async function updatePurchase(id: number, input: UpdatePurchaseInput, userId: number) {
   const purchase = await prisma.purchase.findUnique({ where: { id } });
   if (!purchase || (await purchaseOnWebsite(id))) return;
+  // The (possibly changed) country must still match the fixed destination's country.
+  if (purchase.destinationId) {
+    const destCountry =
+      purchase.destinationType === "HUB"
+        ? (await prisma.hub.findUnique({ where: { id: purchase.destinationId }, select: { country: true } }))?.country
+        : (await prisma.trip.findUnique({ where: { id: purchase.destinationId }, select: { country: true } }))?.country;
+    if (destCountry && destCountry !== input.country) {
+      throw new Error("The destination must be in the same country as the purchase.");
+    }
+  }
   const supplier = input.supplierId
     ? await prisma.supplier.findUnique({ where: { id: input.supplierId }, select: { name: true } })
     : null;
