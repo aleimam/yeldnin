@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getCourier } from "@/lib/couriers/couriers-service";
 import { CourierForm } from "../CourierForm";
 
 export default async function EditCourierPage({ params }: { params: Promise<{ id: string }> }) {
-  const access = await requireModule("couriers", "OPERATE");
+  const access = await requireCapability("couriers", "operate");
   const { id } = await params;
   const c = await getCourier(Number(id));
   if (!c) notFound();

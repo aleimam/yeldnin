@@ -11,7 +11,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const issue = await getIssue(Number(id));
   if (!issue) notFound();
-  const canManage = access.canModule("issues", "OPERATE");
+  const canManage = access.can("issues", "operate");
   const t = await getT();
 
   return (

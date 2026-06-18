@@ -6,7 +6,7 @@ import { listIssues } from "@/lib/issues/issues-service";
 
 export default async function IssuesPage() {
   const access = await requireModule("issues", "VIEW");
-  const canManage = access.canModule("issues", "OPERATE");
+  const canManage = access.can("issues", "operate");
   const [t, rows] = await Promise.all([getT(), listIssues()]);
   return (
     <AppShell

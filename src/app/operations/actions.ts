@@ -1,13 +1,13 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule, requireUser, requireAdmin } from "@/lib/auth/access";
+import { requireCapability, requireUser, requireAdmin } from "@/lib/auth/access";
 import { pickUpTrip, convertTripToShipments, markShipmentPhotosSent } from "@/lib/operations/operations-service";
 import { teamsUserCanMark, validateMark, isReviewTeam, type ReviewTeam } from "@/lib/review/review-logic";
 import { setTripMark } from "@/lib/review/review-service";
 import { writeAudit } from "@/lib/audit";
 
 export async function pickUpTripAction(tripId: number): Promise<void> {
-  const access = await requireModule("operations", "OPERATE");
+  const access = await requireCapability("operations", "operate");
   await pickUpTrip(tripId, access.user.id);
   await writeAudit(access.user.id, "operations", "trip.pickup", "trip", tripId);
   revalidatePath(`/trips/${tripId}`);
@@ -50,7 +50,7 @@ export async function holdTripAction(tripId: number): Promise<void> {
 }
 
 export async function markShipmentPhotosSentAction(id: number): Promise<void> {
-  const access = await requireModule("operations", "OPERATE");
+  const access = await requireCapability("operations", "operate");
   await markShipmentPhotosSent(id, access.user.id);
   await writeAudit(access.user.id, "operations", "shipment.photosSent", "shipment", id);
   revalidatePath(`/shipments/${id}`);

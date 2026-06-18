@@ -18,7 +18,7 @@ export interface Capability {
 }
 
 /** Module keys that expose configurable capabilities (order = editor order). */
-export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings"] as const;
+export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings", "operations", "couriers", "issues"] as const;
 
 // NOTE: opening a module at all stays governed by the plain VIEW gate
 // (canModule(key, "VIEW")). Capabilities govern ACTIONS within a module.
@@ -49,6 +49,15 @@ export const CAPABILITIES: Capability[] = [
   // code; this entry only documents/labels it. Default MANAGE.
   { key: "managePermissions", module: "settings", labelKey: "cap.settings.managePermissions", defaultLevel: "MANAGE" },
   { key: "manageWorkflow", module: "settings", labelKey: "cap.settings.manageWorkflow", defaultLevel: "MANAGE" },
+
+  // ── Operations ───────────────────────────────────────────────────────────
+  { key: "operate", module: "operations", labelKey: "cap.operations.operate", defaultLevel: "OPERATE" },
+
+  // ── Couriers ─────────────────────────────────────────────────────────────
+  { key: "operate", module: "couriers", labelKey: "cap.couriers.operate", defaultLevel: "OPERATE" },
+
+  // ── Issues ───────────────────────────────────────────────────────────────
+  { key: "operate", module: "issues", labelKey: "cap.issues.operate", defaultLevel: "OPERATE" },
 ];
 
 /** Partial override map: { [moduleKey]: { [capabilityKey]: Level } }. */

@@ -13,7 +13,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const shipment = await getShipment(Number(id));
   if (!shipment) notFound();
-  const canManage = access.canModule("operations", "OPERATE");
+  const canManage = access.can("operations", "operate");
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getShipmentItems(shipment.id), getWorkflow()]);
   const loc = locale === "ar" ? "ar" : "en";
 
