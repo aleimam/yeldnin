@@ -18,7 +18,9 @@ export function listCsQuestions(opts?: { scope?: string; typeId?: number; active
 }
 
 export interface CsQuestionInput {
+  title: string;
   criteria: string;
+  tags?: string | null;
   weight: number;
   scope: string;
   typeId: number;
@@ -29,7 +31,9 @@ export async function createCsQuestion(input: CsQuestionInput, userId: number) {
   const max = await prisma.csQuestion.aggregate({ _max: { sortOrder: true }, where: { scope: input.scope } });
   const q = await prisma.csQuestion.create({
     data: {
+      title: input.title.trim(),
       criteria: input.criteria.trim(),
+      tags: input.tags?.trim() || null,
       weight: clampWeight(input.weight),
       scope: input.scope,
       typeId: input.typeId,
@@ -46,7 +50,9 @@ export async function updateCsQuestion(id: number, input: CsQuestionInput, userI
   await prisma.csQuestion.update({
     where: { id },
     data: {
+      title: input.title.trim(),
       criteria: input.criteria.trim(),
+      tags: input.tags?.trim() || null,
       weight: clampWeight(input.weight),
       scope: input.scope,
       typeId: input.typeId,

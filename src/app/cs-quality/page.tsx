@@ -15,7 +15,8 @@ export default async function CsQualityHub() {
 
   const cards = [
     calls && { href: "/cs-quality/evaluate/call", icon: "📞", label: t("cs.evaluateCall") },
-    manage && { href: "/cs-quality/evaluate/periodical", icon: "📅", label: t("cs.evaluatePeriodical") },
+    manage && { href: "/cs-quality/evaluate/performance", icon: "📅", label: t("cs.evaluatePerformance") },
+    calls && { href: "/cs-quality/submitted", icon: "📤", label: t("cs.submitted") },
     manage && { href: "/cs-quality/review", icon: "✅", label: t("cs.review") },
     rep && { href: "/cs-quality/mine", icon: "📋", label: t("cs.myEvaluations") },
     manage && { href: "/cs-quality/analytics", icon: "📈", label: t("cs.analytics") },

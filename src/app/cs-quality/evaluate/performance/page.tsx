@@ -7,23 +7,23 @@ import { listRepOptions, questionsForScope } from "@/lib/cs/cs-eval-service";
 import { getCsConfig } from "@/lib/cs/cs-config-service";
 import { EvalForm } from "../EvalForm";
 
-export default async function EvaluatePeriodicalPage() {
+export default async function EvaluatePerformancePage() {
   const access = await requireUser();
   if (!canManageCs(access)) redirect("/cs-quality");
   const [t, reps, questions, config] = await Promise.all([
     getT(),
     listRepOptions(),
-    questionsForScope("PERIODICAL"),
+    questionsForScope("PERFORMANCE"),
     getCsConfig(),
   ]);
   return (
-    <AppShell access={access} moduleKey="cs_quality" pageTitle={t("cs.evaluatePeriodical")} backHref="/cs-quality">
+    <AppShell access={access} moduleKey="cs_quality" pageTitle={t("cs.evaluatePerformance")} backHref="/cs-quality">
       <EvalForm
-        scope="PERIODICAL"
+        scope="PERFORMANCE"
         reps={reps}
-        questions={questions.map((q) => ({ id: q.id, criteria: q.criteria, weight: q.weight, typeId: q.typeId, typeName: q.type.name }))}
+        questions={questions.map((q) => ({ id: q.id, title: q.title, criteria: q.criteria, tags: q.tags, weight: q.weight, typeId: q.typeId, typeName: q.type.name }))}
         callTypes={[]}
-        valueMap={config.periodical}
+        valueMap={config.performance}
       />
     </AppShell>
   );

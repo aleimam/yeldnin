@@ -281,9 +281,11 @@ model CsEvalType {
 // A weighted scorecard question. Soft-deleted (archivedAt) so past evaluations stay intact.
 model CsQuestion {
   id          Int        @id @default(autoincrement())
-  criteria    String
+  title       String     @default("")
+  criteria    String // the question body
+  tags        String? // optional, comma-separated descriptive tags
   weight      Int        @default(1) // 1..10
-  scope       String // CALL | PERIODICAL
+  scope       String // CALL | PERFORMANCE
   typeId      Int
   type        CsEvalType @relation(fields: [typeId], references: [id])
   active      Boolean    @default(true)
@@ -312,14 +314,16 @@ model CsEvaluation {
   uid             String?   @unique // CSE<YY><MM><seq3>
   subjectUserId   Int // the evaluated sales rep
   evaluatorUserId Int
-  scope           String // CALL | PERIODICAL
-  typeName        String? // call type snapshot (null for periodical)
+  scope           String // CALL | PERFORMANCE
+  typeName        String? // call type snapshot (null for performance)
+  callDate        DateTime? // Call evals: the date of the call (drives analytics month)
   status          String    @default("PENDING") // PENDING | APPROVED | REJECTED
   total           Float     @default(0) // Σ weighted
   normalized      Float     @default(0) // % of best possible
   approvedById    Int?
   approvedAt      DateTime?
   rejectedNote    String?
+  archivedAt      DateTime? // soft-delete
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -335,7 +339,8 @@ model CsEvaluationAnswer {
   evaluationId Int
   evaluation   CsEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   questionId   Int
-  criteria     String // snapshot
+  title        String   @default("") // snapshot
+  criteria     String // snapshot (question body)
   typeName     String? // snapshot question type
   weight       Int // snapshot
   level        String // CATASTROPHE | BAD | GOOD | PERFECT | OUTSTANDING

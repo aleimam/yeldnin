@@ -35,7 +35,8 @@ export interface EvalAnswerInput {
 export interface CreateEvalInput {
   subjectUserId: number;
   scope: string;
-  typeName?: string | null; // call type (null for periodical)
+  typeName?: string | null; // call type (null for performance)
+  callDate?: Date | null; // call evals: the date of the call
   answers: EvalAnswerInput[];
   photoAssetIds: string[];
 }
@@ -43,7 +44,7 @@ export interface CreateEvalInput {
 /** Score + persist an evaluation (Pending). Snapshots criteria/type/weight/value. */
 export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: number) {
   const config = await getCsConfig();
-  const map = input.scope === "CALL" ? config.call : config.periodical;
+  const map = input.scope === "CALL" ? config.call : config.performance;
   const questions = await prisma.csQuestion.findMany({
     where: { id: { in: input.answers.map((a) => a.questionId) } },
     include: { type: { select: { name: true } } },
@@ -56,6 +57,7 @@ export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: 
     const value = valueFor(map, a.level);
     return [{
       questionId: q.id,
+      title: q.title,
       criteria: q.criteria,
       typeName: q.type.name,
       weight: q.weight,
@@ -76,6 +78,7 @@ export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: 
       evaluatorUserId,
       scope: input.scope,
       typeName: input.typeName ?? null,
+      callDate: input.callDate ?? null,
       status: "PENDING",
       total: weightedTotal(scored),
       normalized: normalizedPct(scored, map),

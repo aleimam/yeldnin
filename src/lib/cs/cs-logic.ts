@@ -1,6 +1,6 @@
 // Pure CS Quality scoring logic. No DB/IO. Unit-tested.
 
-export const CS_SCOPES = ["CALL", "PERIODICAL"] as const;
+export const CS_SCOPES = ["CALL", "PERFORMANCE"] as const;
 export type CsScope = (typeof CS_SCOPES)[number];
 
 // Worst → best. Catastrophe shows red, Outstanding green.
@@ -22,11 +22,11 @@ export const DEFAULT_VALUES: ValueMap = {
 
 export interface CsConfigShape {
   call: ValueMap;
-  periodical: ValueMap;
+  performance: ValueMap;
 }
 export const DEFAULT_CS_CONFIG: CsConfigShape = {
   call: { ...DEFAULT_VALUES },
-  periodical: { ...DEFAULT_VALUES },
+  performance: { ...DEFAULT_VALUES },
 };
 
 function num(v: unknown, fallback: number): number {
@@ -43,8 +43,8 @@ function mergeMap(raw: Partial<ValueMap> | undefined): ValueMap {
 }
 
 /** Merge a stored (possibly partial) config over the defaults. Tolerant of junk. */
-export function resolveCsConfig(raw?: { call?: Partial<ValueMap>; periodical?: Partial<ValueMap> } | null): CsConfigShape {
-  return { call: mergeMap(raw?.call), periodical: mergeMap(raw?.periodical) };
+export function resolveCsConfig(raw?: { call?: Partial<ValueMap>; performance?: Partial<ValueMap> } | null): CsConfigShape {
+  return { call: mergeMap(raw?.call), performance: mergeMap(raw?.performance) };
 }
 
 export function isCsLevel(v: unknown): v is CsLevel {

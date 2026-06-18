@@ -6,7 +6,7 @@ import { saveCsConfig } from "@/lib/cs/cs-config-service";
 import { saveCsTypeBatch, type CsTypeRow } from "@/lib/cs/cs-types-service";
 import { createCsQuestion, updateCsQuestion, archiveCsQuestion, type CsQuestionInput } from "@/lib/cs/cs-question-service";
 import { createEvaluation } from "@/lib/cs/cs-eval-service";
-import { approveEvaluation, rejectEvaluation } from "@/lib/cs/cs-report-service";
+import { approveEvaluation, rejectEvaluation, softDeleteEvaluation } from "@/lib/cs/cs-report-service";
 import { canEvaluateCalls, canManageCs, isCsLevel, type CsConfigShape } from "@/lib/cs/cs-logic";
 
 export type QResult = { ok: true; id?: number } | { ok: false; error: string };
@@ -26,7 +26,8 @@ export async function saveCsTypesAction(scope: string, rows: CsTypeRow[], add: {
 }
 
 function validateQuestion(p: CsQuestionInput): string | null {
-  if (!p.criteria.trim()) return "Criteria is required.";
+  if (!p.title.trim()) return "Title is required.";
+  if (!p.criteria.trim()) return "Question text is required.";
   if (!p.typeId) return "Pick a type.";
   return null;
 }
@@ -61,6 +62,7 @@ export async function createCsEvaluationAction(p: {
   subjectUserId: number;
   scope: string;
   typeName?: string | null;
+  callDate?: string | null;
   answers: { questionId: number; level: string; note?: string }[];
   photoIds?: string[];
 }): Promise<EvalResult> {
@@ -68,15 +70,31 @@ export async function createCsEvaluationAction(p: {
   const allowed = p.scope === "CALL" ? canEvaluateCalls(access) : canManageCs(access);
   if (!allowed) return { ok: false, error: "You can't run that evaluation." };
   if (!p.subjectUserId) return { ok: false, error: "Pick a sales rep." };
+  if (p.scope === "CALL" && !p.callDate) return { ok: false, error: "Pick the call date." };
   const answers = (p.answers ?? []).filter((a) => a.questionId && isCsLevel(a.level));
   if (!answers.length) return { ok: false, error: "Answer the questions." };
   const ev = await createEvaluation(
-    { subjectUserId: p.subjectUserId, scope: p.scope, typeName: p.typeName ?? null, answers, photoAssetIds: p.photoIds ?? [] },
+    {
+      subjectUserId: p.subjectUserId,
+      scope: p.scope,
+      typeName: p.typeName ?? null,
+      callDate: p.callDate ? new Date(p.callDate) : null,
+      answers,
+      photoAssetIds: p.photoIds ?? [],
+    },
     access.user.id,
   );
   await writeAudit(access.user.id, "cs_quality", "eval.create", "csEvaluation", ev.id, { scope: p.scope });
   revalidatePath("/cs-quality/review");
   return { ok: true, id: ev.id };
+}
+
+export async function deleteCsEvaluationAction(id: number): Promise<void> {
+  const access = await requireUser();
+  await softDeleteEvaluation(id, access.user.id, access.isAdmin);
+  revalidatePath("/cs-quality/review");
+  revalidatePath("/cs-quality/submitted");
+  revalidatePath("/cs-quality/mine");
 }
 
 export async function approveCsEvaluationAction(id: number): Promise<void> {

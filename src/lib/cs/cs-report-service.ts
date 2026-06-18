@@ -4,6 +4,9 @@ import { writeAudit } from "@/lib/audit";
 import { round2 } from "./cs-logic";
 
 const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+// Call evals bucket by the call date; Performance by submission date.
+const evalMonth = (e: { scope: string; callDate: Date | null; createdAt: Date }) =>
+  monthKey(e.scope === "CALL" ? e.callDate ?? e.createdAt : e.createdAt);
 
 async function nameMap(ids: number[]): Promise<Map<number, string>> {
   if (!ids.length) return new Map();
@@ -21,13 +24,18 @@ export interface EvalListRow {
   status: string;
   total: number;
   normalized: number;
-  createdAt: Date;
+  date: Date; // effective date (call date for Call, submission for Performance)
 }
 
-/** Evaluations list. `showEvaluator` reveals the evaluator (hidden from reps). */
-export async function listEvaluations(opts: { status?: string; subjectUserId?: number; showEvaluator: boolean }): Promise<EvalListRow[]> {
+/** Evaluations list (excludes archived). `showEvaluator` reveals the evaluator (hidden from reps). */
+export async function listEvaluations(opts: { status?: string; subjectUserId?: number; evaluatorUserId?: number; showEvaluator: boolean }): Promise<EvalListRow[]> {
   const evals = await prisma.csEvaluation.findMany({
-    where: { ...(opts.status ? { status: opts.status } : {}), ...(opts.subjectUserId ? { subjectUserId: opts.subjectUserId } : {}) },
+    where: {
+      archivedAt: null,
+      ...(opts.status ? { status: opts.status } : {}),
+      ...(opts.subjectUserId ? { subjectUserId: opts.subjectUserId } : {}),
+      ...(opts.evaluatorUserId ? { evaluatorUserId: opts.evaluatorUserId } : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 300,
   });
@@ -42,12 +50,12 @@ export async function listEvaluations(opts: { status?: string; subjectUserId?: n
     status: e.status,
     total: e.total,
     normalized: e.normalized,
-    createdAt: e.createdAt,
+    date: e.scope === "CALL" ? e.callDate ?? e.createdAt : e.createdAt,
   }));
 }
 
 export async function getEvaluationDetail(id: number) {
-  const ev = await prisma.csEvaluation.findUnique({ where: { id }, include: { answers: { orderBy: { id: "asc" } }, photos: true } });
+  const ev = await prisma.csEvaluation.findFirst({ where: { id, archivedAt: null }, include: { answers: { orderBy: { id: "asc" } }, photos: true } });
   if (!ev) return null;
   const names = await nameMap([ev.subjectUserId, ev.evaluatorUserId, ...(ev.approvedById ? [ev.approvedById] : [])]);
   return {
@@ -67,6 +75,16 @@ export async function rejectEvaluation(id: number, note: string | null, userId: 
   await writeAudit(userId, "cs_quality", "eval.reject", "csEvaluation", id, {});
 }
 
+/** Soft-delete: admins delete any; an evaluator deletes their own while Pending. */
+export async function softDeleteEvaluation(id: number, userId: number, isAdmin: boolean): Promise<boolean> {
+  const ev = await prisma.csEvaluation.findFirst({ where: { id, archivedAt: null }, select: { evaluatorUserId: true, status: true } });
+  if (!ev) return false;
+  if (!(isAdmin || (ev.evaluatorUserId === userId && ev.status === "PENDING"))) return false;
+  await prisma.csEvaluation.update({ where: { id }, data: { archivedAt: new Date() } });
+  await writeAudit(userId, "cs_quality", "eval.delete", "csEvaluation", id, {});
+  return true;
+}
+
 // ── Analytics ─────────────────────────────────────────────────────────────────
 
 export interface RepAnalytics {
@@ -78,22 +96,23 @@ export interface RepAnalytics {
 
 /** Approved-only analytics for one rep: monthly sums + per-criterion averages. */
 export async function repAnalytics(subjectUserId: number): Promise<RepAnalytics> {
-  const evals = await prisma.csEvaluation.findMany({ where: { subjectUserId, status: "APPROVED" }, select: { total: true, normalized: true, createdAt: true } });
+  const evals = await prisma.csEvaluation.findMany({ where: { subjectUserId, status: "APPROVED", archivedAt: null }, select: { total: true, normalized: true, scope: true, callDate: true, createdAt: true } });
   const months = new Map<string, { sum: number; count: number }>();
   for (const e of evals) {
-    const m = monthKey(e.createdAt);
+    const m = evalMonth(e);
     const cur = months.get(m) ?? { sum: 0, count: 0 };
     cur.sum += e.total;
     cur.count += 1;
     months.set(m, cur);
   }
-  const answers = await prisma.csEvaluationAnswer.findMany({ where: { evaluation: { subjectUserId, status: "APPROVED" } }, select: { criteria: true, value: true } });
+  const answers = await prisma.csEvaluationAnswer.findMany({ where: { evaluation: { subjectUserId, status: "APPROVED", archivedAt: null } }, select: { title: true, criteria: true, value: true } });
   const crit = new Map<string, { sum: number; count: number }>();
   for (const a of answers) {
-    const c = crit.get(a.criteria) ?? { sum: 0, count: 0 };
+    const key = a.title || a.criteria;
+    const c = crit.get(key) ?? { sum: 0, count: 0 };
     c.sum += a.value;
     c.count += 1;
-    crit.set(a.criteria, c);
+    crit.set(key, c);
   }
   return {
     count: evals.length,
@@ -114,13 +133,13 @@ export interface RepSummary {
 /** Approved-only per-rep leaderboard (avg normalized + this month's sum). */
 export async function allRepsAnalytics(now: Date): Promise<RepSummary[]> {
   const mk = monthKey(now);
-  const evals = await prisma.csEvaluation.findMany({ where: { status: "APPROVED" }, select: { subjectUserId: true, total: true, normalized: true, createdAt: true } });
+  const evals = await prisma.csEvaluation.findMany({ where: { status: "APPROVED", archivedAt: null }, select: { subjectUserId: true, total: true, normalized: true, scope: true, callDate: true, createdAt: true } });
   const by = new Map<number, { count: number; normSum: number; monthSum: number }>();
   for (const e of evals) {
     const cur = by.get(e.subjectUserId) ?? { count: 0, normSum: 0, monthSum: 0 };
     cur.count += 1;
     cur.normSum += e.normalized;
-    if (monthKey(e.createdAt) === mk) cur.monthSum += e.total;
+    if (evalMonth(e) === mk) cur.monthSum += e.total;
     by.set(e.subjectUserId, cur);
   }
   const names = await nameMap([...by.keys()]);

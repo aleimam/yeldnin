@@ -18,7 +18,7 @@ export function ValuesEditor({ initial }: { initial: CsConfigShape }) {
   const [cfg, setCfg] = useState<CsConfigShape>(initial);
   const [saved, setSaved] = useState(false);
 
-  const setVal = (scope: "call" | "periodical", level: CsLevel, v: number) => {
+  const setVal = (scope: "call" | "performance", level: CsLevel, v: number) => {
     setSaved(false);
     setCfg((p) => ({ ...p, [scope]: { ...p[scope], [level]: v } }));
   };
@@ -40,7 +40,7 @@ export function ValuesEditor({ initial }: { initial: CsConfigShape }) {
           <tr className="border-b border-line">
             <th className="th">{t("cs.answer")}</th>
             <th className="th text-end">{t("cs.scope.CALL")}</th>
-            <th className="th text-end">{t("cs.scope.PERIODICAL")}</th>
+            <th className="th text-end">{t("cs.scope.PERFORMANCE")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
@@ -48,7 +48,7 @@ export function ValuesEditor({ initial }: { initial: CsConfigShape }) {
             <tr key={lvl}>
               <td className="td"><span className={tone(lvl)}>{t(`cs.level.${lvl}`)}</span></td>
               <td className="td text-end"><input type="number" step="0.1" className="input ms-auto w-24 text-end" value={cfg.call[lvl]} onChange={(e) => setVal("call", lvl, Number(e.target.value) || 0)} /></td>
-              <td className="td text-end"><input type="number" step="0.1" className="input ms-auto w-24 text-end" value={cfg.periodical[lvl]} onChange={(e) => setVal("periodical", lvl, Number(e.target.value) || 0)} /></td>
+              <td className="td text-end"><input type="number" step="0.1" className="input ms-auto w-24 text-end" value={cfg.performance[lvl]} onChange={(e) => setVal("performance", lvl, Number(e.target.value) || 0)} /></td>
             </tr>
           ))}
         </tbody>

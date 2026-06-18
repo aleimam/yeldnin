@@ -15,7 +15,7 @@ export const getCsConfig = cache(async (): Promise<CsConfigShape> => {
       raw = null;
     }
   }
-  return resolveCsConfig(raw as { call?: Partial<CsConfigShape["call"]>; periodical?: Partial<CsConfigShape["periodical"]> } | null);
+  return resolveCsConfig(raw as { call?: Partial<CsConfigShape["call"]>; performance?: Partial<CsConfigShape["performance"]> } | null);
 });
 
 export async function saveCsConfig(input: CsConfigShape, userId: number): Promise<void> {

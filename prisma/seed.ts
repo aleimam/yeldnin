@@ -121,7 +121,7 @@ async function main() {
   // CS Quality evaluation types (idempotent). Both lists are admin-editable.
   const CS_TYPES: { scope: string; names: string[] }[] = [
     { scope: "CALL", names: ["Normal", "Orders", "Problems"] },
-    { scope: "PERIODICAL", names: ["Attitude", "Effort", "Time"] },
+    { scope: "PERFORMANCE", names: ["Attitude", "Effort", "Time"] },
   ];
   for (const grp of CS_TYPES) {
     for (let i = 0; i < grp.names.length; i++) {

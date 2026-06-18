@@ -56,7 +56,7 @@ export default async function CsMinePage() {
                   <td className="td">{t(`cs.scope.${e.scope}`)}{e.typeName ? ` · ${e.typeName}` : ""}</td>
                   <td className="td text-end">{e.total}</td>
                   <td className="td text-end">{e.normalized}%</td>
-                  <td className="td text-muted">{formatBizDate(e.createdAt)}</td>
+                  <td className="td text-muted">{formatBizDate(e.date)}</td>
                   <td className="td text-end"><Link href={`/cs-quality/evaluations/${e.id}`} className="text-brand hover:underline">{t("cs.viewEval")}</Link></td>
                 </tr>
               ))}

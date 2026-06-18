@@ -13,13 +13,13 @@ describe("resolveCsConfig", () => {
   it("defaults both scopes to the monotonic set", () => {
     const c = resolveCsConfig(null);
     expect(c.call).toEqual({ CATASTROPHE: -1, BAD: 0, GOOD: 0.5, PERFECT: 1, OUTSTANDING: 1.5 });
-    expect(c.periodical).toEqual(c.call);
+    expect(c.performance).toEqual(c.call);
   });
   it("merges a partial override over defaults", () => {
     const c = resolveCsConfig({ call: { PERFECT: 2 } });
     expect(c.call.PERFECT).toBe(2);
     expect(c.call.OUTSTANDING).toBe(1.5);
-    expect(c.periodical).toEqual(DEFAULT_VALUES);
+    expect(c.performance).toEqual(DEFAULT_VALUES);
   });
 });
 

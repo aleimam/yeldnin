@@ -7,6 +7,7 @@ import { formatBizDate } from "@/lib/format/dates";
 import { canManageCs } from "@/lib/cs/cs-logic";
 import { getEvaluationDetail } from "@/lib/cs/cs-report-service";
 import { ReviewActions } from "./ReviewActions";
+import { DeleteEvalButton } from "./DeleteEvalButton";
 
 const STATUS_TONE: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
@@ -28,10 +29,12 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   // Subject sees only their own approved; evaluator sees their own; admins all.
   if (!(admin || isEvaluator || (isSubject && ev.status === "APPROVED"))) redirect("/cs-quality");
   const showEvaluator = admin || isEvaluator; // the rep never sees who evaluated them
+  const canDelete = admin || (isEvaluator && ev.status === "PENDING");
+  const backHref = admin ? "/cs-quality/review" : isSubject ? "/cs-quality/mine" : "/cs-quality/submitted";
   const t = await getT();
 
   return (
-    <AppShell access={access} moduleKey="cs_quality" pageTitle={ev.uid ?? `#${ev.id}`} backHref={admin ? "/cs-quality/review" : "/cs-quality/mine"}>
+    <AppShell access={access} moduleKey="cs_quality" pageTitle={ev.uid ?? `#${ev.id}`} backHref={backHref}>
       <div className="max-w-3xl space-y-6">
         <div className="card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -47,7 +50,12 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_TONE[ev.status] ?? "bg-canvas text-muted"}`}>{t(`cs.status.${ev.status}`)}</span>
           </div>
           {ev.status === "REJECTED" && ev.rejectedNote && <p className="mt-3 text-sm text-red-600">{t("cs.rejectReason")}: {ev.rejectedNote}</p>}
-          {admin && ev.status === "PENDING" && <div className="mt-4 border-t border-line pt-3"><ReviewActions id={ev.id} /></div>}
+          {(canDelete || (admin && ev.status === "PENDING")) && (
+            <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-line pt-3">
+              {admin && ev.status === "PENDING" && <ReviewActions id={ev.id} />}
+              {canDelete && <DeleteEvalButton id={ev.id} backHref={backHref} />}
+            </div>
+          )}
         </div>
 
         <div className="card overflow-x-auto p-0">
@@ -64,7 +72,8 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
               {ev.answers.map((a) => (
                 <tr key={a.id}>
                   <td className="td">
-                    {a.criteria}
+                    <span className="font-medium text-ink">{a.title || a.criteria}</span>
+                    {a.title && a.criteria && <span className="block text-xs text-muted">{a.criteria}</span>}
                     <span className="block text-[10px] uppercase text-muted">{a.typeName}</span>
                     {a.note && <span className="block text-xs text-muted">“{a.note}”</span>}
                   </td>
