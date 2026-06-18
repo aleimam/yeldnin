@@ -21,9 +21,10 @@ const MODULES = [
   { key: "couriers", route: "/couriers", section: "main", sortOrder: 8 },
   { key: "issues", route: "/issues", section: "main", sortOrder: 9 },
   { key: "history", route: "/history", section: "main", sortOrder: 10 },
-  { key: "settings", route: "/settings", section: "admin", sortOrder: 11 },
-  { key: "user_access", route: "/users", section: "admin", sortOrder: 12 },
-  { key: "audit_log", route: "/audit", section: "admin", sortOrder: 13 },
+  { key: "cs_quality", route: "/cs-quality", section: "main", sortOrder: 11 },
+  { key: "settings", route: "/settings", section: "admin", sortOrder: 12 },
+  { key: "user_access", route: "/users", section: "admin", sortOrder: 13 },
+  { key: "audit_log", route: "/audit", section: "admin", sortOrder: 14 },
 ];
 
 const TEAMS = [
@@ -72,6 +73,34 @@ async function main() {
       create: team,
     });
   }
+
+  // CS Quality access bridge: CS is governed by the per-user cs_quality module
+  // level, so seed sensible defaults from team membership — Sales → VIEW (see own
+  // evals + criteria), Development → OPERATE (run evaluations) — so existing
+  // reps/evaluators aren't locked out by the new matrix. Fills only users with no
+  // cs_quality permission yet, so manual grants survive re-seed (admins get
+  // MANAGE via tier). New users added later need a grant via Settings → Access.
+  const csTeams = await prisma.team.findMany({
+    where: { key: { in: ["sales", "development"] } },
+    include: { members: { select: { userId: true } } },
+  });
+  const csLevel = new Map<number, "VIEW" | "OPERATE">();
+  for (const team of csTeams) {
+    const lvl = team.key === "development" ? "OPERATE" : "VIEW";
+    for (const m of team.members) {
+      const cur = csLevel.get(m.userId);
+      if (!cur || (cur === "VIEW" && lvl === "OPERATE")) csLevel.set(m.userId, lvl); // OPERATE wins
+    }
+  }
+  let csGranted = 0;
+  for (const [userId, level] of csLevel) {
+    const existing = await prisma.userModulePermission.findFirst({ where: { userId, moduleKey: "cs_quality" } });
+    if (!existing) {
+      await prisma.userModulePermission.create({ data: { userId, moduleKey: "cs_quality", level } });
+      csGranted++;
+    }
+  }
+  if (csGranted) console.log(`  Granted cs_quality access to ${csGranted} team member(s).`);
 
   // Expense categories + accounts (idempotent by name)
   const EXPENSE_CATEGORIES: { name: string; type: string }[] = [
