@@ -32,6 +32,12 @@ export interface Access {
   canModule: (moduleKey: string, min?: Level) => boolean;
   /** Holds a named capability (admins always do; else level ≥ policy minimum). */
   can: (moduleKey: string, capability: string) => boolean;
+  /**
+   * A non-admin whose only team is Sales: Trips & Travelers must be invisible to
+   * them everywhere (nav, pages, global search). They normally lack logistics
+   * access anyway; this is the hard guarantee + covers a mis-grant.
+   */
+  hidesTripTraveler: boolean;
 }
 
 /** Load the current session + permissions. Memoized per request. */
@@ -75,6 +81,7 @@ export const getAccess = cache(async (): Promise<Access> => {
     can: (moduleKey, capability) =>
       admin ||
       levelMeets(moduleLevel(moduleKey), resolveCapabilityLevel(policy, moduleKey, capability)),
+    hidesTripTraveler: !admin && sessionUser.teamKeys.length === 1 && sessionUser.teamKeys[0] === "sales",
   };
 });
 
@@ -85,6 +92,7 @@ function anonymous(): Access {
     moduleLevel: () => "NONE",
     canModule: () => false,
     can: () => false,
+    hidesTripTraveler: false,
   };
 }
 

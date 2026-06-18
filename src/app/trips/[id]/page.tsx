@@ -20,6 +20,7 @@ import { HandlingFeeDisplay } from "@/components/HandlingFeeDisplay";
 export default async function TripDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
   if (!access.canModule("logistics", "VIEW") && !access.canModule("operations", "VIEW")) redirect("/");
+  if (access.hidesTripTraveler) redirect("/");
   const { id } = await params;
   const trip = await getTrip(Number(id));
   if (!trip) notFound();

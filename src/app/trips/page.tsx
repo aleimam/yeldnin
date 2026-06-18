@@ -15,6 +15,7 @@ import { formatBizDate } from "@/lib/format/dates";
 export default async function TripsPage() {
   const access = await requireUser();
   if (!access.canModule("logistics", "VIEW") && !access.canModule("operations", "VIEW")) redirect("/");
+  if (access.hidesTripTraveler) redirect("/");
   const canManage = access.can("logistics", "operate");
   const [t, rows] = await Promise.all([getT(), listTrips()]);
   const ids = rows.map((r) => r.id);

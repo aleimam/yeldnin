@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
@@ -6,6 +7,7 @@ import { TravelerForm } from "../TravelerForm";
 
 export default async function NewTravelerPage() {
   const access = await requireCapability("logistics", "operate");
+  if (access.hidesTripTraveler) redirect("/");
   const [t, travelers] = await Promise.all([getT(), listTravelersForPicker()]);
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={t("travelers.new")} backHref="/travelers">

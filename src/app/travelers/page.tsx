@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
@@ -9,6 +10,7 @@ import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TravelersPage() {
   const access = await requireModule("logistics", "VIEW");
+  if (access.hidesTripTraveler) redirect("/");
   const canManage = access.can("logistics", "operate");
   const [t, rows] = await Promise.all([getT(), listTravelersWithStats()]);
   const slaByTrip = await worstSlaByCurrentContainer("TRIP", rows.flatMap((r) => r.stats.tripIds));

@@ -15,7 +15,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const data = await productDetail(Number(id));
   if (!data || !visible.includes(data.product.scope as never)) notFound();
-  const { product, buckets, requests, containers, totalItems } = data;
+  const { product, buckets, requests, totalItems } = data;
+  // Sales-only members never see Trip containers/links.
+  const containers = access.hidesTripTraveler ? data.containers.filter((c) => c.type !== "TRIP") : data.containers;
   const t = await getT();
   const canEdit = productScopes(access, "OPERATE").includes(product.scope as never);
   const canSeeSelling = canSeeSellingPrice(access);

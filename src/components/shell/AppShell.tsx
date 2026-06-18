@@ -42,6 +42,8 @@ export async function AppShell({
             ? access.can(mod, s.capability)
             : access.canModule(mod, s.minLevel ?? "VIEW");
         })
+        // Sales-only members never see Trips / Travelers.
+        .filter((s) => !access.hidesTripTraveler || (s.href !== "/trips" && s.href !== "/travelers"))
         .map((s) => ({ labelKey: s.labelKey, icon: s.icon, href: s.href }));
   const hasNav = isSettings ? (groups?.length ?? 0) > 0 : sections.length > 0;
 

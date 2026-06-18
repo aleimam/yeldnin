@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
@@ -11,6 +11,7 @@ import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TravelerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("logistics", "VIEW");
+  if (access.hidesTripTraveler) redirect("/");
   const { id } = await params;
   const tr = await getTraveler(Number(id));
   if (!tr) notFound();

@@ -11,6 +11,7 @@ const ymd = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
 
 export default async function EditTripPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
+  if (access.hidesTripTraveler) redirect("/");
   const { id } = await params;
   const trip = await getTrip(Number(id));
   if (!trip) notFound();

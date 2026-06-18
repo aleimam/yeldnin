@@ -124,32 +124,35 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
         return rows.map((r) => ({ type: "patch", id: r.id, uid: r.uid, title: r.destinationName ?? r.tracking ?? "—", subtitle: r.tracking ?? r.destinationName, href: `/patches/${r.id}` }));
       },
     });
-    defs.push({
-      type: "trip",
-      labelKey: "trip.title",
-      run: async () => {
-        const rows = await prisma.trip.findMany({
-          where: { archivedAt: null, ...clause(parsed, ["uid", "country", "notes"]) },
-          select: { id: true, uid: true, country: true, traveler: { select: { name: true } }, lastReceivingDate: true },
-          take: perType,
-          orderBy: { createdAt: "desc" },
-        });
-        return rows.map((r) => ({ type: "trip", id: r.id, uid: r.uid, title: r.traveler.name, subtitle: r.lastReceivingDate ? formatBizDate(r.lastReceivingDate) : r.country, href: `/trips/${r.id}` }));
-      },
-    });
-    defs.push({
-      type: "traveler",
-      labelKey: "travelers.title",
-      run: async () => {
-        const rows = await prisma.traveler.findMany({
-          where: { archivedAt: null, ...clause(parsed, ["name", "contact", "uid"]) },
-          select: { id: true, uid: true, name: true, contact: true },
-          take: perType,
-          orderBy: { updatedAt: "desc" },
-        });
-        return rows.map((r) => ({ type: "traveler", id: r.id, uid: r.uid, title: r.name, subtitle: r.contact, href: `/travelers/${r.id}` }));
-      },
-    });
+    // Sales-only members never get Trip / Traveler hits.
+    if (!access.hidesTripTraveler) {
+      defs.push({
+        type: "trip",
+        labelKey: "trip.title",
+        run: async () => {
+          const rows = await prisma.trip.findMany({
+            where: { archivedAt: null, ...clause(parsed, ["uid", "country", "notes"]) },
+            select: { id: true, uid: true, country: true, traveler: { select: { name: true } }, lastReceivingDate: true },
+            take: perType,
+            orderBy: { createdAt: "desc" },
+          });
+          return rows.map((r) => ({ type: "trip", id: r.id, uid: r.uid, title: r.traveler.name, subtitle: r.lastReceivingDate ? formatBizDate(r.lastReceivingDate) : r.country, href: `/trips/${r.id}` }));
+        },
+      });
+      defs.push({
+        type: "traveler",
+        labelKey: "travelers.title",
+        run: async () => {
+          const rows = await prisma.traveler.findMany({
+            where: { archivedAt: null, ...clause(parsed, ["name", "contact", "uid"]) },
+            select: { id: true, uid: true, name: true, contact: true },
+            take: perType,
+            orderBy: { updatedAt: "desc" },
+          });
+          return rows.map((r) => ({ type: "traveler", id: r.id, uid: r.uid, title: r.name, subtitle: r.contact, href: `/travelers/${r.id}` }));
+        },
+      });
+    }
     defs.push({
       type: "hub",
       labelKey: "hubs.title",
