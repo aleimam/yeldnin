@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useT } from "@/i18n/client";
 import { useDropdown } from "@/lib/use-dropdown";
-import { LOCALE_COOKIE, type Locale } from "@/i18n";
 import {
   THEMES,
   THEME_COOKIE,
@@ -24,11 +23,9 @@ function applyMode(mode: ColorMode) {
 }
 
 export function PreferencesMenu({
-  locale,
   theme,
   mode,
 }: {
-  locale: Locale;
   theme: string;
   mode: ColorMode;
 }) {
@@ -36,13 +33,6 @@ export function PreferencesMenu({
   const { open, setOpen, ref } = useDropdown<HTMLDivElement>();
   const [curTheme, setCurTheme] = useState(theme);
   const [curMode, setCurMode] = useState<ColorMode>(mode);
-
-  function chooseLocale(next: Locale) {
-    if (next === locale) return;
-    setCookie(LOCALE_COOKIE, next);
-    void persistPrefs({ locale: next });
-    window.location.reload(); // SSR text + dir must re-render
-  }
 
   function chooseTheme(key: string) {
     setCurTheme(key);
@@ -75,28 +65,6 @@ export function PreferencesMenu({
 
       {open && (
         <div className="absolute end-0 z-40 mt-2 w-60 rounded-xl border border-line bg-surface p-3 shadow-lg">
-          {/* Language */}
-            <div className="mb-3">
-              <div className="mb-1.5 text-xs font-semibold text-muted">
-                {t("pref.language")}
-              </div>
-              <div className="flex gap-2">
-                {(["en", "ar"] as Locale[]).map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => chooseLocale(l)}
-                    className={`flex-1 rounded-lg border px-2 py-1 text-sm ${
-                      locale === l
-                        ? "border-brand bg-brand text-brand-fg"
-                        : "border-line text-ink hover:bg-canvas"
-                    }`}
-                  >
-                    {l === "en" ? "English" : "العربية"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Mode */}
             <div className="mb-3">
               <div className="mb-1.5 text-xs font-semibold text-muted">

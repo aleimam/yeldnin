@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getT, getLocale } from "@/i18n/server";
+import { getT } from "@/i18n/server";
 import { getAccess, type SessionUser } from "@/lib/auth/access";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
@@ -8,6 +8,7 @@ import { MODULES, childModules } from "@/lib/modules";
 import { canAccessSettings } from "@/lib/module-sections";
 import { canAccessCs } from "@/lib/cs/cs-logic";
 import { PreferencesMenu } from "./PreferencesMenu";
+import { LocaleSwitcher } from "./LocaleSwitcher";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { AccountMenu } from "./AccountMenu";
 import { GlobalSearch } from "./GlobalSearch";
@@ -29,11 +30,10 @@ export async function TopBar({
   user: SessionUser;
   activeModuleKey?: string;
 }) {
-  const [t, access, settings, locale, theme, mode] = await Promise.all([
+  const [t, access, settings, theme, mode] = await Promise.all([
     getT(),
     getAccess(),
     getPlatformSettings(),
-    getLocale(),
     getEffectiveTheme(),
     getColorMode(),
   ]);
@@ -91,7 +91,8 @@ export async function TopBar({
 
         {/* Right cluster */}
         <div className="ms-auto flex items-center gap-3">
-          <PreferencesMenu locale={locale} theme={theme} mode={mode} />
+          <LocaleSwitcher />
+          <PreferencesMenu theme={theme} mode={mode} />
           <div className="hidden items-center gap-2 sm:flex">
             <span className="text-sm font-medium text-ink">{user.name}</span>
             <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
