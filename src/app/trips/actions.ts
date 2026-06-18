@@ -1,8 +1,8 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireCapability, requireAdmin } from "@/lib/auth/access";
+import { requireCapability, requireAdmin, requireUser } from "@/lib/auth/access";
 import { validateTrip } from "@/lib/trips/trip-logic";
-import { createTrip, advanceTrip, approveTrip, denyTrip } from "@/lib/trips/trip-service";
+import { createTrip, updateTrip, advanceTrip, approveTrip, denyTrip, getTrip } from "@/lib/trips/trip-service";
 import { writeAudit } from "@/lib/audit";
 
 export interface TripPayload {
@@ -44,6 +44,42 @@ export async function createTripAction(p: TripPayload): Promise<TripResult> {
     return { ok: true, id: trip.id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not create the trip." };
+  }
+}
+
+/** Edit trip details — the trip's creator or an admin, any status (no lock). */
+export async function updateTripAction(id: number, p: TripPayload): Promise<TripResult> {
+  const access = await requireUser();
+  const trip = await getTrip(id);
+  if (!trip) return { ok: false, error: "Trip not found." };
+  if (!access.isAdmin && trip.createdById !== access.user.id) {
+    return { ok: false, error: "You can only edit trips you created." };
+  }
+  const errs = validateTrip(p);
+  if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
+  try {
+    await updateTrip(
+      id,
+      {
+        travelerId: p.travelerId!,
+        country: p.country,
+        maxWeight: p.maxWeight ?? null,
+        dealPricePerKg: p.dealPricePerKg ?? null,
+        lastReceivingDate: p.lastReceivingDate ?? null,
+        deliveryDateInEgypt: p.deliveryDateInEgypt ?? null,
+        notes: p.notes ?? null,
+        allowedProductTypes: p.allowedProductTypes ?? [],
+        handlingFee: p.handlingFee ?? null,
+        handlingFeeCurrency: p.handlingFeeCurrency ?? null,
+      },
+      access.user.id,
+    );
+    await writeAudit(access.user.id, "logistics", "trip.update", "trip", id, { travelerId: p.travelerId });
+    revalidatePath(`/trips/${id}`);
+    revalidatePath("/trips");
+    return { ok: true, id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not update the trip." };
   }
 }
 

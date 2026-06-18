@@ -257,6 +257,44 @@ export async function categoryCountsByRequest(ids: number[]): Promise<Map<number
   return out;
 }
 
+/** Items (with product + weight + status) currently sitting in a container. */
+export function currentContainerItems(containerType: string, containerId: number) {
+  return prisma.item.findMany({
+    where: { containerType, containerId },
+    orderBy: { id: "asc" },
+    include: { product: { select: { id: true, name: true, weightG: true } } },
+  });
+}
+
+/** Items heading to a destination (TRIP/HUB) via a purchase or patch that haven't
+ *  been received yet (pre-HUB), excluding LOST/DAMAGED/ERRANT — the detailed list
+ *  behind {@link inboundPendingByDestination}. */
+export async function inboundPendingItems(destType: "TRIP" | "HUB", destId: number) {
+  const [purchases, patches] = await Promise.all([
+    prisma.purchase.findMany({ where: { destinationType: destType, destinationId: destId, archivedAt: null }, select: { id: true } }),
+    prisma.patch.findMany({ where: { destinationType: destType, destinationId: destId, archivedAt: null }, select: { id: true } }),
+  ]);
+  const purchaseIds = purchases.map((p) => p.id);
+  const patchIds = patches.map((p) => p.id);
+  if (!purchaseIds.length && !patchIds.length) return [];
+  return prisma.item.findMany({
+    where: {
+      status: { in: PRE_RECEIPT_STATUSES },
+      AND: [
+        MOVABLE_ITEMS_WHERE,
+        {
+          OR: [
+            { containerType: "PURCHASE", containerId: { in: purchaseIds } },
+            { containerType: "PATCH", containerId: { in: patchIds } },
+          ],
+        },
+      ],
+    },
+    orderBy: { id: "asc" },
+    include: { product: { select: { id: true, name: true, weightG: true } } },
+  });
+}
+
 export interface InboundPending {
   count: number;
   weightG: number;

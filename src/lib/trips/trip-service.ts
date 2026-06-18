@@ -44,6 +44,26 @@ export async function createTrip(input: CreateTripInput, userId: number) {
   });
 }
 
+/** Edit a trip's details (creator/admin gated in the action). Status is untouched. */
+export async function updateTrip(id: number, input: CreateTripInput, userId: number) {
+  return prisma.trip.update({
+    where: { id },
+    data: {
+      travelerId: input.travelerId,
+      country: input.country.trim(),
+      maxWeight: input.maxWeight ?? null,
+      dealPricePerKg: input.dealPricePerKg ?? null,
+      lastReceivingDate: input.lastReceivingDate ? new Date(input.lastReceivingDate) : null,
+      deliveryDateInEgypt: input.deliveryDateInEgypt ? new Date(input.deliveryDateInEgypt) : null,
+      allowedProductTypes: input.allowedProductTypes?.length ? joinTypes(input.allowedProductTypes) : "",
+      notes: input.notes?.trim() || null,
+      handlingFee: input.handlingFee ?? null,
+      handlingFeeCurrency: input.handlingFeeCurrency ?? null,
+      updatedById: userId,
+    },
+  });
+}
+
 /** Advance a trip to the next status; cascade item statuses where the map says so. */
 export async function advanceTrip(id: number, userId: number) {
   const trip = await prisma.trip.findUnique({ where: { id } });

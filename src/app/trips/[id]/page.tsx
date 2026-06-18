@@ -5,7 +5,8 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
-import { getTrip, getTripItems } from "@/lib/trips/trip-service";
+import { getTrip } from "@/lib/trips/trip-service";
+import { currentContainerItems, inboundPendingItems } from "@/lib/items/items-service";
 import { getTripMarks } from "@/lib/review/review-service";
 import { teamsUserCanMark, REVIEW_TEAMS } from "@/lib/review/review-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
@@ -24,8 +25,20 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   if (!trip) notFound();
   const canManage = access.can("logistics", "operate");
   const canOps = access.can("operations", "operate");
-  const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getTripItems(trip.id), getWorkflow()]);
+  const canEdit = access.isAdmin || trip.createdById === access.user.id;
+  const [t, locale, inventory, inbound, wf] = await Promise.all([
+    getT(),
+    getLocale(),
+    currentContainerItems("TRIP", trip.id),
+    inboundPendingItems("TRIP", trip.id),
+    getWorkflow(),
+  ]);
   const loc = locale === "ar" ? "ar" : "en";
+  const kg = (g: number) => `${(g / 1000).toFixed(1)} kg`;
+  const invWeight = inventory.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
+  const inboundWeight = inbound.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
+  const totalCount = inventory.length + inbound.length;
+  const totalWeight = invWeight + inboundWeight;
 
   // 3-team review (only once picked up). Each team sees its own mark; admins all.
   const editableTeams = teamsUserCanMark(access);
@@ -47,8 +60,10 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
               <div><span className="text-muted">{t("trip.lastReceiving")}: </span><span className="text-ink">{formatBizDate(trip.lastReceivingDate)}</span></div>
               <div><span className="text-muted">{t("fx.handlingFee")}: </span><HandlingFeeDisplay fee={trip.handlingFee} currency={trip.handlingFeeCurrency} /></div>
               <div><span className="text-muted">{t("trip.status")}: </span><span className="text-ink">{t(`tripstatus.${trip.status}`)}</span></div>
+              <div><span className="text-muted">{t("trip.total")}: </span><span className="text-ink">{totalCount} · {kg(totalWeight)}</span></div>
             </div>
             <div className="flex items-center gap-3">
+              {canEdit && <Link href={`/trips/${trip.id}/edit`} className="btn-secondary px-3 py-1.5 text-sm">{t("common.edit")}</Link>}
               {trip.status === "NEW" && access.isAdmin && <TripApproveButtons id={trip.id} />}
               {trip.status === "APPROVED" && <span className="text-sm text-muted">{t("trip.autoShipNote")}</span>}
               {canManage && <TripAdvanceButton id={trip.id} status={trip.status} />}
@@ -70,18 +85,35 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
         )}
 
         <div className="card p-5">
-          <h2 className="mb-3 font-semibold text-ink">{t("trip.items")} ({items.length})</h2>
+          <h2 className="mb-3 font-semibold text-ink">{t("trip.inventory")} ({inventory.length} · {kg(invWeight)})</h2>
           <table className="w-full text-sm">
             <thead><tr className="border-b border-line"><th className="th">{t("trip.uid")}</th><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
             <tbody className="divide-y divide-line">
-              {items.map((it) => (
+              {inventory.map((it) => (
                 <tr key={it.id}>
                   <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
                   <td className="td"><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
                   <td className="td">{wf.label(it.status as ItemStatus, loc)}</td>
                 </tr>
               ))}
-              {items.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("trip.noItems")}</td></tr>}
+              {inventory.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("trip.noItems")}</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card p-5">
+          <h2 className="mb-3 font-semibold text-ink">{t("trip.inboundTitle")} ({inbound.length} · {kg(inboundWeight)})</h2>
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-line"><th className="th">{t("trip.uid")}</th><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {inbound.map((it) => (
+                <tr key={it.id}>
+                  <td className="td font-mono text-xs text-muted">{it.uid ?? it.id}</td>
+                  <td className="td"><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
+                  <td className="td">{wf.label(it.status as ItemStatus, loc)}</td>
+                </tr>
+              ))}
+              {inbound.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("trip.noInbound")}</td></tr>}
             </tbody>
           </table>
         </div>

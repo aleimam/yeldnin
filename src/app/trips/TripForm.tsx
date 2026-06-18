@@ -2,35 +2,57 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
-import { createTripAction } from "./actions";
+import { createTripAction, updateTripAction } from "./actions";
 import { PRODUCT_TYPES } from "@/lib/products/products-logic";
 import { HandlingFeeInput } from "@/components/HandlingFeeInput";
 import { FX_BASE } from "@/lib/fx/fx-logic";
 
-export function TripForm({ travelers, countries }: { travelers: { id: number; name: string }[]; countries: string[] }) {
+export interface TripFormInitial {
+  id: number;
+  travelerId: number;
+  country: string;
+  maxWeight: number | null;
+  dealPricePerKg: number | null;
+  lastReceivingDate: string;
+  deliveryDateInEgypt: string;
+  notes: string;
+  handlingFee: string;
+  handlingFeeCurrency: string;
+  allowedProductTypes: string[];
+}
+
+export function TripForm({
+  travelers,
+  countries,
+  trip,
+}: {
+  travelers: { id: number; name: string }[];
+  countries: string[];
+  trip?: TripFormInitial;
+}) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [f, setF] = useState({
-    travelerId: travelers[0] ? String(travelers[0].id) : "",
-    country: countries[0] ?? "",
-    maxWeight: "",
-    dealPricePerKg: "",
-    lastReceivingDate: "",
-    deliveryDateInEgypt: "",
-    notes: "",
-    handlingFee: "",
-    handlingFeeCurrency: FX_BASE,
+    travelerId: trip ? String(trip.travelerId) : travelers[0] ? String(travelers[0].id) : "",
+    country: trip?.country ?? countries[0] ?? "",
+    maxWeight: trip?.maxWeight != null ? String(trip.maxWeight) : "",
+    dealPricePerKg: trip?.dealPricePerKg != null ? String(trip.dealPricePerKg) : "",
+    lastReceivingDate: trip?.lastReceivingDate ?? "",
+    deliveryDateInEgypt: trip?.deliveryDateInEgypt ?? "",
+    notes: trip?.notes ?? "",
+    handlingFee: trip?.handlingFee ?? "",
+    handlingFeeCurrency: trip?.handlingFeeCurrency || FX_BASE,
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
-  const [types, setTypes] = useState<string[]>([]);
+  const [types, setTypes] = useState<string[]>(trip?.allowedProductTypes ?? []);
   const toggleType = (ty: string) => setTypes((p) => (p.includes(ty) ? p.filter((x) => x !== ty) : [...p, ty]));
 
   function submit() {
     setError(null);
     start(async () => {
-      const res = await createTripAction({
+      const payload = {
         travelerId: f.travelerId ? Number(f.travelerId) : null,
         country: f.country,
         maxWeight: f.maxWeight ? Number(f.maxWeight) : null,
@@ -41,7 +63,8 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
         notes: f.notes || undefined,
         handlingFee: f.handlingFee ? Number(f.handlingFee) : null,
         handlingFeeCurrency: f.handlingFee ? f.handlingFeeCurrency : null,
-      });
+      };
+      const res = trip ? await updateTripAction(trip.id, payload) : await createTripAction(payload);
       if (res.ok) router.push(`/trips/${res.id}`);
       else setError(res.error);
     });
@@ -92,7 +115,7 @@ export function TripForm({ travelers, countries }: { travelers: { id: number; na
         <HandlingFeeInput fee={f.handlingFee} currency={f.handlingFeeCurrency} onFee={(v) => set("handlingFee", v)} onCurrency={(v) => set("handlingFeeCurrency", v)} />
       </div>
       <div><label className="label">{t("trip.notes")}</label><textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
-      <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : t("trip.create")}</button>
+      <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : trip ? t("common.save") : t("trip.create")}</button>
     </div>
   );
 }
