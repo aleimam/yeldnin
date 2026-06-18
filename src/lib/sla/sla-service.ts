@@ -98,6 +98,32 @@ export async function worstSlaByRequest(
   return out;
 }
 
+/** Worst SLA status among the special-order items CURRENTLY in each container
+ *  (trip/patch/purchase). Containers with no at-risk special orders are absent
+ *  from the map. In-flight items judge against null deliveredAt. Drives the
+ *  list row tint (#8). */
+export async function worstSlaByCurrentContainer(
+  containerType: string,
+  ids: number[],
+  now: Date = new Date(),
+): Promise<Map<number, SlaStatus>> {
+  if (!ids.length) return new Map();
+  const items = (await prisma.item.findMany({
+    where: { containerType, containerId: { in: ids }, isSpecialOrder: true },
+    select: SLA_ITEM_SELECT,
+  })) as ItemRow[];
+  if (!items.length) return new Map();
+  const [sla, td] = await Promise.all([getSla(), tripDates(items)]);
+  const out = new Map<number, SlaStatus>();
+  for (const it of items) {
+    if (it.containerId == null) continue;
+    const s = compute(it, td, null, now, sla).status;
+    const cur = out.get(it.containerId);
+    if (!cur || RANK[s] > RANK[cur]) out.set(it.containerId, s);
+  }
+  return out;
+}
+
 const ALERT_RANK: Record<string, number> = { RISK: 1, DELAYED: 2 };
 const arank = (s?: string | null) => (s ? (ALERT_RANK[s] ?? 0) : 0);
 

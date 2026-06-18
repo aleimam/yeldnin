@@ -5,11 +5,13 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
 import { listRequests } from "@/lib/requests/request-service";
-import { itemStatusSummary } from "@/lib/items/items-service";
-import { ITEM_BUCKETS } from "@/lib/items/items-logic";
+import { itemStatusSummary, categoryCountsByRequest } from "@/lib/items/items-service";
+import { ITEM_BUCKETS, categoryLabels, emptyCategoryCounts } from "@/lib/items/items-logic";
 import { moduleContextScopes } from "@/lib/module-context";
 import { worstSlaByRequest } from "@/lib/sla/sla-service";
+import { slaRowClass } from "@/lib/sla/sla-logic";
 import { SlaBadge } from "@/components/SlaBadge";
+import { ItemCounts } from "@/components/ItemCounts";
 
 export default async function RequestsPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const access = await requireUser();
@@ -22,10 +24,14 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
   const canManage = requestScopes(access, "OPERATE").length > 0;
   const [t, rows, summary] = await Promise.all([getT(), listRequests({ scopes }), itemStatusSummary(scopes)]);
-  const slaByReq = await worstSlaByRequest(
-    rows.map((r) => r.id),
-    new Map(rows.map((r) => [r.id, r.deliveredAt])),
-  );
+  const [slaByReq, counts] = await Promise.all([
+    worstSlaByRequest(
+      rows.map((r) => r.id),
+      new Map(rows.map((r) => [r.id, r.deliveredAt])),
+    ),
+    categoryCountsByRequest(rows.map((r) => r.id)),
+  ]);
+  const labels = categoryLabels(t);
   let slaRisk = 0;
   let slaDelayed = 0;
   for (const s of slaByReq.values()) {
@@ -64,7 +70,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
               <th className="th">{t("requests.type")}</th>
               <th className="th">{t("requests.scope")}</th>
               <th className="th">{t("requests.customer")}</th>
-              <th className="th text-end">{t("requests.lines")}</th>
+              <th className="th">{t("requests.items")}</th>
               <th className="th">SLA</th>
             </tr>
           </thead>
@@ -72,14 +78,14 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
             {rows.map((r) => {
               const st = slaByReq.get(r.id);
               return (
-                <tr key={r.id} className="hover:bg-canvas/60">
+                <tr key={r.id} className={`hover:bg-canvas/60 ${slaRowClass(st)}`}>
                   <td className="td font-mono text-xs text-muted">
                     <Link href={`/requests/${r.id}`} className="text-brand hover:underline">{r.uid ?? r.id}</Link>
                   </td>
                   <td className="td">{t(`reqtype.${r.type}`)}</td>
                   <td className="td text-muted">{t(`scope.${r.scope}`)}</td>
                   <td className="td text-muted">{r.customer?.name ?? "—"}</td>
-                  <td className="td text-end text-muted">{r._count.lines}</td>
+                  <td className="td"><ItemCounts counts={counts.get(r.id) ?? emptyCategoryCounts()} labels={labels} /></td>
                   <td className="td">{st ? <SlaBadge status={st} label={t(`sla.${st.toLowerCase()}`)} /> : <span className="text-muted">—</span>}</td>
                 </tr>
               );

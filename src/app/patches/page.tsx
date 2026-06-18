@@ -6,13 +6,19 @@ import { SCOPES } from "@/lib/products/products-logic";
 import { listPatches } from "@/lib/patches/patch-service";
 import { categoryCountsByContainerHistory } from "@/lib/items/items-service";
 import { categoryLabels, emptyCategoryCounts } from "@/lib/items/items-logic";
+import { worstSlaByCurrentContainer } from "@/lib/sla/sla-service";
+import { slaRowClass } from "@/lib/sla/sla-logic";
 import { ItemCounts } from "@/components/ItemCounts";
 
 export default async function PatchesPage() {
   const access = await requireModule("logistics", "VIEW");
   const canManage = access.can("logistics", "operate");
   const [t, rows] = await Promise.all([getT(), listPatches({ scopes: [...SCOPES] })]);
-  const counts = await categoryCountsByContainerHistory("PATCH", rows.map((r) => r.id));
+  const ids = rows.map((r) => r.id);
+  const [counts, sla] = await Promise.all([
+    categoryCountsByContainerHistory("PATCH", ids),
+    worstSlaByCurrentContainer("PATCH", ids),
+  ]);
   const labels = categoryLabels(t);
   return (
     <AppShell
@@ -33,7 +39,7 @@ export default async function PatchesPage() {
           </thead>
           <tbody className="divide-y divide-line">
             {rows.map((p) => (
-              <tr key={p.id} className="hover:bg-canvas/60">
+              <tr key={p.id} className={`hover:bg-canvas/60 ${slaRowClass(sla.get(p.id))}`}>
                 <td className="td">
                   <Link href={`/patches/${p.id}`} className="text-brand hover:underline">
                     {t("patch.friendly", { count: counts.get(p.id)?.total ?? 0, supplier: p.supplierName ?? "—", dest: p.destinationName ?? "—" })}

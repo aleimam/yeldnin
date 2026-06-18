@@ -21,6 +21,17 @@ export type SourceClass = "INJECTION" | "STANDARD" | "FAST";
 
 export type SlaStatus = "HEALTHY" | "RISK" | "DELAYED" | "DELIVERED";
 
+/** Severity rank for picking the worst status across a set of items. */
+export const SLA_RANK: Record<SlaStatus, number> = { DELIVERED: 0, HEALTHY: 1, RISK: 2, DELAYED: 3 };
+
+/** Subtle row tint for a container carrying at-risk special orders (#8). Works
+ *  in light + dark via a translucent overlay; empty string = no tint. */
+export function slaRowClass(status?: SlaStatus | null): string {
+  if (status === "DELAYED") return "bg-red-500/10";
+  if (status === "RISK") return "bg-amber-500/10";
+  return "";
+}
+
 export interface ScopeGrace {
   injection: number;
   standard: number;

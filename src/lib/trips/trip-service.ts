@@ -81,13 +81,22 @@ export async function startTripShippingIfApproved(tripId: number, userId: number
   });
 }
 
-export function listTrips() {
-  return prisma.trip.findMany({
+/** Trips ordered nearest-first: soonest upcoming last-receiving date first, then
+ *  past / undated trips (createdAt-desc within that tail). */
+export async function listTrips() {
+  const trips = await prisma.trip.findMany({
     where: { archivedAt: null },
     orderBy: { createdAt: "desc" },
     include: { traveler: { select: { name: true } } },
     take: 200,
   });
+  const now = Date.now();
+  const key = (d: Date | null) => {
+    if (!d) return Infinity;
+    const ts = d.getTime();
+    return ts >= now ? ts : Infinity; // past receiving dates sink to the end
+  };
+  return trips.sort((a, b) => key(a.lastReceivingDate) - key(b.lastReceivingDate));
 }
 export function listTripsByTraveler(travelerId: number) {
   return prisma.trip.findMany({

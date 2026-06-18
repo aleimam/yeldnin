@@ -6,6 +6,8 @@ import { productScopes } from "@/lib/products/products-logic";
 import { listPurchases } from "@/lib/purchasing/purchasing-service";
 import { categoryCountsByContainerHistory } from "@/lib/items/items-service";
 import { categoryLabels, emptyCategoryCounts } from "@/lib/items/items-logic";
+import { worstSlaByCurrentContainer } from "@/lib/sla/sla-service";
+import { slaRowClass } from "@/lib/sla/sla-logic";
 import { ItemCounts } from "@/components/ItemCounts";
 
 export default async function PurchasesPage() {
@@ -13,7 +15,11 @@ export default async function PurchasesPage() {
   const scopes = productScopes(access, "VIEW");
   const canBuy = access.can("purchasing", "operate");
   const [t, rows] = await Promise.all([getT(), listPurchases({ scopes })]);
-  const counts = await categoryCountsByContainerHistory("PURCHASE", rows.map((r) => r.id));
+  const ids = rows.map((r) => r.id);
+  const [counts, sla] = await Promise.all([
+    categoryCountsByContainerHistory("PURCHASE", ids),
+    worstSlaByCurrentContainer("PURCHASE", ids),
+  ]);
   const labels = categoryLabels(t);
 
   return (
@@ -35,7 +41,7 @@ export default async function PurchasesPage() {
           </thead>
           <tbody className="divide-y divide-line">
             {rows.map((p) => (
-              <tr key={p.id} className="hover:bg-canvas/60">
+              <tr key={p.id} className={`hover:bg-canvas/60 ${slaRowClass(sla.get(p.id))}`}>
                 <td className="td">
                   <Link href={`/purchasing/purchases/${p.id}`} className="text-brand hover:underline">
                     {t("purchase.friendly", { count: counts.get(p.id)?.total ?? 0, supplier: p.supplierName ?? "—", dest: p.destinationName ?? "—" })}
