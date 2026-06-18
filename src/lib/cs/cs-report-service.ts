@@ -4,7 +4,9 @@ import { writeAudit } from "@/lib/audit";
 import { compositeOverall, type CompositeResult } from "./cs-logic";
 import { getCsConfig } from "./cs-config-service";
 import { getLocale } from "@/i18n/server";
+import { makeT, isLocale, DEFAULT_LOCALE } from "@/i18n";
 import { displayName } from "@/lib/users/users-logic";
+import { sendCustomNotification } from "@/lib/notify/notify-message-service";
 
 const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 // Call evals bucket by the call date; Performance by submission date.
@@ -94,9 +96,45 @@ export async function getEvaluationDetail(id: number) {
   };
 }
 
+/** Notify the evaluated rep + the evaluator that an evaluation was approved,
+ *  each in their own locale. Best-effort: never blocks the approval. */
+async function notifyApproval(
+  ev: { id: number; uid: string | null; subjectUserId: number; evaluatorUserId: number },
+  approverId: number,
+) {
+  const link = `/cs-quality/evaluations/${ev.id}`;
+  const ref = ev.uid ?? `#${ev.id}`;
+  const users = await prisma.user.findMany({
+    where: { id: { in: [ev.subjectUserId, ev.evaluatorUserId] } },
+    select: { id: true, locale: true },
+  });
+  const tFor = (uid: number) => {
+    const l = users.find((u) => u.id === uid)?.locale;
+    return makeT(isLocale(l) ? l : DEFAULT_LOCALE);
+  };
+  const targets = [
+    { userId: ev.subjectUserId, bodyKey: "cs.notif.approvedSubjectBody" },
+    { userId: ev.evaluatorUserId, bodyKey: "cs.notif.approvedEvaluatorBody" },
+  ];
+  await Promise.allSettled(
+    targets.map((tg) => {
+      const tt = tFor(tg.userId);
+      return sendCustomNotification(
+        { title: tt("cs.notif.approvedTitle"), body: tt(tg.bodyKey, { ref }), link, type: "success", target: { userIds: [tg.userId] } },
+        approverId,
+      );
+    }),
+  );
+}
+
 export async function approveEvaluation(id: number, userId: number) {
-  await prisma.csEvaluation.update({ where: { id }, data: { status: "APPROVED", approvedById: userId, approvedAt: new Date(), rejectedNote: null } });
+  const ev = await prisma.csEvaluation.update({
+    where: { id },
+    data: { status: "APPROVED", approvedById: userId, approvedAt: new Date(), rejectedNote: null },
+    select: { id: true, uid: true, subjectUserId: true, evaluatorUserId: true },
+  });
   await writeAudit(userId, "cs_quality", "eval.approve", "csEvaluation", id, {});
+  await notifyApproval(ev, userId).catch(() => {});
 }
 export async function rejectEvaluation(id: number, note: string | null, userId: number) {
   await prisma.csEvaluation.update({ where: { id }, data: { status: "REJECTED", rejectedNote: note?.trim() || null } });

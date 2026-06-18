@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
@@ -36,26 +37,38 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   // Eval-level type chip: borrow the Arabic type name snapshotted on any answer.
   const evTypeName = ev.typeName ? localized(ev.typeName, ev.answers.find((a) => a.typeNameAr)?.typeNameAr, locale) : null;
 
+  // Summary as an ordered key/value list rendered table-like below.
+  const summaryRows: { label: string; value: ReactNode }[] = [
+    { label: t("cs.salesRep"), value: subject },
+    { label: t("cs.scope"), value: `${t(`cs.scope.${ev.scope}`)}${evTypeName ? ` · ${evTypeName}` : ""}` },
+    ...(showEvaluator ? [{ label: t("cs.evaluator"), value: evaluator }] : []),
+    { label: t("cs.date"), value: formatBizDate(ev.scope === "CALL" ? ev.callDate ?? ev.createdAt : ev.createdAt) },
+    ...(ev.scope === "CALL"
+      ? [
+          { label: t("cs.channel"), value: ev.channel ? t(`cs.channel.${ev.channel}`) : "—" },
+          { label: t("cs.contact"), value: ev.contact || "—" },
+        ]
+      : []),
+    { label: t("cs.score"), value: ev.total },
+    { label: t("cs.normalized"), value: `${ev.normalized}%` },
+    ...(ev.status === "APPROVED" && approver
+      ? [{ label: t("cs.approvedBy"), value: `${approver}${ev.approvedAt ? ` · ${formatBizDate(ev.approvedAt)}` : ""}` }]
+      : []),
+    { label: t("cs.status"), value: <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_TONE[ev.status] ?? "bg-canvas text-muted"}`}>{t(`cs.status.${ev.status}`)}</span> },
+  ];
+
   return (
     <AppShell access={access} moduleKey="cs_quality" pageTitle={ev.uid ?? `#${ev.id}`} backHref={backHref}>
       <div className="max-w-3xl space-y-6">
         <div className="card p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
-              <div><span className="text-muted">{t("cs.salesRep")}: </span><span className="text-ink">{subject}</span></div>
-              <div><span className="text-muted">{t("cs.scope")}: </span><span className="text-ink">{t(`cs.scope.${ev.scope}`)}{evTypeName ? ` · ${evTypeName}` : ""}</span></div>
-              {showEvaluator && <div><span className="text-muted">{t("cs.evaluator")}: </span><span className="text-ink">{evaluator}</span></div>}
-              <div><span className="text-muted">{t("cs.date")}: </span><span className="text-ink">{formatBizDate(ev.scope === "CALL" ? ev.callDate ?? ev.createdAt : ev.createdAt)}</span></div>
-              {ev.scope === "CALL" && <div><span className="text-muted">{t("cs.channel")}: </span><span className="text-ink">{ev.channel ? t(`cs.channel.${ev.channel}`) : "—"}</span></div>}
-              {ev.scope === "CALL" && <div><span className="text-muted">{t("cs.contact")}: </span><span className="text-ink">{ev.contact || "—"}</span></div>}
-              <div><span className="text-muted">{t("cs.score")}: </span><span className="font-semibold text-ink">{ev.total}</span></div>
-              <div><span className="text-muted">{t("cs.normalized")}: </span><span className="font-semibold text-ink">{ev.normalized}%</span></div>
-              {ev.status === "APPROVED" && approver && (
-                <div><span className="text-muted">{t("cs.approvedBy")}: </span><span className="text-ink">{approver}{ev.approvedAt ? ` · ${formatBizDate(ev.approvedAt)}` : ""}</span></div>
-              )}
-            </div>
-            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_TONE[ev.status] ?? "bg-canvas text-muted"}`}>{t(`cs.status.${ev.status}`)}</span>
-          </div>
+          <dl className="grid grid-cols-1 gap-x-10 sm:grid-cols-2">
+            {summaryRows.map((r) => (
+              <div key={r.label} className="flex items-center justify-between gap-4 border-b border-line/50 py-2 text-sm">
+                <dt className="text-muted">{r.label}</dt>
+                <dd className="text-end font-medium text-ink">{r.value}</dd>
+              </div>
+            ))}
+          </dl>
           {ev.status === "REJECTED" && ev.rejectedNote && <p className="mt-3 text-sm text-red-600">{t("cs.rejectReason")}: {ev.rejectedNote}</p>}
           {(canDelete || (admin && ev.status === "PENDING")) && (
             <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-line pt-3">
