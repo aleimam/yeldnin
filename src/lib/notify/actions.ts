@@ -9,6 +9,7 @@ import {
   pushEnabled,
   type ClientSubscription,
 } from "./notify-service";
+import { getT } from "@/i18n/server";
 
 /** Client bootstraps with this: the VAPID public key + whether sending works. */
 export async function getPushConfigAction(): Promise<{ publicKey: string | null; enabled: boolean }> {
@@ -33,9 +34,10 @@ export async function unsubscribeAction(endpoint: string): Promise<{ ok: boolean
 export async function sendTestAction(): Promise<{ ok: boolean; error?: string }> {
   const access = await requireUser();
   if (!pushEnabled()) return { ok: false, error: "not-configured" };
+  const t = await getT();
   await sendToUsers([access.user.id], {
-    title: "YeldnIN",
-    body: "Test notification — push is working ✅",
+    title: t("notify.test.title"),
+    body: t("notify.test.body"),
     url: "/account",
     tag: "test",
   });

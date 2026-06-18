@@ -36,3 +36,9 @@ export function translate(
 }
 
 export type TFunction = (key: string, vars?: Record<string, string | number>) => string;
+
+/** Bind a translator to a fixed locale — for server jobs / notifications that
+ *  render outside a request (no cookie), e.g. per-recipient push payloads. */
+export function makeT(locale: Locale): TFunction {
+  return (key, vars) => translate(locale, key, vars);
+}

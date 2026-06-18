@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { getSla } from "./sla-config-service";
 import { computeItemSla, type SlaSettings, type SlaStatus } from "./sla-logic";
-import { sendToUsers, resolveRecipients } from "@/lib/notify/notify-service";
+import { sendLocalizedToUsers, resolveRecipients } from "@/lib/notify/notify-service";
 import { slaAlertPayload } from "@/lib/notify/notify-logic";
 
 interface ItemRow {
@@ -127,7 +127,7 @@ export async function runSlaAlerts(now: Date = new Date()): Promise<number> {
     const status = compute(it as ItemRow, td, req.deliveredAt ?? null, now, sla).status;
     if ((status === "RISK" || status === "DELAYED") && arank(status) > arank(it.slaAlertedStatus)) {
       const modules = it.scope === "XOONX" ? ["xoonx"] : ["order_requests"];
-      await sendToUsers(await resolveRecipients("sla.alert", { fallbackModules: modules }), slaAlertPayload({ uid: req.uid, status, requestId: req.id })).catch(() => {});
+      await sendLocalizedToUsers(await resolveRecipients("sla.alert", { fallbackModules: modules }), (t) => slaAlertPayload(t, { uid: req.uid, status, requestId: req.id })).catch(() => {});
       await prisma.item.update({ where: { id: it.id }, data: { slaAlertedStatus: status } });
       alerted++;
     } else if (status === "HEALTHY" && it.slaAlertedStatus) {

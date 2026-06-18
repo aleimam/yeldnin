@@ -4,7 +4,7 @@ import { nextUid } from "@/lib/uid";
 import { autoAdvanceSchedule } from "@/lib/workflow/workflow-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import { dueAutoAdvance, itemBucket, ITEM_BUCKETS } from "./items-logic";
-import { sendToUsers, resolveRecipients, notifyUnitMilestones } from "@/lib/notify/notify-service";
+import { sendLocalizedToUsers, resolveRecipients, notifyUnitMilestones } from "@/lib/notify/notify-service";
 import { itemsFlaggedPayload } from "@/lib/notify/notify-logic";
 
 export interface CreateItemsInput {
@@ -123,7 +123,7 @@ export async function flagItems(itemIds: number[], flag: string, userId: number)
       data: { itemId: it.id, fromStatus: it.status, toStatus: it.status, action: `flag:${flag}`, byUserId: userId },
     });
   }
-  if (items.length) await sendToUsers(await resolveRecipients("items.flagged"), itemsFlaggedPayload(items.length, flag)).catch(() => {});
+  if (items.length) await sendLocalizedToUsers(await resolveRecipients("items.flagged"), (t) => itemsFlaggedPayload(t, items.length, flag)).catch(() => {});
 }
 
 /** Item-status rollup for the Requests dashboard (counts per bucket, scope-filtered). */

@@ -6,6 +6,7 @@ import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { isModuleOperator, unitUpdatePayload, splitCsv, type PushPayload } from "./notify-logic";
 import { getNotifyRules } from "./notify-config-service";
+import { makeT, isLocale, type Locale, type TFunction } from "@/i18n";
 
 // ── VAPID config (lazy: env may be absent in dev until keys are set) ─────────
 let configured = false;
@@ -68,6 +69,26 @@ export async function sendToUsers(userIds: number[], payload: PushPayload): Prom
       }
     }),
   );
+}
+
+/** Like sendToUsers, but renders the payload per recipient locale (grouped by
+ *  User.locale) so each device shows the notification in the user's language. */
+export async function sendLocalizedToUsers(
+  userIds: number[],
+  build: (t: TFunction, locale: Locale) => PushPayload,
+): Promise<void> {
+  if (!ensureConfigured() || userIds.length === 0) return;
+  const users = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, locale: true } });
+  const byLocale = new Map<Locale, number[]>();
+  for (const u of users) {
+    const loc: Locale = isLocale(u.locale) ? u.locale : "en";
+    const arr = byLocale.get(loc);
+    if (arr) arr.push(u.id);
+    else byLocale.set(loc, [u.id]);
+  }
+  for (const [loc, ids] of byLocale) {
+    await sendToUsers(ids, build(makeT(loc), loc));
+  }
 }
 
 /** Active admin-tier users (the default audience for operational alerts). */
@@ -157,9 +178,8 @@ export async function notifyUnitMilestones(
     if (rule.notifyOrderCreator && r.createdById) recipients.add(r.createdById);
     const final = [...recipients].filter((id) => id !== actorId);
     if (final.length === 0) continue;
-    await sendToUsers(
-      final,
-      unitUpdatePayload({ uid: r.uid, statusLabel: wf.label(tr.toStatus as ItemStatus, "en"), requestId: r.id }),
+    await sendLocalizedToUsers(final, (t, locale) =>
+      unitUpdatePayload(t, { uid: r.uid, statusLabel: wf.label(tr.toStatus as ItemStatus, locale), requestId: r.id }),
     ).catch(() => {});
   }
 }

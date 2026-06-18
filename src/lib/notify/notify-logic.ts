@@ -2,6 +2,7 @@
 // free of Prisma / I/O so they can be unit-tested; the service layer loads the
 // users and sends.
 import { isAdminTier, levelMeets, type Level, type Tier } from "@/lib/auth/access-logic";
+import type { TFunction } from "@/i18n";
 
 export interface PushPayload {
   title: string;
@@ -12,43 +13,40 @@ export interface PushPayload {
   tag?: string;
 }
 
-export function issueOpenedPayload(issue: { uid?: string | null; title: string }): PushPayload {
+export function issueOpenedPayload(t: TFunction, issue: { uid?: string | null; title: string }): PushPayload {
   const ref = issue.uid ? `${issue.uid} — ` : "";
   return {
-    title: "New issue opened",
+    title: t("notify.issue.title"),
     body: `${ref}${issue.title}`,
     url: "/issues",
     tag: issue.uid ? `issue-${issue.uid}` : "issue",
   };
 }
 
-export function tripAwaitingApprovalPayload(tripId: number): PushPayload {
+export function tripAwaitingApprovalPayload(t: TFunction, tripId: number): PushPayload {
   return {
-    title: "Trip awaiting approval",
-    body: `Trip #${tripId} has all team reviews — ready to approve.`,
+    title: t("notify.trip.title"),
+    body: t("notify.trip.body", { id: tripId }),
     url: `/trips/${tripId}`,
     tag: `trip-approve-${tripId}`,
   };
 }
 
-export function itemsFlaggedPayload(count: number, flag: string): PushPayload {
-  const noun = count === 1 ? "item" : "items";
+export function itemsFlaggedPayload(t: TFunction, count: number, flag: string): PushPayload {
   return {
-    title: "Items flagged",
-    body: `${count} ${noun} flagged as ${flag}.`,
+    title: t("notify.flagged.title"),
+    body: t("notify.flagged.body", { count, flag }),
     url: "/history",
     tag: `flag-${flag}`,
   };
 }
 
-export function slaAlertPayload(args: { uid?: string | null; status: "RISK" | "DELAYED"; requestId: number }): PushPayload {
+export function slaAlertPayload(t: TFunction, args: { uid?: string | null; status: "RISK" | "DELAYED"; requestId: number }): PushPayload {
   const ref = args.uid ? `${args.uid} — ` : "";
+  const delayed = args.status === "DELAYED";
   return {
-    title: args.status === "DELAYED" ? "Special order delayed" : "Special order at risk",
-    body:
-      args.status === "DELAYED"
-        ? `${ref}delivery is past its promised date.`
-        : `${ref}delivery is approaching its promised date.`,
+    title: delayed ? t("notify.sla.title.delayed") : t("notify.sla.title.risk"),
+    body: delayed ? t("notify.sla.body.delayed", { ref }) : t("notify.sla.body.risk", { ref }),
     url: `/requests/${args.requestId}`,
     tag: `sla-${args.requestId}`,
   };
@@ -61,11 +59,11 @@ export function slaAlertPayload(args: { uid?: string | null; status: "RISK" | "D
 export const UNIT_NOTIFY_STATUSES = ["ORDERED", "SHIPPED", "OFFICE", "WEBSITE"];
 
 /** "Your order moved to <status>" — sent to the order's creator. */
-export function unitUpdatePayload(args: { uid?: string | null; statusLabel: string; requestId: number }): PushPayload {
+export function unitUpdatePayload(t: TFunction, args: { uid?: string | null; statusLabel: string; requestId: number }): PushPayload {
   const ref = args.uid ? `${args.uid} — ` : "";
   return {
-    title: "Order update",
-    body: `${ref}now ${args.statusLabel}.`,
+    title: t("notify.unit.title"),
+    body: t("notify.unit.body", { ref, status: args.statusLabel }),
     url: `/requests/${args.requestId}`,
     tag: `unit-${args.requestId}-${args.statusLabel}`,
   };

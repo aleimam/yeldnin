@@ -4,7 +4,7 @@ import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
   isLocale,
-  translate,
+  makeT,
   type Locale,
   type TFunction,
 } from "./index";
@@ -18,6 +18,5 @@ export async function getLocale(): Promise<Locale> {
 
 /** Server translation helper: `const t = await getT()`. */
 export async function getT(): Promise<TFunction> {
-  const locale = await getLocale();
-  return (key, vars) => translate(locale, key, vars);
+  return makeT(await getLocale());
 }
