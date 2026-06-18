@@ -482,6 +482,8 @@
   "cs.err.pickType": "اختر نوعاً.",
   "cs.err.cantEvaluate": "لا يمكنك إجراء هذا التقييم.",
   "cs.err.cantEvaluateSelf": "لا يمكنك تقييم نفسك.",
+  "cs.err.editWindowOver": "لم يعد بإمكانك تعديل هذا التقييم.",
+  "cs.editResubmit": "تعديل وإعادة إرسال",
   "cs.callDate": "تاريخ المكالمة",
   "cs.pickCallDate": "اختر تاريخ المكالمة.",
   "cs.evalDate": "تاريخ التقييم",

@@ -140,6 +140,18 @@ export const canManageCs = (a: CsAccess): boolean => a.can(CS_MODULE, "manage");
 /** The evaluated population — members of the Sales team (pharmacists). */
 export const isRep = (a: CsAccess): boolean => !!a.user?.teamKeys.includes(SALES_TEAM_KEY);
 
+/** Days a creator may edit/delete their own evaluation after submitting it. */
+export const CS_EDIT_WINDOW_DAYS = 14;
+
+/** Edit/delete rights for one evaluation: admins anytime; the evaluator who
+ *  created it within CS_EDIT_WINDOW_DAYS of submission (any status). */
+export function canEditEvaluation(opts: { isAdmin: boolean; isEvaluator: boolean; createdAt: Date; now?: Date }): boolean {
+  if (opts.isAdmin) return true;
+  if (!opts.isEvaluator) return false;
+  const days = ((opts.now ?? new Date()).getTime() - opts.createdAt.getTime()) / 86_400_000;
+  return days >= 0 && days <= CS_EDIT_WINDOW_DAYS;
+}
+
 // ── Monthly overall average: a weighted composite ──────────────────────────────
 // Calls block + Performance block (split, default 50/50). The Calls block is a
 // weighted blend of each call TYPE's monthly average (weights live on the call

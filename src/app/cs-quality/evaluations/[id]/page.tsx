@@ -5,7 +5,8 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { formatBizDate } from "@/lib/format/dates";
-import { canManageCs, localized } from "@/lib/cs/cs-logic";
+import Link from "next/link";
+import { canManageCs, canEditEvaluation, localized } from "@/lib/cs/cs-logic";
 import { getEvaluationDetail } from "@/lib/cs/cs-report-service";
 import { ReviewActions } from "../../ReviewActions";
 import { DeleteEvalButton } from "./DeleteEvalButton";
@@ -31,7 +32,8 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   if (!(admin || isEvaluator || (isSubject && ev.status === "APPROVED"))) redirect("/cs-quality");
   const showEvaluator = admin || isEvaluator; // the rep never sees who evaluated them
   const staffView = admin || isEvaluator; // reps don't see weight/weighted/value mechanics
-  const canDelete = admin || (isEvaluator && ev.status === "PENDING");
+  const canEdit = canEditEvaluation({ isAdmin: admin, isEvaluator, createdAt: ev.createdAt });
+  const canDelete = canEdit; // same rule: admins anytime; creator within the 14-day window
   const backHref = admin ? "/cs-quality/review" : isSubject ? "/cs-quality/mine" : "/cs-quality/submitted";
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   // Eval-level type chip: borrow the Arabic type name snapshotted on any answer.
@@ -70,9 +72,10 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
             ))}
           </dl>
           {ev.status === "REJECTED" && ev.rejectedNote && <p className="mt-3 text-sm text-red-600">{t("cs.rejectReason")}: {ev.rejectedNote}</p>}
-          {(canDelete || (admin && ev.status === "PENDING")) && (
+          {(canEdit || (admin && ev.status === "PENDING")) && (
             <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-line pt-3">
               {admin && ev.status === "PENDING" && <ReviewActions id={ev.id} />}
+              {canEdit && <Link href={`/cs-quality/evaluations/${ev.id}/edit`} className="btn-secondary px-3 py-1.5 text-sm">{ev.status === "REJECTED" ? t("cs.editResubmit") : t("common.edit")}</Link>}
               {canDelete && <DeleteEvalButton id={ev.id} backHref={backHref} />}
             </div>
           )}

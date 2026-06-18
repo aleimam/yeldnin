@@ -6,6 +6,7 @@ import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
 import { canManageCs } from "@/lib/cs/cs-logic";
 import { listEvaluations } from "@/lib/cs/cs-report-service";
+import { ReviewActions } from "../ReviewActions";
 
 const STATUS_TONE: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
@@ -36,6 +37,7 @@ export default async function CsAllEvaluationsPage() {
               <th className="th">{t("cs.status")}</th>
               <th className="th text-end">{t("cs.normalized")}</th>
               <th className="th">{t("cs.date")}</th>
+              <th className="th"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -55,9 +57,10 @@ export default async function CsAllEvaluationsPage() {
                 </td>
                 <td className="td text-end" data-label={t("cs.normalized")}>{e.normalized}%</td>
                 <td className="td text-muted whitespace-nowrap" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
+                <td className="td" data-label={t("cs.review")}>{e.status === "PENDING" && <ReviewActions id={e.id} />}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={7}>{t("cs.noEvaluations")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={8}>{t("cs.noEvaluations")}</td></tr>}
           </tbody>
         </table>
       </div>

@@ -12,6 +12,8 @@ import {
   expectedBonus,
   isCsChannel,
   CS_CHANNELS,
+  canEditEvaluation,
+  CS_EDIT_WINDOW_DAYS,
 } from "./cs-logic";
 
 describe("resolveCsConfig", () => {
@@ -164,5 +166,23 @@ describe("isCsChannel", () => {
     expect(isCsChannel(null)).toBe(false);
     expect(isCsChannel(undefined)).toBe(false);
     expect(isCsChannel(42)).toBe(false);
+  });
+});
+
+describe("canEditEvaluation", () => {
+  const now = new Date("2026-06-20T00:00:00Z");
+  const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000);
+  it("admins can edit any evaluation, regardless of age or authorship", () => {
+    expect(canEditEvaluation({ isAdmin: true, isEvaluator: false, createdAt: daysAgo(999), now })).toBe(true);
+  });
+  it("the evaluator can edit within the window", () => {
+    expect(canEditEvaluation({ isAdmin: false, isEvaluator: true, createdAt: daysAgo(0), now })).toBe(true);
+    expect(canEditEvaluation({ isAdmin: false, isEvaluator: true, createdAt: daysAgo(CS_EDIT_WINDOW_DAYS), now })).toBe(true);
+  });
+  it("the evaluator loses the right past the window", () => {
+    expect(canEditEvaluation({ isAdmin: false, isEvaluator: true, createdAt: daysAgo(CS_EDIT_WINDOW_DAYS + 1), now })).toBe(false);
+  });
+  it("a non-admin non-evaluator never edits", () => {
+    expect(canEditEvaluation({ isAdmin: false, isEvaluator: false, createdAt: daysAgo(0), now })).toBe(false);
   });
 });

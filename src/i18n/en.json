@@ -482,6 +482,8 @@
   "cs.err.pickType": "Pick a type.",
   "cs.err.cantEvaluate": "You can't run that evaluation.",
   "cs.err.cantEvaluateSelf": "You can't evaluate yourself.",
+  "cs.err.editWindowOver": "You can no longer edit this evaluation.",
+  "cs.editResubmit": "Edit & resubmit",
   "cs.callDate": "Call date",
   "cs.pickCallDate": "Pick the call date.",
   "cs.evalDate": "Evaluation date",

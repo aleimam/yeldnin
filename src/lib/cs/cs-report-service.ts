@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
-import { compositeOverall, type CompositeResult } from "./cs-logic";
+import { compositeOverall, canEditEvaluation, type CompositeResult } from "./cs-logic";
 import { getCsConfig } from "./cs-config-service";
 import { getLocale } from "@/i18n/server";
 import { makeT, isLocale, DEFAULT_LOCALE } from "@/i18n";
@@ -141,11 +141,12 @@ export async function rejectEvaluation(id: number, note: string | null, userId: 
   await writeAudit(userId, "cs_quality", "eval.reject", "csEvaluation", id, {});
 }
 
-/** Soft-delete: admins delete any; an evaluator deletes their own while Pending. */
+/** Soft-delete: admins delete any; the creator deletes their own within the
+ *  14-day edit window (any status). */
 export async function softDeleteEvaluation(id: number, userId: number, isAdmin: boolean): Promise<boolean> {
-  const ev = await prisma.csEvaluation.findFirst({ where: { id, archivedAt: null }, select: { evaluatorUserId: true, status: true } });
+  const ev = await prisma.csEvaluation.findFirst({ where: { id, archivedAt: null }, select: { evaluatorUserId: true, createdAt: true } });
   if (!ev) return false;
-  if (!(isAdmin || (ev.evaluatorUserId === userId && ev.status === "PENDING"))) return false;
+  if (!canEditEvaluation({ isAdmin, isEvaluator: ev.evaluatorUserId === userId, createdAt: ev.createdAt })) return false;
   await prisma.csEvaluation.update({ where: { id }, data: { archivedAt: new Date() } });
   await writeAudit(userId, "cs_quality", "eval.delete", "csEvaluation", id, {});
   return true;

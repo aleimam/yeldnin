@@ -102,3 +102,87 @@ export async function createEvaluation(input: CreateEvalInput, evaluatorUserId: 
     },
   });
 }
+
+export interface UpdateEvalInput {
+  subjectUserId: number;
+  typeName?: string | null;
+  callDate?: Date | null;
+  channel?: string | null;
+  contact?: string | null;
+  answers: EvalAnswerInput[];
+  photoAssetIds: string[];
+}
+
+/** Re-score + persist edits to an existing evaluation (replacing its answers +
+ *  photos). A rejected evaluation is resubmitted (→ Pending, note cleared); other
+ *  statuses are kept. The scope/creator are immutable. */
+export async function updateEvaluation(id: number, input: UpdateEvalInput) {
+  const ev = await prisma.csEvaluation.findFirst({ where: { id, archivedAt: null }, select: { scope: true, status: true } });
+  if (!ev) throw new Error("Evaluation not found.");
+  const config = await getCsConfig();
+  const map = ev.scope === "CALL" ? config.call : config.performance;
+  const questions = await prisma.csQuestion.findMany({
+    where: { id: { in: input.answers.map((a) => a.questionId) }, scope: ev.scope, active: true, archivedAt: null },
+    include: { type: { select: { name: true, nameAr: true } } },
+  });
+  const qById = new Map(questions.map((q) => [q.id, q]));
+  const rows = input.answers.flatMap((a) => {
+    const q = qById.get(a.questionId);
+    if (!q) return [];
+    const value = valueFor(map, a.level);
+    return [{
+      questionId: q.id,
+      title: q.title,
+      titleAr: q.titleAr,
+      criteria: q.criteria,
+      criteriaAr: q.criteriaAr,
+      typeName: q.type.name,
+      typeNameAr: q.type.nameAr,
+      weight: q.weight,
+      level: a.level,
+      value,
+      weighted: value * q.weight,
+      note: a.note?.trim() || null,
+    }];
+  });
+  const scored = rows.map((r) => ({ weight: r.weight, value: r.value }));
+  const resubmit = ev.status === "REJECTED";
+
+  await prisma.$transaction([
+    prisma.csEvaluationAnswer.deleteMany({ where: { evaluationId: id } }),
+    prisma.csEvaluationPhoto.deleteMany({ where: { evaluationId: id } }),
+    prisma.csEvaluation.update({
+      where: { id },
+      data: {
+        subjectUserId: input.subjectUserId,
+        typeName: input.typeName ?? null,
+        callDate: input.callDate ?? null,
+        channel: input.channel ?? null,
+        contact: input.contact ?? null,
+        total: weightedTotal(scored),
+        normalized: normalizedPct(scored, map),
+        ...(resubmit ? { status: "PENDING", rejectedNote: null, approvedById: null, approvedAt: null } : {}),
+        answers: { create: rows },
+        photos: input.photoAssetIds.length ? { create: input.photoAssetIds.map((assetId) => ({ assetId })) } : undefined,
+      },
+    }),
+  ]);
+  return { id, scope: ev.scope, resubmitted: resubmit };
+}
+
+/** Minimal record for the edit/delete permission check + scope context. */
+export function getEvaluationGuard(id: number) {
+  return prisma.csEvaluation.findFirst({ where: { id, archivedAt: null }, select: { evaluatorUserId: true, createdAt: true, scope: true } });
+}
+
+/** Lightweight fetch for the edit page: the eval + its answers (level/note/qid)
+ *  + photo asset ids, to pre-fill the form. */
+export async function getEvaluationForEdit(id: number) {
+  return prisma.csEvaluation.findFirst({
+    where: { id, archivedAt: null },
+    include: {
+      answers: { select: { questionId: true, level: true, note: true } },
+      photos: { select: { assetId: true } },
+    },
+  });
+}

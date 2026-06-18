@@ -26,7 +26,14 @@ export function ReviewActions({ id }: { id: number }) {
         <button onClick={() => setRejecting(true)} disabled={pending} className="btn-secondary px-3 py-1.5 text-sm">{t("cs.reject")}</button>
       ) : (
         <span className="flex items-center gap-2">
-          <input className="input h-9 w-48 text-sm" placeholder={t("cs.rejectReason")} value={note} onChange={(e) => setNote(e.target.value)} />
+          <input
+            className="input h-9 w-48 text-sm"
+            placeholder={t("cs.rejectReason")}
+            value={note}
+            autoFocus
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); start(async () => { await rejectCsEvaluationAction(id, note); router.refresh(); }); } }}
+          />
           <button
             onClick={() => start(async () => { await rejectCsEvaluationAction(id, note); router.refresh(); })}
             disabled={pending}
