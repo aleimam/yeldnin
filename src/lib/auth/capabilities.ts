@@ -18,7 +18,7 @@ export interface Capability {
 }
 
 /** Module keys that expose configurable capabilities (order = editor order). */
-export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings", "purchasing", "logistics", "operations", "couriers", "issues", "cs_quality"] as const;
+export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings", "order_requests", "xoonx", "purchasing", "logistics", "operations", "couriers", "issues", "cs_quality"] as const;
 
 // NOTE: opening a module at all stays governed by the plain VIEW gate
 // (canModule(key, "VIEW")). Capabilities govern ACTIONS within a module.
@@ -49,6 +49,13 @@ export const CAPABILITIES: Capability[] = [
   // code; this entry only documents/labels it. Default MANAGE.
   { key: "managePermissions", module: "settings", labelKey: "cap.settings.managePermissions", defaultLevel: "MANAGE" },
   { key: "manageWorkflow", module: "settings", labelKey: "cap.settings.manageWorkflow", defaultLevel: "MANAGE" },
+
+  // ── Sales (order requests) ───────────────────────────────────────────────
+  { key: "operate", module: "order_requests", labelKey: "cap.order_requests.operate", defaultLevel: "OPERATE" },
+
+  // ── XOONX ────────────────────────────────────────────────────────────────
+  { key: "operate", module: "xoonx", labelKey: "cap.xoonx.operate", defaultLevel: "OPERATE" },
+  { key: "manage", module: "xoonx", labelKey: "cap.xoonx.manage", defaultLevel: "MANAGE" },
 
   // ── Purchasing ───────────────────────────────────────────────────────────
   { key: "operate", module: "purchasing", labelKey: "cap.purchasing.operate", defaultLevel: "OPERATE" },

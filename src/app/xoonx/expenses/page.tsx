@@ -13,7 +13,7 @@ import { ExpenseManager } from "./ExpenseManager";
 
 export default async function XoonxExpensesPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const access = await requireModule("xoonx", "VIEW");
-  const canManage = access.canModule("xoonx", "OPERATE");
+  const canManage = access.can("xoonx", "operate");
   const sp = await searchParams;
   const month = /^\d{4}-\d{2}$/.test(sp.m ?? "") ? sp.m! : monthKey(new Date());
 

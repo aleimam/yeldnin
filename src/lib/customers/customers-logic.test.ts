@@ -4,6 +4,7 @@ import { customerScopes, primaryCustomerModule, moduleForCustomerScope } from ".
 const acc = (mods: Record<string, boolean>, isAdmin = false) => ({
   isAdmin,
   canModule: (m: string) => !!mods[m],
+  can: (m: string) => !!mods[m],
 });
 
 describe("customerScopes", () => {

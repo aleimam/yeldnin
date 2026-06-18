@@ -65,7 +65,7 @@ function Costs({ purchasing, local, byCategory, t }: { purchasing: number; local
 
 export default async function XoonxReportsPage({ searchParams }: { searchParams: Promise<{ m?: string; y?: string }> }) {
   const access = await requireModule("xoonx", "VIEW");
-  const canClose = access.canModule("xoonx", "MANAGE");
+  const canClose = access.can("xoonx", "manage");
   const sp = await searchParams;
   const t = await getT();
   const now = new Date();

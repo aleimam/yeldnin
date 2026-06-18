@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireUser, requireModule } from "@/lib/auth/access";
+import { requireUser, requireCapability } from "@/lib/auth/access";
 import { requestScopes, validateRequest, type RequestType } from "@/lib/requests/request-logic";
 import { type Scope } from "@/lib/products/products-logic";
 import { createRequest } from "@/lib/requests/request-service";
@@ -52,7 +52,7 @@ export async function createRequestAction(p: RequestPayload): Promise<RequestRes
 
 /** Mark (or un-mark) a XOONX order delivered — books its revenue into that month. */
 export async function markDeliveredAction(id: number, delivered: boolean): Promise<{ ok: boolean; error?: string }> {
-  const access = await requireModule("xoonx", "OPERATE");
+  const access = await requireCapability("xoonx", "operate");
   try {
     if (delivered) await markRequestDelivered(id, access.user.id);
     else await unmarkRequestDelivered(id, access.user.id);

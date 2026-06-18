@@ -21,9 +21,10 @@ export function validateCustomer(input: { name?: string }): Record<string, strin
 /** Scopes a user may view/manage customers in (EGV via Sales, XOONX via xoonx). */
 export function customerScopes(a: AccessLike, level: Level): Scope[] {
   if (a.isAdmin) return [...CUSTOMER_SCOPES];
+  const ok = (m: string) => (level === "OPERATE" ? a.can(m, "operate") : a.canModule(m, level));
   const s = new Set<Scope>();
-  if (a.canModule("order_requests", level)) s.add("EGV");
-  if (a.canModule("xoonx", level)) s.add("XOONX");
+  if (ok("order_requests")) s.add("EGV");
+  if (ok("xoonx")) s.add("XOONX");
   return CUSTOMER_SCOPES.filter((x) => s.has(x));
 }
 

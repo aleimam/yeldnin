@@ -18,6 +18,7 @@ export function isProductType(v: unknown): v is ProductType {
 export interface AccessLike {
   isAdmin: boolean;
   canModule: (moduleKey: string, min?: Level) => boolean;
+  can: (moduleKey: string, capability: string) => boolean;
 }
 
 /**
@@ -29,13 +30,16 @@ export interface AccessLike {
  */
 export function productScopes(a: AccessLike, level: Level): Scope[] {
   if (a.isAdmin) return [...SCOPES];
+  // Acting (OPERATE) is governed by each module's `operate` capability; visibility
+  // (VIEW) stays the plain module-open level.
+  const ok = (m: string) => (level === "OPERATE" ? a.can(m, "operate") : a.canModule(m, level));
   const s = new Set<Scope>();
-  if (a.canModule("purchasing", level)) {
+  if (ok("purchasing")) {
     s.add("EGV");
     s.add("XOONX");
   }
-  if (a.canModule("order_requests", level)) s.add("EGV");
-  if (a.canModule("xoonx", level)) s.add("XOONX");
+  if (ok("order_requests")) s.add("EGV");
+  if (ok("xoonx")) s.add("XOONX");
   return SCOPES.filter((x) => s.has(x));
 }
 

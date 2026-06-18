@@ -4,6 +4,7 @@ import { productScopes, primaryProductModule, validateProduct, type AccessLike }
 const mk = (mods: string[], isAdmin = false): AccessLike => ({
   isAdmin,
   canModule: (k: string) => isAdmin || mods.includes(k),
+  can: (k: string) => isAdmin || mods.includes(k),
 });
 
 describe("productScopes", () => {

@@ -12,6 +12,7 @@ import type { AccessLike } from "@/lib/products/products-logic";
 const mk = (mods: string[], isAdmin = false): AccessLike => ({
   isAdmin,
   canModule: (k: string) => isAdmin || mods.includes(k),
+  can: (k: string) => isAdmin || mods.includes(k),
 });
 
 describe("request type rules", () => {

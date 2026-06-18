@@ -22,7 +22,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const req = await getRequest(Number(id));
   if (!req || !visible.includes(req.scope as never)) notFound();
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getRequestItems(req.id), getWorkflow()]);
-  const canDeliver = req.scope === "XOONX" && access.canModule("xoonx", "OPERATE");
+  const canDeliver = req.scope === "XOONX" && access.can("xoonx", "operate");
   const canSeeSelling = canSeeSellingPrice(access);
   const isSpecial = req.type === "SPECIAL_ORDER";
   const slaMap = await slaForRequestItems(items, req.deliveredAt);

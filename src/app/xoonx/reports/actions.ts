@@ -1,10 +1,10 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { closeMonth } from "@/lib/xoonx/xoonx-finance-service";
 
 export async function closeMonthAction(month: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const a = await requireModule("xoonx", "MANAGE");
+  const a = await requireCapability("xoonx", "manage");
   try {
     await closeMonth(month, a.user.id, new Date());
   } catch (e) {
