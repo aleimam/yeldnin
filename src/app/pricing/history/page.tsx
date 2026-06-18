@@ -21,7 +21,7 @@ export default async function HistoryPage() {
       actions={canManageHistory && rows.length > 0 ? <PurgeHistoryButton /> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("pricer.hist.date")}</th>
@@ -35,12 +35,12 @@ export default async function HistoryPage() {
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
               <tr key={r.id} className={r.deletedAt ? "opacity-50" : "hover:bg-canvas/60"}>
-                <td className="td whitespace-nowrap text-muted">
+                <td className="td whitespace-nowrap text-muted" data-label={t("pricer.hist.date")}>
                   <Link href={`/pricing/history/${r.id}`} className="hover:underline">
                     {new Date(r.createdAt).toLocaleString()}
                   </Link>
                 </td>
-                <td className="td">
+                <td className="td" data-label={t("pricer.hist.product")}>
                   <Link href={`/pricing/history/${r.id}`} className="font-medium hover:underline">
                     {r.productName || "—"}
                   </Link>
@@ -51,12 +51,12 @@ export default async function HistoryPage() {
                   )}
                   {r.photos.length > 0 && <span className="ms-2 text-xs text-muted">📎{r.photos.length}</span>}
                 </td>
-                <td className="td">
+                <td className="td" data-label={t("pricer.hist.section")}>
                   {r.section === "SUPPLEMENT" ? t("pricer.supplements") : t("pricer.devices")}
                 </td>
-                <td className="td text-muted">{r.user.name}</td>
-                <td className="td text-end font-medium">{r.price.toLocaleString()} EGP</td>
-                <td className="td">
+                <td className="td text-muted" data-label={t("pricer.hist.user")}>{r.user.name}</td>
+                <td className="td text-end font-medium" data-label={t("pricer.hist.price")}>{r.price.toLocaleString()} EGP</td>
+                <td className="td" data-label="">
                   <div className="flex items-center justify-end gap-3">
                     <Link href={`/pricing/history/${r.id}`} className="text-sm text-brand hover:underline">
                       {t("pricer.details")}

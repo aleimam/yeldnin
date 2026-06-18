@@ -140,7 +140,7 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
 
       {/* List */}
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("xexp.date")}</th>
@@ -153,10 +153,10 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
           <tbody className="divide-y divide-line">
             {expenses.map((r) => (
               <tr key={r.id} className="hover:bg-canvas/60">
-                <td className="td whitespace-nowrap text-xs text-muted">{formatBizDate(r.date)}</td>
-                <td className="td">{r.category}</td>
-                <td className="td text-end font-medium text-ink">{egp(r.amount)}</td>
-                <td className="td text-muted">{r.note ?? "—"}</td>
+                <td className="td whitespace-nowrap text-xs text-muted" data-label={t("xexp.date")}>{formatBizDate(r.date)}</td>
+                <td className="td" data-label={t("xexp.category")}>{r.category}</td>
+                <td className="td text-end font-medium text-ink" data-label={t("xexp.amount")}>{egp(r.amount)}</td>
+                <td className="td text-muted" data-label={t("xexp.note")}>{r.note ?? "—"}</td>
                 {canManage && !closed && (
                   <td className="td whitespace-nowrap text-end">
                     <button onClick={() => edit(r)} disabled={pending} className="text-sm text-brand hover:underline">{t("common.edit")}</button>

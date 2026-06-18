@@ -18,7 +18,7 @@ export default async function TransactionsPage() {
       actions={canCreate ? <Link href="/expenses/transactions/new" className="btn-primary">+ {t("exp.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("exp.date")}</th>
@@ -31,20 +31,20 @@ export default async function TransactionsPage() {
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
               <tr key={r.id} className="hover:bg-canvas/60">
-                <td className="td whitespace-nowrap text-muted">
+                <td className="td whitespace-nowrap text-muted" data-label={t("exp.date")}>
                   <Link href={`/expenses/transactions/${r.id}`} className="text-brand hover:underline">
                     {formatBizDate(r.createdAt)}
                   </Link>
                 </td>
-                <td className="td">
+                <td className="td" data-label={t("exp.category")}>
                   {categoryLabel(t, r.categoryNameSnapshot)}
                   {r.attachments.length > 0 && <span className="ms-2 text-xs text-muted">📎{r.attachments.length}</span>}
                 </td>
-                <td className="td">
+                <td className="td" data-label={t("exp.type")}>
                   {r.categoryTypeSnapshot === "TRANSFER" ? t("exp.transfer") : t("exp.expense")}
                 </td>
-                <td className="td text-muted">{r.createdBy.name}</td>
-                <td className="td text-end font-medium">{Math.round(r.amount).toLocaleString()}</td>
+                <td className="td text-muted" data-label={t("exp.createdBy")}>{r.createdBy.name}</td>
+                <td className="td text-end font-medium" data-label={t("exp.amount")}>{Math.round(r.amount).toLocaleString()}</td>
               </tr>
             ))}
             {rows.length === 0 && (

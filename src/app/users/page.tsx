@@ -17,7 +17,7 @@ export default async function UsersPage() {
       actions={canManage ? <Link href="/users/new" className="btn-primary">+ {t("users.newUser")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("users.name")}</th>
@@ -30,7 +30,7 @@ export default async function UsersPage() {
           <tbody className="divide-y divide-line">
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-canvas/60">
-                <td className="td">
+                <td className="td" data-label={t("users.name")}>
                   <Link href={`/users/${u.id}`} className="flex items-center gap-2.5 font-medium text-brand hover:underline">
                     {assetUrl(u.avatarUrl) ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -42,10 +42,10 @@ export default async function UsersPage() {
                   </Link>
                   {u.uid && <span className="ms-9 block text-xs text-muted">{u.uid}</span>}
                 </td>
-                <td className="td text-muted">{u.email}</td>
-                <td className="td">{t(`tier.${u.tier}`)}</td>
-                <td className="td text-muted">{u.teamMembers.map((tm) => tm.team.name).join(", ") || "—"}</td>
-                <td className="td">
+                <td className="td text-muted" data-label={t("users.email")}>{u.email}</td>
+                <td className="td" data-label={t("users.tier")}>{t(`tier.${u.tier}`)}</td>
+                <td className="td text-muted" data-label={t("users.teams")}>{u.teamMembers.map((tm) => tm.team.name).join(", ") || "—"}</td>
+                <td className="td" data-label={t("users.status")}>
                   {u.active ? <span className="text-green-600">{t("users.active")}</span> : <span className="text-muted">{t("users.inactive")}</span>}
                 </td>
               </tr>

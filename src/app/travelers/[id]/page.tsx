@@ -52,14 +52,14 @@ export default async function TravelerDetailPage({ params }: { params: Promise<{
           {trips.length === 0 ? (
             <p className="text-sm text-muted">—</p>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" data-cards>
               <thead><tr className="border-b border-line"><th className="th">{t("trip.country")}</th><th className="th">{t("trip.lastReceiving")}</th><th className="th">{t("trip.status")}</th></tr></thead>
               <tbody className="divide-y divide-line">
                 {trips.map((tp) => (
                   <tr key={tp.id}>
-                    <td className="td"><Link href={`/trips/${tp.id}`} className="text-brand hover:underline">{tp.country}</Link></td>
-                    <td className="td text-muted">{formatBizDate(tp.lastReceivingDate)}</td>
-                    <td className="td">{t(`tripstatus.${tp.status}`)}</td>
+                    <td className="td" data-label={t("trip.country")}><Link href={`/trips/${tp.id}`} className="text-brand hover:underline">{tp.country}</Link></td>
+                    <td className="td text-muted" data-label={t("trip.lastReceiving")}>{formatBizDate(tp.lastReceivingDate)}</td>
+                    <td className="td" data-label={t("trip.status")}>{t(`tripstatus.${tp.status}`)}</td>
                   </tr>
                 ))}
               </tbody>

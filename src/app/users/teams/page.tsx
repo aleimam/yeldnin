@@ -23,7 +23,7 @@ export default async function TeamsPage() {
       )}
 
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("teams.name")}</th>
@@ -33,12 +33,12 @@ export default async function TeamsPage() {
           <tbody className="divide-y divide-line">
             {teams.map((team) => (
               <tr key={team.id} className="hover:bg-canvas/60">
-                <td className="td">
+                <td className="td" data-label={t("teams.name")}>
                   <Link href={`/users/teams/${team.id}`} className="font-medium text-brand hover:underline">
                     {team.name}
                   </Link>
                 </td>
-                <td className="td text-muted">{team._count.members}</td>
+                <td className="td text-muted" data-label={t("teams.members")}>{team._count.members}</td>
               </tr>
             ))}
             {teams.length === 0 && (

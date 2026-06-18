@@ -20,7 +20,7 @@ export default async function PoolPage() {
       actions={canBuy && pool.length > 0 ? <Link href="/purchasing/purchases/new" className="btn-primary">+ {t("purchasing.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("requests.scope")}</th>
@@ -34,12 +34,12 @@ export default async function PoolPage() {
           <tbody className="divide-y divide-line">
             {pool.map((p) => (
               <tr key={`${p.scope}:${p.productId}`} className="hover:bg-canvas/60">
-                <td className="td text-muted">{t(`scope.${p.scope}`)}</td>
-                <td className="td">{p.productName}</td>
+                <td className="td text-muted" data-label={t("requests.scope")}>{t(`scope.${p.scope}`)}</td>
+                <td className="td" data-label={t("requests.product")}>{p.productName}</td>
                 {REQUEST_TYPES.map((ty) => (
-                  <td key={ty} className="td text-end text-muted">{p.byType[ty] ?? "—"}</td>
+                  <td key={ty} className="td text-end text-muted" data-label={t(`reqtype.${ty}`)}>{p.byType[ty] ?? "—"}</td>
                 ))}
-                <td className="td text-end font-semibold text-ink">{p.count}</td>
+                <td className="td text-end font-semibold text-ink" data-label={t("purchasing.pending")}>{p.count}</td>
               </tr>
             ))}
             {pool.length === 0 && <tr><td className="td text-muted" colSpan={REQUEST_TYPES.length + 3}>{t("purchasing.poolEmpty")}</td></tr>}

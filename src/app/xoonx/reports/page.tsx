@@ -96,11 +96,11 @@ export default async function XoonxReportsPage({ searchParams }: { searchParams:
             <Costs purchasing={r.costs.purchasing} local={r.costs.local} byCategory={r.localByCategory} t={t} />
           </div>
           <div className="card overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" data-cards>
               <thead className="border-b border-line bg-canvas"><tr><th className="th">{t("xrep.month")}</th><th className="th text-end">{t("xrep.revenue")}</th><th className="th text-end">{t("xrep.net")}</th></tr></thead>
               <tbody className="divide-y divide-line">
                 {r.byMonth.map((m) => (
-                  <tr key={m.month}><td className="td"><Link href={`/xoonx/reports?m=${m.month}`} className="text-brand hover:underline">{m.month}</Link></td><td className="td text-end">{egp(m.revenue)}</td><td className="td text-end">{egp(m.netProfit)}</td></tr>
+                  <tr key={m.month}><td className="td" data-label={t("xrep.month")}><Link href={`/xoonx/reports?m=${m.month}`} className="text-brand hover:underline">{m.month}</Link></td><td className="td text-end" data-label={t("xrep.revenue")}>{egp(m.revenue)}</td><td className="td text-end" data-label={t("xrep.net")}>{egp(m.netProfit)}</td></tr>
                 ))}
               </tbody>
             </table>
@@ -141,18 +141,18 @@ export default async function XoonxReportsPage({ searchParams }: { searchParams:
 
         <div className="card overflow-x-auto">
           <h2 className="border-b border-line p-4 font-semibold text-ink">{t("xrep.orders")}</h2>
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" data-cards>
             <thead className="border-b border-line bg-canvas">
               <tr><th className="th">{t("requests.uid")}</th><th className="th">{t("xrep.product")}</th><th className="th text-end">{t("xrep.selling")}</th><th className="th text-end">{t("xrep.purchasing")}</th><th className="th text-end">{t("xrep.gross")}</th></tr>
             </thead>
             <tbody className="divide-y divide-line">
               {r.orders.map((o) => (
                 <tr key={o.requestId}>
-                  <td className="td font-mono text-xs"><Link href={`/requests/${o.requestId}`} className="text-brand hover:underline">{o.uid}</Link></td>
-                  <td className="td">{o.product}</td>
-                  <td className="td text-end">{egp(o.selling)}</td>
-                  <td className="td text-end text-muted">{egp(o.purchasing)}</td>
-                  <td className="td text-end font-medium text-ink">{egp(o.gross)}</td>
+                  <td className="td font-mono text-xs" data-label={t("requests.uid")}><Link href={`/requests/${o.requestId}`} className="text-brand hover:underline">{o.uid}</Link></td>
+                  <td className="td" data-label={t("xrep.product")}>{o.product}</td>
+                  <td className="td text-end" data-label={t("xrep.selling")}>{egp(o.selling)}</td>
+                  <td className="td text-end text-muted" data-label={t("xrep.purchasing")}>{egp(o.purchasing)}</td>
+                  <td className="td text-end font-medium text-ink" data-label={t("xrep.gross")}>{egp(o.gross)}</td>
                 </tr>
               ))}
               {r.orders.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("xrep.empty")}</td></tr>}

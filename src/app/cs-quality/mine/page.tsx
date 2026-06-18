@@ -39,25 +39,25 @@ export default async function CsMinePage() {
         {an.byMonth.length > 0 && (
           <div className="card p-5">
             <h2 className="mb-3 font-semibold text-ink">{t("cs.byMonth")}</h2>
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" data-cards>
               <thead><tr className="border-b border-line"><th className="th">{t("cs.month")}</th><th className="th text-end">{t("cs.score")}</th><th className="th text-end">{t("cs.evaluationsCount")}</th></tr></thead>
-              <tbody className="divide-y divide-line">{an.byMonth.map((m) => <tr key={m.month}><td className="td">{m.month}</td><td className="td text-end">{m.sum}</td><td className="td text-end text-muted">{m.count}</td></tr>)}</tbody>
+              <tbody className="divide-y divide-line">{an.byMonth.map((m) => <tr key={m.month}><td className="td" data-label={t("cs.month")}>{m.month}</td><td className="td text-end" data-label={t("cs.score")}>{m.sum}</td><td className="td text-end text-muted" data-label={t("cs.evaluationsCount")}>{m.count}</td></tr>)}</tbody>
             </table>
           </div>
         )}
 
         <div className="card overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" data-cards>
             <thead className="border-b border-line bg-canvas">
               <tr><th className="th">{t("cs.scope")}</th><th className="th text-end">{t("cs.score")}</th><th className="th text-end">{t("cs.normalized")}</th><th className="th">{t("cs.date")}</th><th className="th"></th></tr>
             </thead>
             <tbody className="divide-y divide-line">
               {rows.map((e) => (
                 <tr key={e.id} className="hover:bg-canvas/60">
-                  <td className="td">{t(`cs.scope.${e.scope}`)}{e.typeName ? ` · ${e.typeName}` : ""}</td>
-                  <td className="td text-end">{e.total}</td>
-                  <td className="td text-end">{e.normalized}%</td>
-                  <td className="td text-muted">{formatBizDate(e.date)}</td>
+                  <td className="td" data-label={t("cs.scope")}>{t(`cs.scope.${e.scope}`)}{e.typeName ? ` · ${e.typeName}` : ""}</td>
+                  <td className="td text-end" data-label={t("cs.score")}>{e.total}</td>
+                  <td className="td text-end" data-label={t("cs.normalized")}>{e.normalized}%</td>
+                  <td className="td text-muted" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
                   <td className="td text-end"><Link href={`/cs-quality/evaluations/${e.id}`} className="text-brand hover:underline">{t("cs.viewEval")}</Link></td>
                 </tr>
               ))}

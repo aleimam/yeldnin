@@ -10,7 +10,7 @@ export default async function ShipmentsPage() {
   return (
     <AppShell access={access} moduleKey="operations" pageTitle={t("shipments.title")}>
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("shipments.uid")}</th>
@@ -21,11 +21,11 @@ export default async function ShipmentsPage() {
           <tbody className="divide-y divide-line">
             {rows.map((s) => (
               <tr key={s.id} className="hover:bg-canvas/60">
-                <td className="td font-mono text-xs text-muted">
+                <td className="td font-mono text-xs text-muted" data-label={t("shipments.uid")}>
                   <Link href={`/shipments/${s.id}`} className="text-brand hover:underline">{s.uid ?? s.id}</Link>
                 </td>
-                <td className="td text-muted">{t(`scope.${s.scope}`)}</td>
-                <td className="td">{t(`shipmentstatus.${s.status}`)}</td>
+                <td className="td text-muted" data-label={t("shipments.scope")}>{t(`scope.${s.scope}`)}</td>
+                <td className="td" data-label={t("shipments.status")}>{t(`shipmentstatus.${s.status}`)}</td>
               </tr>
             ))}
             {rows.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("shipments.empty")}</td></tr>}

@@ -24,7 +24,7 @@ export function AuditTable({
 
   return (
     <div className="card overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full" data-cards>
         <thead className="border-b border-line bg-canvas">
           <tr>
             <th className="th">{t("audit.date")}</th>
@@ -37,11 +37,11 @@ export function AuditTable({
         <tbody className="divide-y divide-line">
           {rows.map((r) => (
             <tr key={r.id} className="hover:bg-canvas/60">
-              <td className="td whitespace-nowrap text-muted">{new Date(r.createdAt).toLocaleString()}</td>
-              <td className="td">{r.userId ? (names.get(r.userId) ?? `#${r.userId}`) : "—"}</td>
-              <td className="td">{moduleLabel(r.moduleKey)}</td>
-              <td className="td font-mono text-xs">{r.action}</td>
-              <td className="td text-muted">
+              <td className="td whitespace-nowrap text-muted" data-label={t("audit.date")}>{new Date(r.createdAt).toLocaleString()}</td>
+              <td className="td" data-label={t("audit.user")}>{r.userId ? (names.get(r.userId) ?? `#${r.userId}`) : "—"}</td>
+              <td className="td" data-label={t("audit.module")}>{moduleLabel(r.moduleKey)}</td>
+              <td className="td font-mono text-xs" data-label={t("audit.action")}>{r.action}</td>
+              <td className="td text-muted" data-label={t("audit.entity")}>
                 {r.entityType}
                 {r.entityId && r.entityId !== "batch" ? ` #${r.entityId}` : ""}
               </td>

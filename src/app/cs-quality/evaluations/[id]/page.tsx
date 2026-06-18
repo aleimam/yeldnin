@@ -59,7 +59,7 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
         </div>
 
         <div className="card overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" data-cards>
             <thead className="border-b border-line bg-canvas">
               <tr>
                 <th className="th">{t("cs.criteria")}</th>
@@ -71,15 +71,15 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
             <tbody className="divide-y divide-line">
               {ev.answers.map((a) => (
                 <tr key={a.id}>
-                  <td className="td">
+                  <td className="td" data-label={t("cs.criteria")}>
                     <span className="font-medium text-ink">{a.title || a.criteria}</span>
                     {a.title && a.criteria && <span className="block text-xs text-muted">{a.criteria}</span>}
                     <span className="block text-[10px] uppercase text-muted">{a.typeName}</span>
                     {a.note && <span className="block text-xs text-muted">“{a.note}”</span>}
                   </td>
-                  <td className="td"><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span>{staffView && <span className="text-xs text-muted"> ({a.value})</span>}</td>
-                  {staffView && <td className="td text-end">{a.weight}</td>}
-                  {staffView && <td className="td text-end">{a.weighted}</td>}
+                  <td className="td" data-label={staffView ? t("cs.answer") : t("cs.score")}><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span>{staffView && <span className="text-xs text-muted"> ({a.value})</span>}</td>
+                  {staffView && <td className="td text-end" data-label={t("cs.weight")}>{a.weight}</td>}
+                  {staffView && <td className="td text-end" data-label={t("cs.weighted")}>{a.weighted}</td>}
                 </tr>
               ))}
             </tbody>

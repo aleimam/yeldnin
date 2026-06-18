@@ -18,7 +18,7 @@ export default async function HistoryPage() {
     <AppShell access={access} moduleKey="history" pageTitle={t("history.title")}>
       <HistorySearch />
       <div className="card overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("history.when")}</th>
@@ -32,14 +32,14 @@ export default async function HistoryPage() {
           <tbody className="divide-y divide-line">
             {events.map((e) => (
               <tr key={e.id} className="hover:bg-canvas/60">
-                <td className="td whitespace-nowrap text-muted">{new Date(e.createdAt).toLocaleString()}</td>
-                <td className="td font-mono text-xs">
+                <td className="td whitespace-nowrap text-muted" data-label={t("history.when")}>{new Date(e.createdAt).toLocaleString()}</td>
+                <td className="td font-mono text-xs" data-label={t("history.item")}>
                   <Link href={`/history/items/${e.itemId}`} className="text-brand hover:underline">{e.itemUid ?? e.itemId}</Link>
                 </td>
-                <td className="td">{e.productName}</td>
-                <td className="td">{change(e.fromStatus, e.toStatus)}</td>
-                <td className="td text-muted">{e.action ?? "—"}</td>
-                <td className="td text-muted">{e.byName ?? "—"}</td>
+                <td className="td" data-label={t("history.product")}>{e.productName}</td>
+                <td className="td" data-label={t("history.change")}>{change(e.fromStatus, e.toStatus)}</td>
+                <td className="td text-muted" data-label={t("history.action")}>{e.action ?? "—"}</td>
+                <td className="td text-muted" data-label={t("history.by")}>{e.byName ?? "—"}</td>
               </tr>
             ))}
             {events.length === 0 && <tr><td className="td text-muted" colSpan={6}>{t("history.empty")}</td></tr>}
