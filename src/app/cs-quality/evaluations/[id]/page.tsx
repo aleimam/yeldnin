@@ -7,7 +7,7 @@ import { assetUrl } from "@/lib/assets/assets-service";
 import { formatBizDate } from "@/lib/format/dates";
 import { canManageCs, localized } from "@/lib/cs/cs-logic";
 import { getEvaluationDetail } from "@/lib/cs/cs-report-service";
-import { ReviewActions } from "./ReviewActions";
+import { ReviewActions } from "../../ReviewActions";
 import { DeleteEvalButton } from "./DeleteEvalButton";
 
 const STATUS_TONE: Record<string, string> = {

@@ -2,8 +2,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
-import { approveCsEvaluationAction, rejectCsEvaluationAction } from "../../actions";
+import { approveCsEvaluationAction, rejectCsEvaluationAction } from "./actions";
 
+/** Inline Approve / Reject (with reason) for a pending evaluation. Used on the
+ *  evaluation detail page and per-row in the review queue. */
 export function ReviewActions({ id }: { id: number }) {
   const t = useT();
   const router = useRouter();
