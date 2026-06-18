@@ -96,7 +96,7 @@ export async function TopBar({
             <span className="text-sm font-medium text-ink">{user.name}</span>
             <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
           </div>
-          <button aria-label={t("common.notifications")} className="text-muted hover:text-ink">🔔</button>
+          <Link href="/account" aria-label={t("common.notifications")} className="text-muted hover:text-ink">🔔</Link>
           <AccountMenu
             name={user.name}
             email={user.email}

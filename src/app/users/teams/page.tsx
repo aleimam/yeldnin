@@ -22,7 +22,7 @@ export default async function TeamsPage() {
         </form>
       )}
 
-      <div className="card overflow-hidden">
+      <div className="card overflow-x-auto">
         <table className="w-full">
           <thead className="border-b border-line bg-canvas">
             <tr>

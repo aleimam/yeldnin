@@ -21,6 +21,7 @@ export default async function ExpenseReportsPage() {
                   <td className="py-1.5 text-end text-muted">{egp(c.total)}</td>
                 </tr>
               ))}
+              {r.byCategory.length === 0 && <tr><td colSpan={2} className="py-1.5 text-muted">{t("exp.empty")}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -34,6 +35,7 @@ export default async function ExpenseReportsPage() {
                   <td className="py-1.5 text-end text-muted">{egp(u.total)}</td>
                 </tr>
               ))}
+              {r.byUser.length === 0 && <tr><td colSpan={2} className="py-1.5 text-muted">{t("exp.empty")}</td></tr>}
             </tbody>
           </table>
         </div>
@@ -47,6 +49,7 @@ export default async function ExpenseReportsPage() {
                   <td className="py-1.5 text-end text-muted">{egp(m.expenses)}</td>
                 </tr>
               ))}
+              {r.byMonth.length === 0 && <tr><td colSpan={2} className="py-1.5 text-muted">{t("exp.empty")}</td></tr>}
             </tbody>
           </table>
         </div>

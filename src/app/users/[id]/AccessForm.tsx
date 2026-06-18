@@ -69,11 +69,9 @@ export function AccessForm({
       </div>
 
       <div>
-        <h2 className="font-semibold text-ink">Permissions</h2>
+        <h2 className="font-semibold text-ink">{t("perm.title")}</h2>
         {isAdminTier && (
-          <p className="mt-1 text-xs text-amber-600">
-            This user is an admin tier and has full access to every module regardless of the levels below.
-          </p>
+          <p className="mt-1 text-xs text-amber-600">{t("users.adminTierNote")}</p>
         )}
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {modules.map((m) => (

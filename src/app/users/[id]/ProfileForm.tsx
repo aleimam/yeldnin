@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { saveProfileAction } from "../actions";
 
@@ -19,6 +20,7 @@ export interface ProfileUser {
 }
 
 export function ProfileForm({ user }: { user: ProfileUser }) {
+  const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -53,38 +55,38 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
 
   return (
     <div className="card space-y-4 p-6">
-      <h2 className="font-semibold text-ink">Profile</h2>
+      <h2 className="font-semibold text-ink">{t("users.profile")}</h2>
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
-      {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">Saved.</div>}
+      {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("users.saved")}</div>}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Display name"><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
-        <Field label="Full name (official)"><input className="input" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
-        <Field label="Username (for login)"><input className="input" value={f.username} onChange={(e) => set("username", e.target.value)} /></Field>
-        <Field label="Email"><input type="email" className="input" value={f.email} onChange={(e) => set("email", e.target.value)} /></Field>
-        <Field label="Tier">
+        <Field label={t("users.name")}><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
+        <Field label={t("users.fullName")}><input className="input" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
+        <Field label={t("users.username")}><input className="input" value={f.username} onChange={(e) => set("username", e.target.value)} /></Field>
+        <Field label={t("users.email")}><input type="email" className="input" value={f.email} onChange={(e) => set("email", e.target.value)} /></Field>
+        <Field label={t("users.tier")}>
           <select className="input" value={f.tier} onChange={(e) => set("tier", e.target.value)}>
-            <option value="MEMBER">Member</option>
-            <option value="ADMIN">Admin</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
+            <option value="MEMBER">{t("tier.MEMBER")}</option>
+            <option value="ADMIN">{t("tier.ADMIN")}</option>
+            <option value="SUPER_ADMIN">{t("tier.SUPER_ADMIN")}</option>
           </select>
         </Field>
-        <Field label="Primary phone"><input className="input" value={f.primaryPhone} onChange={(e) => set("primaryPhone", e.target.value)} /></Field>
-        <Field label="Secondary phone"><input className="input" value={f.secondaryPhone} onChange={(e) => set("secondaryPhone", e.target.value)} /></Field>
-        <Field label="Yeldn phone"><input className="input" value={f.yeldnPhone} onChange={(e) => set("yeldnPhone", e.target.value)} /></Field>
+        <Field label={t("users.primaryPhone")}><input className="input" value={f.primaryPhone} onChange={(e) => set("primaryPhone", e.target.value)} /></Field>
+        <Field label={t("users.secondaryPhone")}><input className="input" value={f.secondaryPhone} onChange={(e) => set("secondaryPhone", e.target.value)} /></Field>
+        <Field label={t("users.yeldnPhone")}><input className="input" value={f.yeldnPhone} onChange={(e) => set("yeldnPhone", e.target.value)} /></Field>
       </div>
 
-      <Field label="Avatar">
+      <Field label={t("users.avatar")}>
         <PhotoUpload photos={avatar ? [avatar] : []} onChange={(next) => setAvatar(next.at(-1) ?? null)} />
       </Field>
 
       <label className="flex items-center gap-2 text-sm text-ink">
         <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-        Active
+        {t("users.active")}
       </label>
 
       <button onClick={submit} disabled={pending} className="btn-primary">
-        {pending ? "Saving…" : "Save profile"}
+        {pending ? "…" : t("users.saveProfile")}
       </button>
     </div>
   );
