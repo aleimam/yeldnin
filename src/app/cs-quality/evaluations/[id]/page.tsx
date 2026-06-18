@@ -1,0 +1,94 @@
+import { notFound, redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth/access";
+import { AppShell } from "@/components/shell/AppShell";
+import { getT } from "@/i18n/server";
+import { assetUrl } from "@/lib/assets/assets-service";
+import { formatBizDate } from "@/lib/format/dates";
+import { canManageCs } from "@/lib/cs/cs-logic";
+import { getEvaluationDetail } from "@/lib/cs/cs-report-service";
+import { ReviewActions } from "./ReviewActions";
+
+const STATUS_TONE: Record<string, string> = {
+  PENDING: "bg-amber-100 text-amber-700",
+  APPROVED: "bg-green-100 text-green-700",
+  REJECTED: "bg-red-100 text-red-700",
+};
+const lvlTone = (l: string) => (l === "CATASTROPHE" ? "text-red-600" : l === "OUTSTANDING" ? "text-green-600" : "text-ink");
+
+export default async function CsEvaluationDetail({ params }: { params: Promise<{ id: string }> }) {
+  const access = await requireUser();
+  const { id } = await params;
+  const data = await getEvaluationDetail(Number(id));
+  if (!data) notFound();
+  const { ev, subject, evaluator, approver } = data;
+  const me = access.user.id;
+  const admin = canManageCs(access);
+  const isEvaluator = ev.evaluatorUserId === me;
+  const isSubject = ev.subjectUserId === me;
+  // Subject sees only their own approved; evaluator sees their own; admins all.
+  if (!(admin || isEvaluator || (isSubject && ev.status === "APPROVED"))) redirect("/cs-quality");
+  const showEvaluator = admin || isEvaluator; // the rep never sees who evaluated them
+  const t = await getT();
+
+  return (
+    <AppShell access={access} moduleKey="cs_quality" pageTitle={ev.uid ?? `#${ev.id}`} backHref={admin ? "/cs-quality/review" : "/cs-quality/mine"}>
+      <div className="max-w-3xl space-y-6">
+        <div className="card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+              <div><span className="text-muted">{t("cs.salesRep")}: </span><span className="text-ink">{subject}</span></div>
+              <div><span className="text-muted">{t("cs.scope")}: </span><span className="text-ink">{t(`cs.scope.${ev.scope}`)}{ev.typeName ? ` · ${ev.typeName}` : ""}</span></div>
+              {showEvaluator && <div><span className="text-muted">{t("cs.evaluator")}: </span><span className="text-ink">{evaluator}</span></div>}
+              <div><span className="text-muted">{t("cs.date")}: </span><span className="text-ink">{formatBizDate(ev.createdAt)}</span></div>
+              <div><span className="text-muted">{t("cs.score")}: </span><span className="font-semibold text-ink">{ev.total}</span></div>
+              <div><span className="text-muted">{t("cs.normalized")}: </span><span className="font-semibold text-ink">{ev.normalized}%</span></div>
+              {approver && <div><span className="text-muted">{t("cs.approvedBy")}: </span><span className="text-ink">{approver}</span></div>}
+            </div>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_TONE[ev.status] ?? "bg-canvas text-muted"}`}>{t(`cs.status.${ev.status}`)}</span>
+          </div>
+          {ev.status === "REJECTED" && ev.rejectedNote && <p className="mt-3 text-sm text-red-600">{t("cs.rejectReason")}: {ev.rejectedNote}</p>}
+          {admin && ev.status === "PENDING" && <div className="mt-4 border-t border-line pt-3"><ReviewActions id={ev.id} /></div>}
+        </div>
+
+        <div className="card overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead className="border-b border-line bg-canvas">
+              <tr>
+                <th className="th">{t("cs.criteria")}</th>
+                <th className="th">{t("cs.answer")}</th>
+                <th className="th text-end">{t("cs.weight")}</th>
+                <th className="th text-end">{t("cs.weighted")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {ev.answers.map((a) => (
+                <tr key={a.id}>
+                  <td className="td">
+                    {a.criteria}
+                    <span className="block text-[10px] uppercase text-muted">{a.typeName}</span>
+                    {a.note && <span className="block text-xs text-muted">“{a.note}”</span>}
+                  </td>
+                  <td className="td"><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span> <span className="text-xs text-muted">({a.value})</span></td>
+                  <td className="td text-end">{a.weight}</td>
+                  <td className="td text-end">{a.weighted}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {ev.photos.length > 0 && (
+          <div className="card p-5">
+            <h2 className="mb-3 font-semibold text-ink">{t("cs.photos")}</h2>
+            <div className="flex flex-wrap gap-2">
+              {ev.photos.map((p) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <a key={p.id} href={assetUrl(p.assetId)!} target="_blank" rel="noreferrer"><img src={assetUrl(p.assetId)!} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" /></a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </AppShell>
+  );
+}

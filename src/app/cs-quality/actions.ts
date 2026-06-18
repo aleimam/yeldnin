@@ -6,6 +6,7 @@ import { saveCsConfig } from "@/lib/cs/cs-config-service";
 import { saveCsTypeBatch, type CsTypeRow } from "@/lib/cs/cs-types-service";
 import { createCsQuestion, updateCsQuestion, archiveCsQuestion, type CsQuestionInput } from "@/lib/cs/cs-question-service";
 import { createEvaluation } from "@/lib/cs/cs-eval-service";
+import { approveEvaluation, rejectEvaluation } from "@/lib/cs/cs-report-service";
 import { canEvaluateCalls, canManageCs, isCsLevel, type CsConfigShape } from "@/lib/cs/cs-logic";
 
 export type QResult = { ok: true; id?: number } | { ok: false; error: string };
@@ -76,4 +77,18 @@ export async function createCsEvaluationAction(p: {
   await writeAudit(access.user.id, "cs_quality", "eval.create", "csEvaluation", ev.id, { scope: p.scope });
   revalidatePath("/cs-quality/review");
   return { ok: true, id: ev.id };
+}
+
+export async function approveCsEvaluationAction(id: number): Promise<void> {
+  const access = await requireAdmin();
+  await approveEvaluation(id, access.user.id);
+  revalidatePath("/cs-quality/review");
+  revalidatePath(`/cs-quality/evaluations/${id}`);
+}
+
+export async function rejectCsEvaluationAction(id: number, note: string): Promise<void> {
+  const access = await requireAdmin();
+  await rejectEvaluation(id, note || null, access.user.id);
+  revalidatePath("/cs-quality/review");
+  revalidatePath(`/cs-quality/evaluations/${id}`);
 }
