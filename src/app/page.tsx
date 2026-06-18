@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getT } from "@/i18n/server";
 import { TopBar } from "@/components/shell/TopBar";
-import { MAIN_MODULES, ADMIN_MODULES, childModules, type ModuleDef } from "@/lib/modules";
+import { MODULES, MODULE_CATEGORIES, childModules, type ModuleDef } from "@/lib/modules";
 import { requireUser } from "@/lib/auth/access";
 import { canAccessSettings } from "@/lib/module-sections";
 import { canAccessCs } from "@/lib/cs/cs-logic";
@@ -39,8 +39,10 @@ export default async function DashboardPage() {
         ? canAccessCs(access)
         : access.canModule(key) || childModules(key).some((c) => access.canModule(c));
   // Folded-in modules (purchasing → logistics) have no separate dashboard tile.
-  const mainVisible = MAIN_MODULES.filter((m) => !m.foldedInto && canSee(m.key));
-  const adminVisible = ADMIN_MODULES.filter((m) => canSee(m.key));
+  const groups = MODULE_CATEGORIES.map((cat) => ({
+    cat,
+    modules: MODULES.filter((m) => m.category === cat && !m.foldedInto && canSee(m.key)),
+  })).filter((g) => g.modules.length > 0);
 
   return (
     <>
@@ -51,24 +53,16 @@ export default async function DashboardPage() {
           <p className="mt-1 text-muted">{t("dashboard.choose")}</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {mainVisible.map((m) => (
-            <ModuleCard key={m.key} m={m} t={t} />
-          ))}
-        </div>
-
-        {adminVisible.length > 0 && (
-          <>
-            <h2 className="mb-4 mt-10 text-xs font-semibold tracking-widest text-muted">
-              {t("common.administration")}
-            </h2>
+        {groups.map(({ cat, modules }) => (
+          <section key={cat} className="mb-10">
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted">{t(`section.${cat}`)}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {adminVisible.map((m) => (
+              {modules.map((m) => (
                 <ModuleCard key={m.key} m={m} t={t} />
               ))}
             </div>
-          </>
-        )}
+          </section>
+        ))}
       </main>
 
       <SiteFooter />

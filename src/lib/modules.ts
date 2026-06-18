@@ -3,10 +3,18 @@
 
 export type ModuleSection = "main" | "admin";
 
+/** Dashboard / switcher grouping. */
+export type ModuleCategory = "supply_chain" | "services" | "people" | "finance" | "administration";
+
+/** Display order of the category groups on the dashboard + switcher. */
+export const MODULE_CATEGORIES: ModuleCategory[] = ["supply_chain", "services", "people", "finance", "administration"];
+
 export interface ModuleDef {
   key: string;
   route: string;
   section: ModuleSection;
+  /** Which dashboard section this module lives under. */
+  category: ModuleCategory;
   /** Emoji placeholder icon (refined against the live app later). */
   icon: string;
   /**
@@ -19,22 +27,23 @@ export interface ModuleDef {
 }
 
 export const MODULES: ModuleDef[] = [
-  { key: "pricing", route: "/pricing", section: "main", icon: "🧮" },
-  { key: "expenses", route: "/expenses", section: "main", icon: "💸" },
-  { key: "order_requests", route: "/sales", section: "main", icon: "🧾" },
-  { key: "xoonx", route: "/xoonx", section: "main", icon: "🌐" },
+  { key: "order_requests", route: "/sales", section: "main", category: "supply_chain", icon: "🧾" },
+  { key: "xoonx", route: "/xoonx", section: "main", category: "supply_chain", icon: "🌐" },
   // Purchasing is folded into Logistics: one "Logistics" nav holds both, but the
   // purchasing permission stays separate (granted independently; gates its pages).
-  { key: "purchasing", route: "/purchasing", section: "main", icon: "🛒", foldedInto: "logistics" },
-  { key: "logistics", route: "/logistics", section: "main", icon: "🚚" },
-  { key: "operations", route: "/operations", section: "main", icon: "💼" },
-  { key: "couriers", route: "/couriers", section: "main", icon: "🛵" },
-  { key: "issues", route: "/issues", section: "main", icon: "⚠️" },
-  { key: "history", route: "/history", section: "main", icon: "🕐" },
-  { key: "cs_quality", route: "/cs-quality", section: "main", icon: "🎧" },
-  { key: "settings", route: "/settings", section: "admin", icon: "⚙️" },
-  { key: "user_access", route: "/users", section: "admin", icon: "👥" },
-  { key: "audit_log", route: "/audit", section: "admin", icon: "📜" },
+  { key: "purchasing", route: "/purchasing", section: "main", category: "supply_chain", icon: "🛒", foldedInto: "logistics" },
+  { key: "logistics", route: "/logistics", section: "main", category: "supply_chain", icon: "🚚" },
+  { key: "operations", route: "/operations", section: "main", category: "supply_chain", icon: "💼" },
+  { key: "couriers", route: "/couriers", section: "main", category: "supply_chain", icon: "🛵" },
+  { key: "issues", route: "/issues", section: "main", category: "supply_chain", icon: "⚠️" },
+  { key: "history", route: "/history", section: "main", category: "supply_chain", icon: "🕐" },
+  { key: "pricing", route: "/pricing", section: "main", category: "services", icon: "🧮" },
+  { key: "cs_quality", route: "/cs-quality", section: "main", category: "people", icon: "🎧" },
+  { key: "human_resources", route: "/hr", section: "main", category: "people", icon: "👤" },
+  { key: "expenses", route: "/expenses", section: "main", category: "finance", icon: "💸" },
+  { key: "settings", route: "/settings", section: "admin", category: "administration", icon: "⚙️" },
+  { key: "user_access", route: "/users", section: "admin", category: "administration", icon: "👥" },
+  { key: "audit_log", route: "/audit", section: "admin", category: "administration", icon: "📜" },
 ];
 
 export const MAIN_MODULES = MODULES.filter((m) => m.section === "main");

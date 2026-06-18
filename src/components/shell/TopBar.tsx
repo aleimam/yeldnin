@@ -55,6 +55,7 @@ export async function TopBar({
     label: t(`module.${m.key}.name`),
     icon: m.icon,
     href: m.route,
+    category: m.category,
   }));
   const activeModuleName = activeModuleKey ? t(`module.${activeModuleKey}.name`) : null;
 
