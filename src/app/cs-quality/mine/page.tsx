@@ -4,21 +4,26 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
-import { canAccessCs } from "@/lib/cs/cs-logic";
+import { canAccessCs, bonusPctFor, expectedBonus } from "@/lib/cs/cs-logic";
 import { listEvaluations, repAnalytics } from "@/lib/cs/cs-report-service";
+import { getRepBonus, getBonusTiers } from "@/lib/cs/cs-bonus-service";
 
 export default async function CsMinePage() {
   const access = await requireUser();
   if (!canAccessCs(access)) redirect("/cs-quality");
   const me = access.user.id;
-  const [t, rows, an] = await Promise.all([
+  const [t, rows, an, maxBonus, tiers] = await Promise.all([
     getT(),
     listEvaluations({ subjectUserId: me, status: "APPROVED", showEvaluator: false }),
     repAnalytics(me),
+    getRepBonus(me),
+    getBonusTiers(),
   ]);
   const cur = an.current.overall;
   const prev = an.previous.overall;
   const delta = cur !== null && prev !== null ? Math.round((cur - prev) * 100) / 100 : null;
+  const bonusPct = bonusPctFor(cur, tiers);
+  const exp = expectedBonus(cur, maxBonus, tiers);
 
   return (
     <AppShell access={access} moduleKey="cs_quality" pageTitle={t("cs.myEvaluations")} backHref="/cs-quality">
@@ -36,6 +41,11 @@ export default async function CsMinePage() {
                 {delta !== null && <span className={`ms-1 font-medium ${delta >= 0 ? "text-green-600" : "text-red-600"}`}>{delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}</span>}
               </>
             )}
+          </div>
+          <div className="mx-auto mt-3 max-w-sm border-t border-line/60 pt-3 text-sm">
+            <span className="text-muted">{t("cs.expectedBonus")}: </span>
+            <span className="font-semibold text-ink">{exp.toLocaleString()} {t("cs.egp")}</span>
+            <span className="text-muted"> · {bonusPct}% {t("cs.ofMax")} {maxBonus.toLocaleString()} {t("cs.egp")}</span>
           </div>
         </div>
 
@@ -57,6 +67,22 @@ export default async function CsMinePage() {
                 </tr>
               ))}
               {an.current.byType.length === 0 && <tr><td className="td text-muted" colSpan={3}>—</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Bonus tiers (read-only) */}
+        <div className="card p-5">
+          <h2 className="mb-3 font-semibold text-ink">{t("cs.tiersTitle")}</h2>
+          <table className="w-full text-sm" data-cards>
+            <thead><tr className="border-b border-line"><th className="th">{t("cs.tierFrom")}</th><th className="th text-end">{t("cs.tierBonus")}</th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {tiers.map((ti, i) => (
+                <tr key={i}>
+                  <td className="td" data-label={t("cs.tierFrom")}>≥ {ti.fromPct}%</td>
+                  <td className="td text-end" data-label={t("cs.tierBonus")}>{ti.bonusPct}%</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

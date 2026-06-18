@@ -4,6 +4,8 @@ import { requireCapability, requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import { saveCsConfig } from "@/lib/cs/cs-config-service";
 import { saveCsTypeBatch, type CsTypeRow } from "@/lib/cs/cs-types-service";
+import { saveRepBonuses, saveBonusTiers } from "@/lib/cs/cs-bonus-service";
+import type { BonusTier } from "@/lib/cs/cs-logic";
 import { createCsQuestion, updateCsQuestion, archiveCsQuestion, type CsQuestionInput } from "@/lib/cs/cs-question-service";
 import { createEvaluation } from "@/lib/cs/cs-eval-service";
 import { approveEvaluation, rejectEvaluation, softDeleteEvaluation } from "@/lib/cs/cs-report-service";
@@ -22,6 +24,20 @@ export async function saveCsTypesAction(scope: string, rows: CsTypeRow[], add: {
   const access = await requireCapability("cs_quality", "manage");
   await saveCsTypeBatch(scope, rows, add, access.user.id);
   revalidatePath("/cs-quality/types");
+  return { ok: true };
+}
+
+export async function saveRepBonusesAction(rows: { userId: number; maxBonus: number }[]): Promise<{ ok: boolean }> {
+  const access = await requireCapability("cs_quality", "manage");
+  await saveRepBonuses(rows, access.user.id);
+  revalidatePath("/cs-quality/bonus");
+  return { ok: true };
+}
+
+export async function saveBonusTiersAction(tiers: BonusTier[]): Promise<{ ok: boolean }> {
+  const access = await requireCapability("cs_quality", "manage");
+  await saveBonusTiers(tiers, access.user.id);
+  revalidatePath("/cs-quality/bonus");
   return { ok: true };
 }
 

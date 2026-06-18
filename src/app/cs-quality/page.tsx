@@ -21,6 +21,7 @@ export default async function CsQualityHub() {
     rep && { href: "/cs-quality/mine", icon: "📋", label: t("cs.myEvaluations") },
     !manage && { href: "/cs-quality/criteria", icon: "📖", label: t("cs.criteriaTitle") },
     manage && { href: "/cs-quality/analytics", icon: "📈", label: t("cs.analytics") },
+    manage && { href: "/cs-quality/bonus", icon: "🎁", label: t("cs.bonus") },
     manage && { href: "/cs-quality/questions", icon: "📝", label: t("cs.questionPool") },
     manage && { href: "/cs-quality/types", icon: "🏷️", label: t("cs.types") },
     manage && { href: "/cs-quality/values", icon: "🔢", label: t("cs.answerValues") },
