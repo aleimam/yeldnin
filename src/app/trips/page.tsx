@@ -10,7 +10,7 @@ import { formatBizDate } from "@/lib/format/dates";
 export default async function TripsPage() {
   const access = await requireUser();
   if (!access.canModule("logistics", "VIEW") && !access.canModule("operations", "VIEW")) redirect("/");
-  const canManage = access.canModule("logistics", "OPERATE");
+  const canManage = access.can("logistics", "operate");
   const [t, rows] = await Promise.all([getT(), listTrips()]);
   return (
     <AppShell

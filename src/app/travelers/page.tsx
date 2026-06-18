@@ -6,7 +6,7 @@ import { listTravelers } from "@/lib/travelers/travelers-service";
 
 export default async function TravelersPage() {
   const access = await requireModule("logistics", "VIEW");
-  const canManage = access.canModule("logistics", "OPERATE");
+  const canManage = access.can("logistics", "operate");
   const [t, rows] = await Promise.all([getT(), listTravelers()]);
   return (
     <AppShell

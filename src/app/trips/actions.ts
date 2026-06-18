@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule, requireAdmin } from "@/lib/auth/access";
+import { requireCapability, requireAdmin } from "@/lib/auth/access";
 import { validateTrip } from "@/lib/trips/trip-logic";
 import { createTrip, advanceTrip, approveTrip, denyTrip } from "@/lib/trips/trip-service";
 import { writeAudit } from "@/lib/audit";
@@ -20,7 +20,7 @@ export interface TripPayload {
 export type TripResult = { ok: true; id: number } | { ok: false; error: string };
 
 export async function createTripAction(p: TripPayload): Promise<TripResult> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   const errs = validateTrip(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   try {
@@ -48,7 +48,7 @@ export async function createTripAction(p: TripPayload): Promise<TripResult> {
 }
 
 export async function advanceTripAction(id: number): Promise<void> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   await advanceTrip(id, access.user.id);
   await writeAudit(access.user.id, "logistics", "trip.advance", "trip", id);
   revalidatePath(`/trips/${id}`);

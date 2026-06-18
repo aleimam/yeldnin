@@ -15,7 +15,7 @@ export default async function TravelerDetailPage({ params }: { params: Promise<{
   const tr = await getTraveler(Number(id));
   if (!tr) notFound();
   const [t, trips] = await Promise.all([getT(), listTripsByTraveler(tr.id)]);
-  const canEdit = access.canModule("logistics", "OPERATE");
+  const canEdit = access.can("logistics", "operate");
   const types = parseTypes(tr.allowedProductTypes);
 
   return (

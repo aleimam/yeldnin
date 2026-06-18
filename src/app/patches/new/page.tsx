@@ -1,4 +1,4 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { SCOPES } from "@/lib/products/products-logic";
@@ -7,7 +7,7 @@ import { listCouriersForPicker } from "@/lib/couriers/couriers-service";
 import { PatchForm } from "../PatchForm";
 
 export default async function NewPatchPage({ searchParams }: { searchParams: Promise<{ purchase?: string }> }) {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   const sp = await searchParams;
   const [t, purchases, couriers] = await Promise.all([
     getT(),

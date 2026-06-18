@@ -8,7 +8,7 @@ import { listPurchases } from "@/lib/purchasing/purchasing-service";
 export default async function PurchasesPage() {
   const access = await requireModule("purchasing", "VIEW");
   const scopes = productScopes(access, "VIEW");
-  const canBuy = access.canModule("purchasing", "OPERATE");
+  const canBuy = access.can("purchasing", "operate");
   const [t, rows] = await Promise.all([getT(), listPurchases({ scopes })]);
 
   return (

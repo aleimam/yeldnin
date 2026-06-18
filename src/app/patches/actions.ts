@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { validatePatch } from "@/lib/patches/patch-logic";
 import { createPatch, markPatchDelivered, markPatchReceived } from "@/lib/patches/patch-service";
 import { writeAudit } from "@/lib/audit";
@@ -18,7 +18,7 @@ export interface PatchPayload {
 export type PatchResult = { ok: true; id: number } | { ok: false; error: string };
 
 export async function createPatchAction(p: PatchPayload): Promise<PatchResult> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   const errs = validatePatch(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   try {
@@ -36,7 +36,7 @@ export async function createPatchAction(p: PatchPayload): Promise<PatchResult> {
 }
 
 export async function markPatchDeliveredAction(id: number): Promise<void> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   await markPatchDelivered(id, access.user.id);
   await writeAudit(access.user.id, "logistics", "patch.delivered", "patch", id);
   revalidatePath(`/patches/${id}`);
@@ -44,7 +44,7 @@ export async function markPatchDeliveredAction(id: number): Promise<void> {
 }
 
 export async function markPatchReceivedAction(id: number): Promise<void> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   await markPatchReceived(id, access.user.id);
   await writeAudit(access.user.id, "logistics", "patch.received", "patch", id);
   revalidatePath(`/patches/${id}`);

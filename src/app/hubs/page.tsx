@@ -6,7 +6,7 @@ import { listHubs } from "@/lib/hubs/hubs-service";
 
 export default async function HubsPage() {
   const access = await requireModule("logistics", "VIEW");
-  const canManage = access.canModule("logistics", "OPERATE");
+  const canManage = access.can("logistics", "operate");
   const [t, rows] = await Promise.all([getT(), listHubs()]);
   return (
     <AppShell

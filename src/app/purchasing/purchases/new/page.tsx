@@ -1,4 +1,4 @@
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { productScopes } from "@/lib/products/products-logic";
@@ -10,7 +10,7 @@ import { supplierLabel } from "@/app/products/supplier-label";
 import { PurchaseForm } from "../../PurchaseForm";
 
 export default async function NewPurchasePage() {
-  const access = await requireModule("purchasing", "OPERATE");
+  const access = await requireCapability("purchasing", "operate");
   const scopes = productScopes(access, "VIEW");
   const [t, pool, suppliers, hubs, trips, countries] = await Promise.all([
     getT(),

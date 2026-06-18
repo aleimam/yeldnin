@@ -27,7 +27,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
     listScopedProducts([purchase.scope]),
   ]);
   const loc = locale === "ar" ? "ar" : "en";
-  const canManage = access.canModule("purchasing", "OPERATE") || access.canModule("logistics", "OPERATE");
+  const canManage = access.can("purchasing", "operate") || access.can("logistics", "operate");
   const onWebsite = items.some((it) => statusIndex(it.status as ItemStatus) >= statusIndex("WEBSITE"));
   const hasOrdered = items.some((it) => it.status === "ORDERED");
 

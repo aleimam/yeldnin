@@ -808,6 +808,8 @@
   "cap.settings.manageModules": "Manage suppliers & module settings",
   "cap.settings.managePermissions": "Edit the permissions policy",
   "cap.settings.manageWorkflow": "Edit the status map",
+  "cap.purchasing.operate": "Create & edit purchases",
+  "cap.logistics.operate": "Manage patches, trips, travelers & hubs",
   "cap.operations.operate": "Manage shipments (review, photos)",
   "cap.couriers.operate": "Add & edit couriers",
   "cap.issues.operate": "Open, resolve & compensate issues",

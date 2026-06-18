@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { validateTraveler } from "@/lib/travelers/travelers-logic";
 import { createTraveler, updateTraveler, archiveTraveler } from "@/lib/travelers/travelers-service";
 import { writeAudit } from "@/lib/audit";
@@ -19,7 +19,7 @@ export interface TravelerPayload {
 export type SaveResult = { ok: true; id: number } | { ok: false; error: string };
 
 export async function createTravelerAction(p: TravelerPayload): Promise<SaveResult> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   const errs = validateTraveler(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   const tr = await createTraveler(p, p.photoIds ?? [], access.user.id);
@@ -28,7 +28,7 @@ export async function createTravelerAction(p: TravelerPayload): Promise<SaveResu
   return { ok: true, id: tr.id };
 }
 export async function saveTravelerAction(p: TravelerPayload & { id: number; active: boolean }): Promise<SaveResult> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   const errs = validateTraveler(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   await updateTraveler(p.id, { ...p, active: p.active }, p.photoIds ?? [], access.user.id);
@@ -38,7 +38,7 @@ export async function saveTravelerAction(p: TravelerPayload & { id: number; acti
   return { ok: true, id: p.id };
 }
 export async function archiveTravelerAction(id: number): Promise<void> {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   await archiveTraveler(id);
   await writeAudit(access.user.id, "logistics", "traveler.archive", "traveler", id);
   revalidatePath("/travelers");

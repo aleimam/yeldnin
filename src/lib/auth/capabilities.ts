@@ -18,7 +18,7 @@ export interface Capability {
 }
 
 /** Module keys that expose configurable capabilities (order = editor order). */
-export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings", "operations", "couriers", "issues"] as const;
+export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings", "purchasing", "logistics", "operations", "couriers", "issues"] as const;
 
 // NOTE: opening a module at all stays governed by the plain VIEW gate
 // (canModule(key, "VIEW")). Capabilities govern ACTIONS within a module.
@@ -49,6 +49,12 @@ export const CAPABILITIES: Capability[] = [
   // code; this entry only documents/labels it. Default MANAGE.
   { key: "managePermissions", module: "settings", labelKey: "cap.settings.managePermissions", defaultLevel: "MANAGE" },
   { key: "manageWorkflow", module: "settings", labelKey: "cap.settings.manageWorkflow", defaultLevel: "MANAGE" },
+
+  // ── Purchasing ───────────────────────────────────────────────────────────
+  { key: "operate", module: "purchasing", labelKey: "cap.purchasing.operate", defaultLevel: "OPERATE" },
+
+  // ── Logistics ────────────────────────────────────────────────────────────
+  { key: "operate", module: "logistics", labelKey: "cap.logistics.operate", defaultLevel: "OPERATE" },
 
   // ── Operations ───────────────────────────────────────────────────────────
   { key: "operate", module: "operations", labelKey: "cap.operations.operate", defaultLevel: "OPERATE" },

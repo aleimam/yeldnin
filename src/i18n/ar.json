@@ -808,6 +808,8 @@
   "cap.settings.manageModules": "إدارة المورّدين وإعدادات الوحدات",
   "cap.settings.managePermissions": "تعديل سياسة الصلاحيات",
   "cap.settings.manageWorkflow": "تعديل خريطة الحالات",
+  "cap.purchasing.operate": "إنشاء وتعديل المشتريات",
+  "cap.logistics.operate": "إدارة الإرساليات والرحلات والمسافرين والمراكز",
   "cap.operations.operate": "إدارة الشحنات (المراجعة والصور)",
   "cap.couriers.operate": "إضافة وتعديل المندوبين",
   "cap.issues.operate": "فتح البلاغات ومعالجتها والتعويض",

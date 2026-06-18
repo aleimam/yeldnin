@@ -22,8 +22,8 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const trip = await getTrip(Number(id));
   if (!trip) notFound();
-  const canManage = access.canModule("logistics", "OPERATE");
-  const canOps = access.canModule("operations", "OPERATE");
+  const canManage = access.can("logistics", "operate");
+  const canOps = access.can("operations", "operate");
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getTripItems(trip.id), getWorkflow()]);
   const loc = locale === "ar" ? "ar" : "en";
 

@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireModule, requireUser } from "@/lib/auth/access";
+import { requireCapability, requireUser } from "@/lib/auth/access";
 import { productScopes, type Scope } from "@/lib/products/products-logic";
 import { validatePurchase } from "@/lib/purchasing/purchasing-logic";
 import { createPurchase, advancePurchaseStatus, receivePurchaseAtOffice, addGiftItems, updatePurchase } from "@/lib/purchasing/purchasing-service";
@@ -21,7 +21,7 @@ export interface PurchasePayload {
 export type PurchaseResult = { ok: true; id: number } | { ok: false; error: string };
 
 export async function createPurchaseAction(p: PurchasePayload): Promise<PurchaseResult> {
-  const access = await requireModule("purchasing", "OPERATE");
+  const access = await requireCapability("purchasing", "operate");
   const errs = validatePurchase(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   if (!productScopes(access, "VIEW").includes(p.scope as Scope)) {
@@ -54,7 +54,7 @@ export async function createPurchaseAction(p: PurchasePayload): Promise<Purchase
 
 async function requirePurchaseManage() {
   const access = await requireUser();
-  if (!access.canModule("purchasing", "OPERATE") && !access.canModule("logistics", "OPERATE")) {
+  if (!access.can("purchasing", "operate") && !access.can("logistics", "operate")) {
     throw new Error("Not allowed.");
   }
   return access;

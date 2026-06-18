@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
@@ -8,7 +8,7 @@ import { listCountryOptions } from "@/lib/countries/countries-service";
 import { HubForm } from "../HubForm";
 
 export default async function EditHubPage({ params }: { params: Promise<{ id: string }> }) {
-  const access = await requireModule("logistics", "OPERATE");
+  const access = await requireCapability("logistics", "operate");
   const { id } = await params;
   const h = await getHub(Number(id));
   if (!h) notFound();

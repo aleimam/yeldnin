@@ -11,7 +11,7 @@ import { PurchaseEditForm } from "../../../PurchaseEditForm";
 
 export default async function EditPurchasePage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
-  if (!access.canModule("purchasing", "OPERATE") && !access.canModule("logistics", "OPERATE")) notFound();
+  if (!access.can("purchasing", "operate") && !access.can("logistics", "operate")) notFound();
   const scopes = productScopes(access, "VIEW");
   const { id } = await params;
   const purchase = await getPurchase(Number(id));

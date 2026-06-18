@@ -9,7 +9,7 @@ import { REQUEST_TYPES } from "@/lib/requests/request-logic";
 export default async function PoolPage() {
   const access = await requireModule("purchasing", "VIEW");
   const scopes = productScopes(access, "VIEW");
-  const canBuy = access.canModule("purchasing", "OPERATE");
+  const canBuy = access.can("purchasing", "operate");
   const [t, pool] = await Promise.all([getT(), pendingPool(scopes)]);
 
   return (

@@ -15,7 +15,7 @@ export default async function PatchDetailPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const patch = await getPatch(Number(id));
   if (!patch) notFound();
-  const canManage = access.canModule("logistics", "OPERATE");
+  const canManage = access.can("logistics", "operate");
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getPatchItems(patch.id), getWorkflow()]);
   const loc = locale === "ar" ? "ar" : "en";
 
