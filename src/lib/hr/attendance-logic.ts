@@ -8,10 +8,41 @@ export function isLeaveType(v: unknown): v is LeaveType {
   return typeof v === "string" && (LEAVE_TYPES as readonly string[]).includes(v);
 }
 
-export const HOLIDAY_TYPES = ["EID", "OFFICIAL"] as const;
+// Vacation kinds (Phase 2.5): the three dated vacation classes.
+export const HOLIDAY_TYPES = ["EID_DAYS", "EID_VACATION", "VACATION"] as const;
 export type HolidayType = (typeof HOLIDAY_TYPES)[number];
 export function isHolidayType(v: unknown): v is HolidayType {
   return typeof v === "string" && (HOLIDAY_TYPES as readonly string[]).includes(v);
+}
+
+// Configurable catalogs (Phase 2.5).
+export const COMPONENT_KINDS = ["BONUS", "PENALTY"] as const;
+export type ComponentKind = (typeof COMPONENT_KINDS)[number];
+export function isComponentKind(v: unknown): v is ComponentKind {
+  return typeof v === "string" && (COMPONENT_KINDS as readonly string[]).includes(v);
+}
+
+export const DAY_CLASSES = ["LEAVE", "DUTY"] as const;
+export type DayClass = (typeof DAY_CLASSES)[number];
+export function isDayClass(v: unknown): v is DayClass {
+  return typeof v === "string" && (DAY_CLASSES as readonly string[]).includes(v);
+}
+
+/** The duty DayType code that results from working a given vacation kind / weekend. */
+export function dutyCodeFor(
+  kind: "EID_DAYS" | "EID_VACATION" | "VACATION" | "WEEKEND",
+  mapping: { dutyEidDays: string; dutyEidVacation: string; dutyVacation: string; dutyWeekend: string },
+): string {
+  switch (kind) {
+    case "EID_DAYS":
+      return mapping.dutyEidDays;
+    case "EID_VACATION":
+      return mapping.dutyEidVacation;
+    case "VACATION":
+      return mapping.dutyVacation;
+    case "WEEKEND":
+      return mapping.dutyWeekend;
+  }
 }
 
 /** Date-only key in UTC ("YYYY-MM-DD"). */

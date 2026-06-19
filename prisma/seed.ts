@@ -310,6 +310,19 @@ async function main() {
   }
   if (usersNoEmp.length) console.log(`  Backfilled ${usersNoEmp.length} employee record(s).`);
 
+  // HR day types (system catalog; idempotent — never overwrites admin edits).
+  const DAY_TYPES = [
+    { code: "ANNUAL", name: "Annual leave", nameAr: "إجازة اعتيادية", dayClass: "LEAVE", sortOrder: 1 },
+    { code: "URGENT", name: "Urgent leave", nameAr: "إجازة طارئة", dayClass: "LEAVE", sortOrder: 2 },
+    { code: "ED", name: "Eid Duty", nameAr: "مناوبة عيد", dayClass: "DUTY", sortOrder: 3 },
+    { code: "D", name: "Duty", nameAr: "مناوبة", dayClass: "DUTY", sortOrder: 4 },
+    { code: "VD", name: "Vacation Duty", nameAr: "مناوبة إجازة", dayClass: "DUTY", sortOrder: 5 },
+    { code: "L", name: "Learning", nameAr: "تدريب", dayClass: "DUTY", sortOrder: 6 },
+  ];
+  for (const dt of DAY_TYPES) {
+    await prisma.dayType.upsert({ where: { code: dt.code }, update: {}, create: { ...dt, system: true } });
+  }
+
   console.log("Seed complete.");
 }
 

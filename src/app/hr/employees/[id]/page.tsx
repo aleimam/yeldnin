@@ -6,7 +6,7 @@ import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { formatBizDate } from "@/lib/format/dates";
 import { getEmployee, managerOptions, canManageEmployee } from "@/lib/hr/hr-service";
-import { leaveBalance, listAbsences } from "@/lib/hr/attendance-service";
+import { leaveBalance, listAbsences, dutyDayTypes, listDuties } from "@/lib/hr/attendance-service";
 import { ymd } from "@/lib/hr/attendance-logic";
 import { EmployeeManage } from "../../EmployeeManage";
 import { AttendancePanel } from "../../AttendancePanel";
@@ -24,6 +24,8 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   const hrYear = new Date().getUTCFullYear();
   const balance = canManage ? await leaveBalance(emp.id, hrYear) : null;
   const absences = canManage ? await listAbsences(emp.id, hrYear) : [];
+  const dutyTypeList = canManage ? await dutyDayTypes() : [];
+  const duties = canManage ? await listDuties(emp.id, hrYear) : [];
 
   const detail = (label: string, value: React.ReactNode) =>
     value ? <div><span className="text-muted">{label}: </span><span className="text-ink">{value}</span></div> : null;
@@ -102,6 +104,8 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
             annualOverride={emp.annualAllowance}
             urgentOverride={emp.urgentAllowance}
             absences={absences.map((a) => ({ date: ymd(a.date), coveredByUrgent: a.coveredByUrgent, note: a.note }))}
+            dutyTypes={dutyTypeList.map((d) => ({ id: d.id, label: `${d.code} · ${d.name}` }))}
+            duties={duties.map((d) => ({ date: ymd(d.date), dayTypeCode: d.dayTypeCode, dayTypeName: d.dayTypeName, note: d.note }))}
           />
         )}
 

@@ -184,3 +184,80 @@ export async function setHolidayBonus(holidayId: number, teamId: number, amountP
 export function teamsForBonus() {
   return prisma.team.findMany({ orderBy: { key: "asc" }, select: { id: true, key: true } });
 }
+
+// ── Salary components catalog (Phase 2.5) ────────────────────────────────────
+export function listSalaryComponents() {
+  return prisma.salaryComponent.findMany({ where: { archivedAt: null }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }] });
+}
+export interface ComponentInput {
+  code: string;
+  name: string;
+  nameAr?: string | null;
+  kind: string;
+  notes?: string | null;
+}
+export async function createSalaryComponent(input: ComponentInput, userId: number) {
+  return prisma.salaryComponent.create({ data: { code: input.code.trim(), name: input.name.trim(), nameAr: clean(input.nameAr), kind: input.kind, notes: clean(input.notes), createdById: userId } });
+}
+export async function updateSalaryComponent(id: number, input: Omit<ComponentInput, "code">) {
+  return prisma.salaryComponent.update({ where: { id }, data: { name: input.name.trim(), nameAr: clean(input.nameAr), kind: input.kind, notes: clean(input.notes) } });
+}
+export async function archiveSalaryComponent(id: number) {
+  return prisma.salaryComponent.update({ where: { id }, data: { archivedAt: new Date() } });
+}
+
+// ── Day types catalog ────────────────────────────────────────────────────────
+export function listDayTypes() {
+  return prisma.dayType.findMany({ where: { archivedAt: null }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }] });
+}
+export function dutyDayTypes() {
+  return prisma.dayType.findMany({ where: { archivedAt: null, dayClass: "DUTY" }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }] });
+}
+export interface DayTypeInput {
+  code: string;
+  name: string;
+  nameAr?: string | null;
+  dayClass: string;
+  bonusComponentId?: number | null;
+  penaltyComponentId?: number | null;
+}
+export async function createDayType(input: DayTypeInput, userId: number) {
+  return prisma.dayType.create({
+    data: { code: input.code.trim(), name: input.name.trim(), nameAr: clean(input.nameAr), dayClass: input.dayClass, bonusComponentId: input.bonusComponentId ?? null, penaltyComponentId: input.penaltyComponentId ?? null, createdById: userId },
+  });
+}
+export async function updateDayType(id: number, input: Omit<DayTypeInput, "code">) {
+  return prisma.dayType.update({
+    where: { id },
+    data: { name: input.name.trim(), nameAr: clean(input.nameAr), dayClass: input.dayClass, bonusComponentId: input.bonusComponentId ?? null, penaltyComponentId: input.penaltyComponentId ?? null },
+  });
+}
+export async function archiveDayType(id: number) {
+  return prisma.dayType.update({ where: { id }, data: { archivedAt: new Date() } });
+}
+
+// ── Duty days (manual: worked a non-working day / training) ──────────────────
+export async function markDuty(employeeId: number, dateStr: string, dayTypeId: number, note: string | null, markedById: number) {
+  const date = utcDay(dateStr);
+  await prisma.dutyDay.upsert({
+    where: { employeeId_date: { employeeId, date } },
+    update: { dayTypeId, note: clean(note), markedById },
+    create: { employeeId, date, dayTypeId, note: clean(note), markedById },
+  });
+}
+export async function clearDuty(employeeId: number, dateStr: string) {
+  await prisma.dutyDay.deleteMany({ where: { employeeId, date: utcDay(dateStr) } });
+}
+export async function listDuties(employeeId: number, year: number) {
+  const duties = await prisma.dutyDay.findMany({ where: { employeeId, date: { gte: yearStart(year), lte: yearEnd(year) } }, orderBy: { date: "desc" } });
+  const typeIds = [...new Set(duties.map((d) => d.dayTypeId))];
+  const types = typeIds.length ? await prisma.dayType.findMany({ where: { id: { in: typeIds } }, select: { id: true, code: true, name: true } }) : [];
+  const tmap = new Map(types.map((t) => [t.id, t]));
+  return duties.map((d) => ({ id: d.id, date: d.date, note: d.note, dayTypeId: d.dayTypeId, dayTypeCode: tmap.get(d.dayTypeId)?.code ?? "?", dayTypeName: tmap.get(d.dayTypeId)?.name ?? "?" }));
+}
+
+// ── Vacation→duty mapping (on HrConfig) ──────────────────────────────────────
+export async function setDutyMapping(input: { dutyEidDays: string; dutyEidVacation: string; dutyVacation: string; dutyWeekend: string }, userId: number) {
+  const cfg = await getHrConfig();
+  return prisma.hrConfig.update({ where: { id: cfg.id }, data: { ...input, updatedById: userId } });
+}

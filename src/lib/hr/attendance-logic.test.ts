@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseWeeklyOff, ymd, countWorkingDays, expandHolidayKeys, effectiveAllowance, validateLeaveRequest, isLeaveType } from "./attendance-logic";
+import { parseWeeklyOff, ymd, countWorkingDays, expandHolidayKeys, effectiveAllowance, validateLeaveRequest, isLeaveType, isComponentKind, isDayClass, dutyCodeFor } from "./attendance-logic";
 
 const utc = (s: string) => new Date(`${s}T00:00:00Z`);
 
@@ -48,5 +48,17 @@ describe("attendance-logic", () => {
     expect(validateLeaveRequest({ type: "URGENT", startDate: "2026-06-05", endDate: "2026-06-01" }).endDate).toBeTruthy();
     expect(isLeaveType("ANNUAL")).toBe(true);
     expect(isLeaveType("SICK")).toBe(false);
+  });
+
+  it("catalog kinds + vacation→duty mapping", () => {
+    expect(isComponentKind("BONUS")).toBe(true);
+    expect(isComponentKind("X")).toBe(false);
+    expect(isDayClass("DUTY")).toBe(true);
+    expect(isDayClass("HOLIDAY")).toBe(false);
+    const m = { dutyEidDays: "ED", dutyEidVacation: "D", dutyVacation: "VD", dutyWeekend: "D" };
+    expect(dutyCodeFor("EID_DAYS", m)).toBe("ED");
+    expect(dutyCodeFor("EID_VACATION", m)).toBe("D");
+    expect(dutyCodeFor("VACATION", m)).toBe("VD");
+    expect(dutyCodeFor("WEEKEND", m)).toBe("D");
   });
 });

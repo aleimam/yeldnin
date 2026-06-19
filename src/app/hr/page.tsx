@@ -11,6 +11,7 @@ export default async function HrPage() {
     { href: "/hr/hierarchy", icon: "🪜", label: t("hr.hierarchy"), ready: true },
     { href: "/hr/attendance", icon: "🗓️", label: t("hr.attendance"), ready: true },
     { href: "/hr/my-leave", icon: "🌴", label: t("leave.myLeave"), ready: true },
+    { href: "/hr/setup", icon: "⚙️", label: t("hr.setup"), ready: true },
     { href: "#", icon: "💰", label: t("hr.payroll"), ready: false },
     { href: "#", icon: "🎁", label: t("hr.bonuses"), ready: false },
   ];

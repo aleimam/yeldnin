@@ -1301,6 +1301,12 @@ model HrConfig {
   annualDefault Int      @default(21)
   urgentDefault Int      @default(7)
   weeklyOffDays String   @default("5")
+  // Vacation→duty mapping (DayType codes): which duty results from working each
+  // kind of non-working day. Seeded, admin-editable.
+  dutyEidDays     String @default("ED")
+  dutyEidVacation String @default("D")
+  dutyVacation    String @default("VD")
+  dutyWeekend     String @default("D")
   updatedById   Int?
   updatedAt     DateTime @updatedAt
 }
@@ -1342,15 +1348,15 @@ model Absence {
   @@index([employeeId])
 }
 
-// Official vacation (dated). type: EID | OFFICIAL. Weekly off-days live in
-// HrConfig.weeklyOffDays. Per-team bonus-per-day for working it lives in
-// HolidayBonus (used by Payroll, Phase 4).
+// Official vacation (dated). type: EID_DAYS | EID_VACATION | VACATION. Weekly
+// off-days live in HrConfig.weeklyOffDays. Per-team bonus-per-day for working it
+// lives in HolidayBonus (used by Payroll, Phase 4).
 model Holiday {
   id          Int       @id @default(autoincrement())
   uid         String?   @unique // HOL<YY><MM><seq3>
   title       String
   titleAr     String?
-  type        String // EID | OFFICIAL
+  type        String // EID_DAYS | EID_VACATION | VACATION
   startDate   DateTime
   endDate     DateTime
   notes       String?
@@ -1374,6 +1380,57 @@ model HolidayBonus {
 
   @@unique([holidayId, teamId])
   @@index([holidayId])
+}
+
+// ─── HR Phase 2.5 — Day Types & Salary Components (configurable catalogs) ──────
+// SalaryComponent: a Bonus or Penalty (its EGP value/rules come in Payroll P4).
+model SalaryComponent {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  name        String
+  nameAr      String?
+  kind        String // BONUS | PENALTY
+  notes       String?
+  system      Boolean   @default(false)
+  archivedAt  DateTime?
+  sortOrder   Int       @default(0)
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// DayType: a configurable classification of a day. dayClass LEAVE (employee off)
+// or DUTY (present on a special day). Each may grant a bonus and/or a penalty
+// (SalaryComponent ids; plain Int, resolved in the service).
+model DayType {
+  id                 Int       @id @default(autoincrement())
+  code               String    @unique
+  name               String
+  nameAr             String?
+  dayClass           String // LEAVE | DUTY
+  bonusComponentId   Int?
+  penaltyComponentId Int?
+  system             Boolean   @default(false)
+  archivedAt         DateTime?
+  sortOrder          Int       @default(0)
+  createdById        Int?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+// A duty day: an employee worked a non-working day (Eid/vacation/weekend) or was
+// in training — classified by a DayType (ED/D/VD/L). Manual, per employee+date.
+model DutyDay {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  date       DateTime
+  dayTypeId  Int
+  note       String?
+  markedById Int?
+  createdAt  DateTime @default(now())
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
 }
 
 // ─── UID counter (human-readable codes: <PREFIX><YY><MM><seq3>) ────────────────

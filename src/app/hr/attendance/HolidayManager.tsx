@@ -21,7 +21,7 @@ export function HolidayManager({ holidays, teams }: { holidays: Holiday[]; teams
   const router = useRouter();
   const [pending, start] = useTransition();
   const [title, setTitle] = useState("");
-  const [type, setType] = useState("OFFICIAL");
+  const [type, setType] = useState("VACATION");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -42,8 +42,9 @@ export function HolidayManager({ holidays, teams }: { holidays: Holiday[]; teams
       <div className="grid gap-3 sm:grid-cols-2">
         <input className="input sm:col-span-2" placeholder={t("leave.holidayTitle")} value={title} onChange={(e) => setTitle(e.target.value)} />
         <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
-          <option value="OFFICIAL">{t("leave.official")}</option>
-          <option value="EID">{t("leave.eid")}</option>
+          <option value="EID_DAYS">{t("leave.eidDays")}</option>
+          <option value="EID_VACATION">{t("leave.eidVacation")}</option>
+          <option value="VACATION">{t("leave.vacation")}</option>
         </select>
         <span className="hidden sm:block" />
         <label className="block"><span className="label">{t("leave.from")}</span><input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
@@ -72,7 +73,7 @@ function HolidayRow({ h, teams, pending, start, router }: { h: Holiday; teams: T
   return (
     <div className="rounded-lg border border-line p-3 text-sm">
       <div className="flex items-center justify-between">
-        <div><span className="font-medium text-ink">{h.title}</span> <span className="text-xs text-muted">· {t(`leave.${h.type === "EID" ? "eid" : "official"}`)} · {h.dateLabel}</span></div>
+        <div><span className="font-medium text-ink">{h.title}</span> <span className="text-xs text-muted">· {t(h.type === "EID_DAYS" ? "leave.eidDays" : h.type === "EID_VACATION" ? "leave.eidVacation" : "leave.vacation")} · {h.dateLabel}</span></div>
         <button type="button" className="text-xs text-red-600 hover:underline" disabled={pending} onClick={archive}>{t("leave.archive")}</button>
       </div>
       {h.bonuses.length > 0 && <div className="mt-1 text-xs text-muted">{t("leave.workBonus")}: {h.bonuses.map((b) => `${teamName(b.teamId)} ${b.amountPerDay}`).join(" · ")}</div>}
