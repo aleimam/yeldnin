@@ -53,6 +53,7 @@ model User {
   pushSubscriptions PushSubscription[]
   pricingCalculations PricingCalculation[]
   expenseTransactions ExpenseTransaction[] @relation("ExpenseCreatedBy")
+  employee            Employee?
 }
 
 model PasswordResetToken {
@@ -1216,6 +1217,78 @@ model AuditLog {
 
   @@index([moduleKey])
   @@index([createdAt])
+}
+
+// ─── Human Resources ──────────────────────────────────────────────────────────
+// One Employee per User (strict 1:1, userId unique). Display name/full name come
+// from the linked User; the Employee holds HR-specific fields. lineManagerId is
+// the employee's direct manager (another Employee). EmployeeEvent is the
+// per-employee life-events log (auto changes + manual notes).
+model Employee {
+  id                Int       @id @default(autoincrement())
+  uid               String?   @unique // EMP<YY><MM><seq3>
+  userId            Int       @unique
+  user              User      @relation(fields: [userId], references: [id])
+  nationalIdNumber  String?
+  nationalIdExpiry  DateTime?
+  gradDegree        String?
+  gradUniversity    String?
+  gradFaculty       String?
+  birthDate         DateTime?
+  hiringDate        DateTime?
+  lineManagerId     Int?
+  lineManager       Employee?  @relation("EmployeeManager", fields: [lineManagerId], references: [id])
+  reports           Employee[] @relation("EmployeeManager")
+  notes             String?
+  archivedAt        DateTime?
+  createdById       Int?
+  createdAt         DateTime  @default(now())
+  updatedById       Int?
+  updatedAt         DateTime  @updatedAt
+
+  photos EmployeePhoto[]
+  events EmployeeEvent[]
+
+  @@index([lineManagerId])
+}
+
+model EmployeePhoto {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  kind       String // ID_FRONT | ID_BACK | GRAD_CERT | BIRTH_CERT | OTHER
+  assetId    String
+  label      String?
+  createdAt  DateTime @default(now())
+
+  @@index([employeeId])
+}
+
+// Per-employee life-events log: auto (CREATED | PROFILE_EDIT | MANAGER_CHANGED)
+// + manual NOTE. Aggregated company-wide for an HR audit feed.
+model EmployeeEvent {
+  id         Int      @id @default(autoincrement())
+  employeeId Int
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type       String // CREATED | PROFILE_EDIT | MANAGER_CHANGED | NOTE
+  message    String
+  byUserId   Int?
+  createdAt  DateTime @default(now())
+
+  photos EmployeeEventPhoto[]
+
+  @@index([employeeId])
+  @@index([createdAt])
+}
+
+model EmployeeEventPhoto {
+  id        Int           @id @default(autoincrement())
+  eventId   Int
+  event     EmployeeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime      @default(now())
+
+  @@index([eventId])
 }
 
 // ─── UID counter (human-readable codes: <PREFIX><YY><MM><seq3>) ────────────────

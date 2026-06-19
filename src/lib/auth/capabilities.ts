@@ -18,7 +18,7 @@ export interface Capability {
 }
 
 /** Module keys that expose configurable capabilities (order = editor order). */
-export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings", "order_requests", "xoonx", "purchasing", "logistics", "operations", "couriers", "issues", "cs_quality"] as const;
+export const CAPABILITY_MODULES = ["pricing", "expenses", "user_access", "settings", "order_requests", "xoonx", "purchasing", "logistics", "operations", "couriers", "issues", "cs_quality", "human_resources"] as const;
 
 // NOTE: opening a module at all stays governed by the plain VIEW gate
 // (canModule(key, "VIEW")). Capabilities govern ACTIONS within a module.
@@ -76,6 +76,13 @@ export const CAPABILITIES: Capability[] = [
   // ── CS Quality ───────────────────────────────────────────────────────────
   { key: "operate", module: "cs_quality", labelKey: "cap.cs_quality.operate", defaultLevel: "OPERATE" },
   { key: "manage", module: "cs_quality", labelKey: "cap.cs_quality.manage", defaultLevel: "MANAGE" },
+
+  // ── Human Resources ──────────────────────────────────────────────────────
+  // operate = HR staff / managers (edit profiles, leaves, bonuses); manage = HR
+  // admin (config, payroll, all employees). Line managers additionally act on
+  // their direct reports via the relationship check (canManageEmployee).
+  { key: "operate", module: "human_resources", labelKey: "cap.human_resources.operate", defaultLevel: "OPERATE" },
+  { key: "manage", module: "human_resources", labelKey: "cap.human_resources.manage", defaultLevel: "MANAGE" },
 ];
 
 /** Partial override map: { [moduleKey]: { [capabilityKey]: Level } }. */

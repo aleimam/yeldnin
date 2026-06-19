@@ -302,6 +302,14 @@ async function main() {
     }
   }
 
+  // HR: strict 1:1 — ensure every user has an Employee record (idempotent backfill).
+  const usersNoEmp = await prisma.user.findMany({ where: { employee: { is: null } }, select: { id: true } });
+  for (const u of usersNoEmp) {
+    const emp = await prisma.employee.create({ data: { userId: u.id } });
+    await prisma.employeeEvent.create({ data: { employeeId: emp.id, type: "CREATED", message: "Employee record created." } });
+  }
+  if (usersNoEmp.length) console.log(`  Backfilled ${usersNoEmp.length} employee record(s).`);
+
   console.log("Seed complete.");
 }
 
