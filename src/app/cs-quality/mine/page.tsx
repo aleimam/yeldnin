@@ -2,24 +2,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT, getLocale } from "@/i18n/server";
+import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
-import { canAccessCs, bonusPctFor, expectedBonus, localized } from "@/lib/cs/cs-logic";
-import { listEvaluations, repAnalytics, callTypeArNames } from "@/lib/cs/cs-report-service";
+import { canAccessCs, bonusPctFor, expectedBonus } from "@/lib/cs/cs-logic";
+import { listEvaluations, repAnalytics } from "@/lib/cs/cs-report-service";
 import { getRepBonus, getBonusTiers } from "@/lib/cs/cs-bonus-service";
 
 export default async function CsMinePage() {
   const access = await requireUser();
   if (!canAccessCs(access)) redirect("/cs-quality");
   const me = access.user.id;
-  const [t, locale, rows, an, maxBonus, tiers, typeAr] = await Promise.all([
+  const [t, rows, an, maxBonus, tiers] = await Promise.all([
     getT(),
-    getLocale(),
     listEvaluations({ subjectUserId: me, status: "APPROVED", showEvaluator: false }),
     repAnalytics(me),
     getRepBonus(me),
     getBonusTiers(),
-    callTypeArNames(),
   ]);
   const cur = an.current.overall;
   const prev = an.previous.overall;
@@ -80,36 +78,6 @@ export default async function CsMinePage() {
               </div>
             ))}
           </div>
-          {an.current.callsCount > 0 && (
-            <table className="w-full text-sm" data-cards>
-              <thead><tr className="border-b border-line"><th className="th">{t("cs.callType")}</th><th className="th text-end">{t("cs.weight")}</th><th className="th text-end">{t("cs.avgScore")}</th></tr></thead>
-              <tbody className="divide-y divide-line">
-                {an.current.byType.map((ty) => (
-                  <tr key={ty.name}>
-                    <td className="td" data-label={t("cs.callType")}>{localized(ty.name, typeAr.get(ty.name), locale)}</td>
-                    <td className="td text-end text-muted" data-label={t("cs.weight")}>{ty.weight}%</td>
-                    <td className="td text-end" data-label={t("cs.avgScore")}>{ty.avg === null ? "—" : `${ty.avg}%`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Bonus tiers (read-only) */}
-        <div className="card p-5">
-          <h2 className="mb-3 font-semibold text-ink">{t("cs.tiersTitle")}</h2>
-          <table className="w-full text-sm" data-cards>
-            <thead><tr className="border-b border-line"><th className="th">{t("cs.tierFrom")}</th><th className="th text-end">{t("cs.tierBonus")}</th></tr></thead>
-            <tbody className="divide-y divide-line">
-              {tiers.map((ti, i) => (
-                <tr key={i}>
-                  <td className="td" data-label={t("cs.tierFrom")}>≥ {ti.fromPct}%</td>
-                  <td className="td text-end" data-label={t("cs.tierBonus")}>{ti.bonusPct}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
 
         {an.byMonth.length > 0 && (
