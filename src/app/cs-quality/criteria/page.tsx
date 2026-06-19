@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
-import { canAccessCs, CS_SCOPES, localized } from "@/lib/cs/cs-logic";
+import { canAccessCs, CS_SCOPES, isRep, localized } from "@/lib/cs/cs-logic";
 import { listCsQuestions } from "@/lib/cs/cs-question-service";
 import { repAnalytics, callTypeArNames } from "@/lib/cs/cs-report-service";
 import { getCsConfig } from "@/lib/cs/cs-config-service";
@@ -14,6 +14,7 @@ export default async function CsCriteriaPage() {
   const access = await requireUser();
   if (!canAccessCs(access)) redirect("/");
   const me = access.user.id;
+  const rep = isRep(access); // only the evaluated population sees their own scoring breakdown
   const [t, locale, questions, an, cfg, tiers, typeAr] = await Promise.all([
     getT(),
     getLocale(),
@@ -73,7 +74,8 @@ export default async function CsCriteriaPage() {
           </div>
         </div>
 
-        {/* How you're scored: all evaluation types, their weights + your monthly average */}
+        {/* How you're scored — rep-only (personal monthly averages); admins/evaluators aren't the evaluated population */}
+        {rep && (
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("cs.scoringTitle")}</h2>
           <table className="w-full text-sm" data-cards>
@@ -107,6 +109,7 @@ export default async function CsCriteriaPage() {
           </table>
           <p className="mt-2 text-xs text-muted">{t("cs.scoringNote")}</p>
         </div>
+        )}
 
         {/* Bonus tiers (read-only) — the top tier is highlighted as the goal */}
         <div className="card p-5">
