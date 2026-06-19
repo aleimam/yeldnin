@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
+import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { getShipment, getShipmentItems } from "@/lib/operations/operations-service";
@@ -42,6 +43,11 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
               ))}
             </tbody>
           </table>
+          {(canManage || access.isAdmin) && items.length > 0 && (
+            <div className="mt-3">
+              <FlagItemsControl items={items.map((it) => ({ id: it.id, label: `${it.product.name} ${it.uid ?? `#${it.id}`}` }))} />
+            </div>
+          )}
         </div>
       </div>
     </AppShell>

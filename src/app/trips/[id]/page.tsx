@@ -7,6 +7,7 @@ import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getTrip } from "@/lib/trips/trip-service";
 import { currentContainerItems, inboundPendingItems } from "@/lib/items/items-service";
+import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { getTripMarks } from "@/lib/review/review-service";
 import { teamsUserCanMark, REVIEW_TEAMS } from "@/lib/review/review-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
@@ -100,6 +101,11 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
               {inventory.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("trip.noItems")}</td></tr>}
             </tbody>
           </table>
+          {(canManage || canOps || access.isAdmin) && inventory.length > 0 && (
+            <div className="mt-3">
+              <FlagItemsControl items={inventory.map((it) => ({ id: it.id, label: `${it.product.name} ${it.uid ?? `#${it.id}`}` }))} />
+            </div>
+          )}
         </div>
 
         <div className="card p-5">

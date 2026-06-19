@@ -712,6 +712,10 @@ model Item {
   exceptionFlag       String? // LOST | DAMAGED | ERRANT | DELAYED
   sourceContainerType String?
   sourceContainerId   Int?
+  exceptionNote       String?   // optional reason captured when flagged
+  exceptionAt         DateTime? // when the current flag was set (triage ordering)
+  exceptionById       Int?      // who flagged it
+  exceptionIssueId    Int?      // the auto-opened Issue (LOST/DAMAGED/ERRANT), to close on "found"
   isSpecialOrder      Boolean   @default(false)
   isGift              Boolean   @default(false) // free item received from a supplier (no value)
   slaAlertedStatus    String?   // last special-order SLA status we alerted on (RISK|DELAYED); dedup

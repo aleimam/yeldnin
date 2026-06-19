@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
+import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { productScopes } from "@/lib/products/products-logic";
@@ -75,6 +76,11 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               ))}
             </tbody>
           </table>
+          {(canManage || access.isAdmin) && items.length > 0 && (
+            <div className="mt-3">
+              <FlagItemsControl items={items.map((it) => ({ id: it.id, label: `${it.product.name} ${it.uid ?? `#${it.id}`}` }))} />
+            </div>
+          )}
           {canManage && !onWebsite && (
             <div className="mt-4 border-t border-line pt-4">
               <p className="label mb-2">{t("purchasing.addGift")}</p>
