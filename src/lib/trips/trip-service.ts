@@ -6,6 +6,7 @@ import { joinTypes } from "@/lib/travelers/travelers-logic";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
 import { MOVABLE_ITEMS_WHERE } from "@/lib/items/items-logic";
 import { nextTripStatus, TRIP_TO_ITEM_STATUS, isTripPurchaseEligible, canManuallyAdvance, type TripStatus } from "./trip-logic";
+import { attachHoldingToTrip, fallTripItemsToHolding } from "@/lib/transfers/transfer-service";
 
 export interface CreateTripInput {
   travelerId: number;
@@ -25,7 +26,7 @@ export async function createTrip(input: CreateTripInput, userId: number) {
   const traveler = await prisma.traveler.findUnique({ where: { id: input.travelerId } });
   if (!traveler) throw new Error("Traveler not found.");
   const uid = await nextUid("TRP");
-  return prisma.trip.create({
+  const trip = await prisma.trip.create({
     data: {
       uid,
       travelerId: input.travelerId,
@@ -42,6 +43,9 @@ export async function createTrip(input: CreateTripInput, userId: number) {
       createdById: userId,
     },
   });
+  // The traveler's held inventory auto-attaches to their new trip (shared inventory).
+  await attachHoldingToTrip(trip.travelerId, trip.id, userId);
+  return trip;
 }
 
 /** Edit a trip's details (creator/admin gated in the action). Status is untouched. */
@@ -91,6 +95,8 @@ export async function denyTrip(id: number, userId: number) {
   const trip = await prisma.trip.findUnique({ where: { id }, select: { status: true } });
   if (trip?.status !== "NEW") return;
   await prisma.trip.update({ where: { id }, data: { status: "CANCELLED", updatedById: userId } });
+  // Cancelled trip → its un-flagged + delayed items fall back to the traveler's holding.
+  await fallTripItemsToHolding(id, userId);
 }
 
 /** First purchase placed to an Approved trip auto-advances it to Started Shipping. */

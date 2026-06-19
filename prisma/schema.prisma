@@ -706,8 +706,9 @@ model Item {
   product             Product   @relation(fields: [productId], references: [id])
   scope               String // EGV | XOONX | PERSONAL (denormalized for fast filtering)
   status              String    @default("REQUESTED")
-  containerType       String? // REQUEST | PURCHASE | PATCH | TRANSFER | TRIP | HUB | SHIPMENT | ORDER
+  containerType       String? // REQUEST | PURCHASE | PATCH | TRANSFER | TRIP | HUB | TRAVELER | SHIPMENT | ORDER
   containerId         Int?
+  country             String? // physical country (set on receipt; carried into traveler holding) — drives same-country transfers
   requestId           Int? // origin request (anchor for pool returns)
   exceptionFlag       String? // LOST | DAMAGED | ERRANT | DELAYED
   sourceContainerType String?
@@ -882,6 +883,53 @@ model PatchPhoto {
   createdAt DateTime @default(now())
 
   @@index([patchId])
+}
+
+// Transfer (Logistics) — moves received stock between two destinations
+// (Hub / Trip / Traveler-holding), same country. Multi-step like a Patch:
+// NEW → LEFT_ORIGIN → DELIVERED → RECEIVED; at RECEIVED its items re-receive at
+// the destination (status HUB + transit timers reset). Endpoints are polymorphic
+// (type ∈ HUB|TRIP|TRAVELER). Its contents are the Items pointing at it
+// (containerType=TRANSFER).
+model Transfer {
+  id           Int       @id @default(autoincrement())
+  uid          String?   @unique // TRF<YY><MM><seq3>
+  country      String
+  fromType     String // HUB | TRIP | TRAVELER
+  fromId       Int
+  fromName     String?
+  toType       String // HUB | TRIP | TRAVELER
+  toId         Int
+  toName       String?
+  tracking     String?
+  courierId    Int? // → Courier (the partner)
+  courier      String? // courier name snapshot (or free text)
+  status       String    @default("NEW") // NEW | LEFT_ORIGIN | DELIVERED | RECEIVED
+  leftOriginAt DateTime?
+  deliveredAt  DateTime?
+  receivedAt   DateTime?
+  notes        String?
+  archivedAt   DateTime?
+  createdById  Int?
+  createdAt    DateTime  @default(now())
+  updatedById  Int?
+  updatedAt    DateTime  @updatedAt
+
+  photos TransferPhoto[]
+
+  @@index([status])
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+}
+
+model TransferPhoto {
+  id         Int      @id @default(autoincrement())
+  transferId Int
+  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  assetId    String
+  createdAt  DateTime @default(now())
+
+  @@index([transferId])
 }
 
 model PricingCalculation {

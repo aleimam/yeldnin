@@ -2,11 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { parseTypes } from "@/lib/travelers/travelers-logic";
 import { getTraveler } from "@/lib/travelers/travelers-service";
 import { listTripsByTraveler } from "@/lib/trips/trip-service";
+import { holdingItems } from "@/lib/transfers/transfer-service";
+import { getWorkflow } from "@/lib/workflow/workflow-config-service";
+import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TravelerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15,7 +18,8 @@ export default async function TravelerDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const tr = await getTraveler(Number(id));
   if (!tr) notFound();
-  const [t, trips] = await Promise.all([getT(), listTripsByTraveler(tr.id)]);
+  const [t, locale, trips, holding, wf] = await Promise.all([getT(), getLocale(), listTripsByTraveler(tr.id), holdingItems(tr.id), getWorkflow()]);
+  const loc = locale === "ar" ? "ar" : "en";
   const canEdit = access.can("logistics", "operate");
   const types = parseTypes(tr.allowedProductTypes);
 
@@ -61,6 +65,31 @@ export default async function TravelerDetailPage({ params }: { params: Promise<{
                     <td className="td" data-label={t("trip.country")}><Link href={`/trips/${tp.id}`} className="text-brand hover:underline">{tp.country}</Link></td>
                     <td className="td text-muted" data-label={t("trip.lastReceiving")}>{formatBizDate(tp.lastReceivingDate)}</td>
                     <td className="td" data-label={t("trip.status")}>{t(`tripstatus.${tp.status}`)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="card p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-semibold text-ink">{t("transfers.holding")} ({holding.length})</h2>
+            {canEdit && holding.length > 0 && (
+              <Link href={`/transfers/new?from=TRAVELER:${tr.id}`} className="btn-secondary px-3 py-1.5 text-sm">🔀 {t("transfers.transferAction")}</Link>
+            )}
+          </div>
+          {holding.length === 0 ? (
+            <p className="text-sm text-muted">—</p>
+          ) : (
+            <table className="w-full text-sm" data-cards>
+              <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th">{t("transfers.country")}</th><th className="th">{t("requests.status")}</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {holding.map((it) => (
+                  <tr key={it.id}>
+                    <td className="td" data-label={t("requests.product")}><Link href={`/history/items/${it.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
+                    <td className="td text-muted" data-label={t("transfers.country")}>{it.country ?? "—"}</td>
+                    <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>
                   </tr>
                 ))}
               </tbody>

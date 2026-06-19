@@ -2,9 +2,11 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { moveItems, itemsInContainerHistory } from "@/lib/items/items-service";
+import { fallTripItemsToHolding } from "@/lib/transfers/transfer-service";
 import { splitTripIntoShipments } from "./operations-logic";
 
-/** Operations picks up a Ready-to-pickup trip → trip PICKED_UP, items → OFFICE. */
+/** Operations picks up a Ready-to-pickup trip → trip PICKED_UP, items → OFFICE.
+ *  Delayed leftovers that never travelled fall back to the traveler's holding. */
 export async function pickUpTrip(tripId: number, userId: number) {
   const trip = await prisma.trip.findUnique({ where: { id: tripId } });
   if (!trip || trip.status !== "READY_TO_PICKUP") return;
@@ -14,6 +16,7 @@ export async function pickUpTrip(tripId: number, userId: number) {
     select: { id: true },
   });
   await moveItems(items.map((i) => i.id), { status: "OFFICE", action: "pickup" }, userId);
+  await fallTripItemsToHolding(tripId, userId, { onlyDelayed: true });
 }
 
 /** Split a picked-up trip into Shipments (by scope/size); move items into them. */
