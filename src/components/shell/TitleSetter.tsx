@@ -5,7 +5,7 @@ import { useT } from "@/i18n/client";
 import { MODULES } from "@/lib/modules";
 import { MODULE_SECTIONS, SETTINGS_GROUPS } from "@/lib/module-sections";
 
-/** Sets the document title to "Section · Module · App" based on the route. */
+/** Sets the document title to "App | Module > Section" based on the route. */
 export function TitleSetter({ appName }: { appName: string }) {
   const t = useT();
   const path = usePathname();
@@ -28,7 +28,18 @@ export function TitleSetter({ appName }: { appName: string }) {
       if (best) sectionName = t(best.labelKey);
     }
 
-    document.title = [sectionName, moduleName, appName].filter(Boolean).join(" · ");
+    const trail = [moduleName, sectionName].filter(Boolean).join(" > ");
+    const desired = trail ? `${appName} | ${trail}` : appName;
+
+    // Next applies its metadata <title> ("appName") after hydration/navigation,
+    // which would clobber an imperative set — so re-assert ours whenever the
+    // <title> changes to something else (the guard avoids an observer loop).
+    const apply = () => { if (document.title !== desired) document.title = desired; };
+    apply();
+    const titleEl = document.head.querySelector("title");
+    const obs = titleEl ? new MutationObserver(apply) : null;
+    obs?.observe(titleEl!, { childList: true, characterData: true, subtree: true });
+    return () => obs?.disconnect();
   }, [path, t, appName]);
 
   return null;

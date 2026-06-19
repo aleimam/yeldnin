@@ -241,3 +241,24 @@ export async function allRepsAnalytics(now: Date): Promise<RepSummary[]> {
     }))
     .sort((a, b) => (b.current ?? -Infinity) - (a.current ?? -Infinity));
 }
+
+export interface EvaluatorStat {
+  id: number;
+  name: string;
+  submitted: number; // total evaluations submitted (all statuses, non-archived)
+  approved: number; // of those, how many are approved
+}
+
+/** Per-evaluator productivity: how many evaluations each person submitted and
+ *  how many of those were approved (all-time). Sorted by most submitted. */
+export async function evaluatorStats(): Promise<EvaluatorStat[]> {
+  const [submitted, approved] = await Promise.all([
+    prisma.csEvaluation.groupBy({ by: ["evaluatorUserId"], where: { archivedAt: null }, _count: true }),
+    prisma.csEvaluation.groupBy({ by: ["evaluatorUserId"], where: { archivedAt: null, status: "APPROVED" }, _count: true }),
+  ]);
+  const approvedBy = new Map(approved.map((g) => [g.evaluatorUserId, g._count]));
+  const names = await nameMap(submitted.map((g) => g.evaluatorUserId));
+  return submitted
+    .map((g) => ({ id: g.evaluatorUserId, name: names.get(g.evaluatorUserId) ?? `#${g.evaluatorUserId}`, submitted: g._count, approved: approvedBy.get(g.evaluatorUserId) ?? 0 }))
+    .sort((a, b) => b.submitted - a.submitted);
+}

@@ -146,7 +146,6 @@ export async function updateEvaluation(id: number, input: UpdateEvalInput) {
     }];
   });
   const scored = rows.map((r) => ({ weight: r.weight, value: r.value }));
-  const resubmit = ev.status === "REJECTED";
 
   await prisma.$transaction([
     prisma.csEvaluationAnswer.deleteMany({ where: { evaluationId: id } }),
@@ -161,13 +160,17 @@ export async function updateEvaluation(id: number, input: UpdateEvalInput) {
         contact: input.contact ?? null,
         total: weightedTotal(scored),
         normalized: normalizedPct(scored, map),
-        ...(resubmit ? { status: "PENDING", rejectedNote: null, approvedById: null, approvedAt: null } : {}),
+        // Any edit returns the evaluation to the review queue for re-approval.
+        status: "PENDING",
+        rejectedNote: null,
+        approvedById: null,
+        approvedAt: null,
         answers: { create: rows },
         photos: input.photoAssetIds.length ? { create: input.photoAssetIds.map((assetId) => ({ assetId })) } : undefined,
       },
     }),
   ]);
-  return { id, scope: ev.scope, resubmitted: resubmit };
+  return { id, scope: ev.scope };
 }
 
 /** Minimal record for the edit/delete permission check + scope context. */

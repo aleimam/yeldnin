@@ -35,6 +35,7 @@ export default async function CsAllEvaluationsPage() {
               <th className="th">{t("cs.scope")}</th>
               <th className="th">{t("cs.evaluator")}</th>
               <th className="th">{t("cs.status")}</th>
+              <th className="th text-end">{t("cs.score")}</th>
               <th className="th text-end">{t("cs.normalized")}</th>
               <th className="th">{t("cs.date")}</th>
               <th className="th"></th>
@@ -55,12 +56,13 @@ export default async function CsAllEvaluationsPage() {
                 <td className="td" data-label={t("cs.status")}>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_TONE[e.status] ?? "bg-canvas text-muted"}`}>{t(`cs.status.${e.status}`)}</span>
                 </td>
+                <td className="td text-end" data-label={t("cs.score")}>{e.total}</td>
                 <td className="td text-end" data-label={t("cs.normalized")}>{e.normalized}%</td>
                 <td className="td text-muted whitespace-nowrap" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
                 <td className="td" data-label={t("cs.review")}>{e.status === "PENDING" && <ReviewActions id={e.id} />}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={8}>{t("cs.noEvaluations")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={9}>{t("cs.noEvaluations")}</td></tr>}
           </tbody>
         </table>
       </div>
