@@ -1236,6 +1236,8 @@ model Employee {
   gradFaculty       String?
   birthDate         DateTime?
   hiringDate        DateTime?
+  annualAllowance   Int? // per-employee yearly leave override; null = HrConfig default
+  urgentAllowance   Int?
   lineManagerId     Int?
   lineManager       Employee?  @relation("EmployeeManager", fields: [lineManagerId], references: [id])
   reports           Employee[] @relation("EmployeeManager")
@@ -1289,6 +1291,89 @@ model EmployeeEventPhoto {
   createdAt DateTime      @default(now())
 
   @@index([eventId])
+}
+
+// ─── HR Phase 2 — Attendance & Leaves ─────────────────────────────────────────
+// Singleton config: company-default yearly allowances + the weekly-off weekday(s)
+// (CSV of JS getDay() numbers, 0=Sun..6=Sat; Egypt default Friday=5).
+model HrConfig {
+  id            Int      @id @default(autoincrement())
+  annualDefault Int      @default(21)
+  urgentDefault Int      @default(7)
+  weeklyOffDays String   @default("5")
+  updatedById   Int?
+  updatedAt     DateTime @updatedAt
+}
+
+// A leave request: planned time off that deducts the type's yearly balance.
+model LeaveRequest {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // LV<YY><MM><seq3>
+  employeeId  Int
+  type        String // ANNUAL | URGENT
+  startDate   DateTime
+  endDate     DateTime
+  days        Int // working days consumed (skips weekends + holidays)
+  reason      String?
+  status      String    @default("PENDING") // PENDING | APPROVED | DECLINED
+  decidedById Int?
+  decidedAt   DateTime?
+  decidedNote String?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([status])
+}
+
+// An unplanned absence marked by a manager/admin. Consumes an Urgent day if the
+// employee still has Urgent balance; otherwise it's over-limit (Phase-4 penalty).
+model Absence {
+  id              Int      @id @default(autoincrement())
+  employeeId      Int
+  date            DateTime
+  note            String?
+  coveredByUrgent Boolean  @default(false)
+  markedById      Int?
+  createdAt       DateTime @default(now())
+
+  @@unique([employeeId, date])
+  @@index([employeeId])
+}
+
+// Official vacation (dated). type: EID | OFFICIAL. Weekly off-days live in
+// HrConfig.weeklyOffDays. Per-team bonus-per-day for working it lives in
+// HolidayBonus (used by Payroll, Phase 4).
+model Holiday {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // HOL<YY><MM><seq3>
+  title       String
+  titleAr     String?
+  type        String // EID | OFFICIAL
+  startDate   DateTime
+  endDate     DateTime
+  notes       String?
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bonuses HolidayBonus[]
+
+  @@index([startDate])
+}
+
+model HolidayBonus {
+  id           Int      @id @default(autoincrement())
+  holidayId    Int
+  holiday      Holiday  @relation(fields: [holidayId], references: [id], onDelete: Cascade)
+  teamId       Int
+  amountPerDay Float
+  createdAt    DateTime @default(now())
+
+  @@unique([holidayId, teamId])
+  @@index([holidayId])
 }
 
 // ─── UID counter (human-readable codes: <PREFIX><YY><MM><seq3>) ────────────────

@@ -9,8 +9,9 @@ export default async function HrPage() {
   const cards = [
     { href: "/hr/employees", icon: "👥", label: t("hr.employees"), ready: true },
     { href: "/hr/hierarchy", icon: "🪜", label: t("hr.hierarchy"), ready: true },
+    { href: "/hr/attendance", icon: "🗓️", label: t("hr.attendance"), ready: true },
+    { href: "/hr/my-leave", icon: "🌴", label: t("leave.myLeave"), ready: true },
     { href: "#", icon: "💰", label: t("hr.payroll"), ready: false },
-    { href: "#", icon: "🌴", label: t("hr.attendance"), ready: false },
     { href: "#", icon: "🎁", label: t("hr.bonuses"), ready: false },
   ];
   return (

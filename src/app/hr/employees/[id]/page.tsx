@@ -6,7 +6,10 @@ import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { formatBizDate } from "@/lib/format/dates";
 import { getEmployee, managerOptions, canManageEmployee } from "@/lib/hr/hr-service";
+import { leaveBalance, listAbsences } from "@/lib/hr/attendance-service";
+import { ymd } from "@/lib/hr/attendance-logic";
 import { EmployeeManage } from "../../EmployeeManage";
+import { AttendancePanel } from "../../AttendancePanel";
 
 export default async function EmployeeProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -18,6 +21,9 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   if (!isSelf && !canManage && !access.canModule("human_resources", "VIEW")) redirect("/");
   const t = await getT();
   const managers = canManage ? await managerOptions(emp.id) : [];
+  const hrYear = new Date().getUTCFullYear();
+  const balance = canManage ? await leaveBalance(emp.id, hrYear) : null;
+  const absences = canManage ? await listAbsences(emp.id, hrYear) : [];
 
   const detail = (label: string, value: React.ReactNode) =>
     value ? <div><span className="text-muted">{label}: </span><span className="text-ink">{value}</span></div> : null;
@@ -88,6 +94,16 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           notes: emp.notes ?? "",
           lineManagerId: emp.lineManagerId ? String(emp.lineManagerId) : "",
         }} />}
+
+        {canManage && balance && (
+          <AttendancePanel
+            employeeId={emp.id}
+            balance={balance}
+            annualOverride={emp.annualAllowance}
+            urgentOverride={emp.urgentAllowance}
+            absences={absences.map((a) => ({ date: ymd(a.date), coveredByUrgent: a.coveredByUrgent, note: a.note }))}
+          />
+        )}
 
         {/* Life-events */}
         <div className="card p-5">

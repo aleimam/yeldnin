@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
@@ -17,6 +18,11 @@ export default async function AccountPage() {
             <div><span className="text-muted">{t("account.email")}: </span><span className="text-ink">{u.email}</span></div>
           </div>
         </div>
+
+        <Link href="/hr/my-leave" className="card flex items-center gap-3 p-5 hover:bg-canvas/60">
+          <span className="text-2xl">🌴</span>
+          <span className="font-medium text-ink">{t("leave.myLeave")}</span>
+        </Link>
 
         <div className="card p-5">
           <h2 className="font-semibold text-ink">{t("notify.title")}</h2>
