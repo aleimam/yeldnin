@@ -96,8 +96,8 @@ describe("movement constants", () => {
   it("pre-receipt statuses are everything before HUB", () => {
     expect(PRE_RECEIPT_STATUSES).toEqual(["REQUESTED", "ORDERED", "SHIPPED", "DELIVERED"]);
   });
-  it("hold flags pin items in place but never DELAYED", () => {
-    expect(HOLD_FLAGS).toEqual(["LOST", "DAMAGED", "ERRANT"]);
-    expect(HOLD_FLAGS).not.toContain("DELAYED");
+  it("all four exception flags pin items in place", () => {
+    expect(HOLD_FLAGS).toEqual(["LOST", "DAMAGED", "ERRANT", "DELAYED"]);
+    expect(HOLD_FLAGS).toContain("DELAYED");
   });
 });

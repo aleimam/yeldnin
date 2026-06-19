@@ -5,6 +5,7 @@ import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getIssue } from "@/lib/issues/issues-service";
 import { IssueResolveButton, CompensationForm } from "../IssueActions";
+import { IssueSettleButton } from "@/app/exceptions/IssueSettleButton";
 
 export default async function IssueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("issues", "VIEW");
@@ -12,6 +13,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   const issue = await getIssue(Number(id));
   if (!issue) notFound();
   const canManage = access.can("issues", "operate");
+  const canSettle = access.isAdmin || access.can("logistics", "operate") || access.can("operations", "operate");
   const t = await getT();
 
   return (
@@ -24,9 +26,13 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
               <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] ${issue.status === "OPEN" ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
                 {issue.status === "OPEN" ? t("issues.open") : t("issues.solved")}
               </span>
+              {issue.outcome && <span className="ms-2 inline-block rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t(`exceptions.outcome.${issue.outcome}`)}</span>}
               {issue.sourceType === "TRIP_MARK" && <span className="ms-2 text-xs text-muted">{t("issues.fromReview")}</span>}
             </div>
-            {canManage && <IssueResolveButton id={issue.id} status={issue.status} />}
+            <div className="flex items-center gap-2">
+              {canSettle && issue.sourceType === "EXCEPTION" && issue.status === "OPEN" && <IssueSettleButton issueId={issue.id} />}
+              {canManage && <IssueResolveButton id={issue.id} status={issue.status} />}
+            </div>
           </div>
           {issue.note && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{issue.note}</p>}
           {issue.photos.length > 0 && (

@@ -1,8 +1,9 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
-import { moveItems } from "@/lib/items/items-service";
-import { resolveIssue } from "@/lib/issues/issues-service";
+import { moveItems, createItems } from "@/lib/items/items-service";
+import { getWorkflow } from "@/lib/workflow/workflow-config-service";
+import { autoAdvanceSchedule } from "@/lib/workflow/workflow-logic";
 import { poolOpensIssue } from "./exception-logic";
 import { sendLocalizedToUsers, resolveRecipients } from "@/lib/notify/notify-service";
 import { itemsFlaggedPayload, issueOpenedPayload } from "@/lib/notify/notify-logic";
@@ -71,13 +72,6 @@ export async function flagToPool(
   await sendLocalizedToUsers(await resolveRecipients("items.flagged"), (t) => itemsFlaggedPayload(t, items.length, pool)).catch(() => {});
 }
 
-/** Close an exception Issue as solved ("found"/resolved) once none of its items
- *  remain flagged. No-op if some items are still in a pool. */
-async function closeIssueIfClear(issueId: number, userId: number): Promise<void> {
-  const stillFlagged = await prisma.item.count({ where: { exceptionIssueId: issueId, exceptionFlag: { not: null } } });
-  if (stillFlagged === 0) await resolveIssue(issueId, userId).catch(() => {});
-}
-
 const EXCEPTION_NULLS = {
   exceptionFlag: null,
   sourceContainerType: null,
@@ -88,60 +82,91 @@ const EXCEPTION_NULLS = {
   exceptionIssueId: null,
 } as const;
 
-/** "Found" / clear: un-flag and return each item to its remembered source
- *  container; close the linked Issue when no flagged siblings remain. */
-export async function clearException(itemIds: number[], userId: number): Promise<void> {
+/** Solve an exception Issue with an outcome once none of its items remain
+ *  flagged (used when recovering). */
+async function closeIssueIfClear(issueId: number, userId: number, outcome: string): Promise<void> {
+  const stillFlagged = await prisma.item.count({ where: { exceptionIssueId: issueId, exceptionFlag: { not: null } } });
+  if (stillFlagged === 0) {
+    await prisma.issue.update({ where: { id: issueId }, data: { status: "SOLVED", resolvedAt: new Date(), outcome, updatedById: userId } }).catch(() => {});
+  }
+}
+
+export type RecoverDest = { kind: "ORIGINAL" } | { kind: "HUB" | "TRIP" | "TRAVELER"; id: number };
+
+/** Recover a flagged item to a normal status at a chosen destination: its
+ *  original container (keeps status), or a hub/trip (re-receives → HUB + fresh
+ *  timers), or a traveler holding (held — no timers). A linked Issue closes as
+ *  RECOVERED once all its items are recovered. */
+export async function recoverItem(itemIds: number[], dest: RecoverDest, userId: number): Promise<void> {
   const items = await prisma.item.findMany({ where: { id: { in: itemIds } } });
+  if (!items.length) return;
+  const issueIds = new Set<number>();
+  const wf = dest.kind === "HUB" || dest.kind === "TRIP" ? await getWorkflow() : null;
+  const now = new Date();
+  for (const it of items) {
+    if (it.exceptionIssueId) issueIds.add(it.exceptionIssueId);
+    if (dest.kind === "ORIGINAL") {
+      const ctype = it.sourceContainerType ?? it.containerType;
+      const cid = it.sourceContainerType ? it.sourceContainerId : it.containerId;
+      await prisma.item.update({ where: { id: it.id }, data: { ...EXCEPTION_NULLS, containerType: ctype, containerId: cid } });
+      await prisma.itemEvent.create({ data: { itemId: it.id, fromStatus: it.status, toStatus: it.status, containerType: ctype, containerId: cid, action: "recover", byUserId: userId } });
+    } else if (dest.kind === "TRAVELER") {
+      await prisma.item.update({ where: { id: it.id }, data: { ...EXCEPTION_NULLS, containerType: "TRAVELER", containerId: dest.id, status: "HUB", receivedAt: now, transitAt: null, globalShippingAt: null } });
+      await prisma.itemEvent.create({ data: { itemId: it.id, fromStatus: it.status, toStatus: "HUB", containerType: "TRAVELER", containerId: dest.id, action: "recover", byUserId: userId } });
+    } else {
+      const sched = autoAdvanceSchedule(now, Math.random, wf!.timers);
+      await prisma.item.update({ where: { id: it.id }, data: { ...EXCEPTION_NULLS, containerType: dest.kind, containerId: dest.id, status: "HUB", receivedAt: now, transitAt: sched.transitAt, globalShippingAt: sched.globalShippingAt } });
+      await prisma.itemEvent.create({ data: { itemId: it.id, fromStatus: it.status, toStatus: "HUB", containerType: dest.kind, containerId: dest.id, action: "recover", byUserId: userId } });
+    }
+  }
+  for (const id of issueIds) await closeIssueIfClear(id, userId, "RECOVERED");
+}
+
+/** Settle a lost/damaged loss explicitly. The item stays flagged (terminal);
+ *  the linked Issue is SOLVED with the closure outcome. */
+export async function closeException(itemIds: number[], outcome: "COMPENSATED" | "NO_COMPENSATION", userId: number): Promise<void> {
+  const items = await prisma.item.findMany({ where: { id: { in: itemIds } }, select: { id: true, status: true, exceptionIssueId: true } });
+  if (!items.length) return;
   const issueIds = new Set<number>();
   for (const it of items) {
     if (it.exceptionIssueId) issueIds.add(it.exceptionIssueId);
-    const restoreType = it.sourceContainerType ?? it.containerType;
-    const restoreId = it.sourceContainerType ? it.sourceContainerId : it.containerId;
-    await prisma.item.update({
-      where: { id: it.id },
-      data: { ...EXCEPTION_NULLS, containerType: restoreType, containerId: restoreId },
-    });
-    await prisma.itemEvent.create({
-      data: { itemId: it.id, fromStatus: it.status, toStatus: it.status, containerType: restoreType, containerId: restoreId, action: "flag:clear", byUserId: userId },
-    });
+    await prisma.itemEvent.create({ data: { itemId: it.id, fromStatus: it.status, toStatus: it.status, action: `settle:${outcome}`, byUserId: userId } });
   }
-  for (const id of issueIds) await closeIssueIfClear(id, userId);
+  for (const id of issueIds) await prisma.issue.update({ where: { id }, data: { status: "SOLVED", resolvedAt: new Date(), outcome, updatedById: userId } }).catch(() => {});
 }
 
-/** Re-buy: return the unit to the pending-purchase pool (REQUESTED, in its
- *  origin REQUEST) so a replacement is bought. The loss Issue stays open. Only
- *  items that originated from a request can be returned. */
-export async function returnToPool(itemIds: number[], userId: number): Promise<void> {
+/** Convert an Errant item to a loss (Lost/Damaged). The existing Issue carries
+ *  forward; the item then follows the loss lifecycle. */
+export async function convertErrant(itemIds: number[], to: "LOST" | "DAMAGED", userId: number): Promise<void> {
+  const items = await prisma.item.findMany({ where: { id: { in: itemIds }, exceptionFlag: "ERRANT" }, select: { id: true, status: true } });
+  for (const it of items) {
+    await prisma.item.update({ where: { id: it.id }, data: { exceptionFlag: to } });
+    await prisma.itemEvent.create({ data: { itemId: it.id, fromStatus: it.status, toStatus: it.status, action: `convert:${to}`, byUserId: userId } });
+  }
+}
+
+/** Re-buy: create a NEW replacement unit in the pending-purchase pool for the
+ *  customer's need. The lost/damaged unit stays flagged and is closed separately. */
+export async function rebuyReplacement(itemIds: number[], userId: number): Promise<void> {
   const items = await prisma.item.findMany({ where: { id: { in: itemIds } } });
   for (const it of items) {
     if (it.requestId == null) continue;
-    await prisma.item.update({
-      where: { id: it.id },
-      data: {
-        ...EXCEPTION_NULLS,
-        status: "REQUESTED",
-        containerType: "REQUEST",
-        containerId: it.requestId,
-        receivedAt: null,
-        transitAt: null,
-        globalShippingAt: null,
-      },
+    await createItems({
+      productId: it.productId,
+      scope: it.scope,
+      count: 1,
+      requestId: it.requestId,
+      isSpecialOrder: it.isSpecialOrder,
+      sellingPrice: it.sellingPrice,
+      purchasePrice: it.purchasePrice,
+      purchaseCurrency: it.purchaseCurrency,
+      status: "REQUESTED",
+      containerType: "REQUEST",
+      containerId: it.requestId,
+      userId,
     });
-    await prisma.itemEvent.create({
-      data: { itemId: it.id, fromStatus: it.status, toStatus: "REQUESTED", containerType: "REQUEST", containerId: it.requestId, action: "rebuy", byUserId: userId },
-    });
+    await prisma.itemEvent.create({ data: { itemId: it.id, fromStatus: it.status, toStatus: it.status, action: "rebuy-replacement", byUserId: userId } });
   }
-}
-
-/** Move flagged items to a chosen container (errant correction). Re-points to a
- *  TRIP (keeps status) or HUB (received), clears the flag, resolves the Issue. */
-export async function moveException(itemIds: number[], target: { type: "TRIP" | "HUB"; id: number }, userId: number): Promise<void> {
-  const items = await prisma.item.findMany({ where: { id: { in: itemIds } }, select: { id: true, exceptionIssueId: true } });
-  if (!items.length) return;
-  const issueIds = new Set(items.map((i) => i.exceptionIssueId).filter((x): x is number => x != null));
-  await prisma.item.updateMany({ where: { id: { in: itemIds } }, data: EXCEPTION_NULLS });
-  await moveItems(itemIds, { containerType: target.type, containerId: target.id, status: target.type === "HUB" ? "HUB" : undefined, action: "errant-move" }, userId);
-  for (const id of issueIds) await closeIssueIfClear(id, userId);
 }
 
 /** Route a Delayed item to a specific trip (re-point to the trip, keep status). */
@@ -204,7 +229,20 @@ export async function tripsForPicker(): Promise<{ id: number; label: string }[]>
   return trips.map((t) => ({ id: t.id, label: `${t.traveler?.name ?? "—"}${t.lastReceivingDate ? ` · ${t.lastReceivingDate.toISOString().slice(0, 10)}` : ""}` }));
 }
 
+/** Active travelers for the recover-to-holding destination picker. */
+export async function travelersForPicker(): Promise<{ id: number; label: string }[]> {
+  const ts = await prisma.traveler.findMany({ where: { archivedAt: null, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true } });
+  return ts.map((t) => ({ id: t.id, label: t.name }));
+}
+
 export async function hubsForPicker(): Promise<{ id: number; label: string }[]> {
   const hubs = await prisma.hub.findMany({ where: { archivedAt: null, active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, country: true } });
   return hubs.map((h) => ({ id: h.id, label: `${h.name} · ${h.country}` }));
+}
+
+/** Settle a loss from its Issue page: close all the Issue's items + the Issue. */
+export async function settleIssue(issueId: number, outcome: "COMPENSATED" | "NO_COMPENSATION", userId: number): Promise<void> {
+  const links = await prisma.issueItem.findMany({ where: { issueId }, select: { itemId: true } });
+  await closeException(links.map((l) => l.itemId), outcome, userId);
+  await prisma.issue.update({ where: { id: issueId }, data: { status: "SOLVED", resolvedAt: new Date(), outcome, updatedById: userId } }).catch(() => {});
 }

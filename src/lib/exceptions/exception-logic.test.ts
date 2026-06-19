@@ -4,8 +4,6 @@ import {
   isExceptionPool,
   poolOpensIssue,
   resolutionActions,
-  actionNeedsTarget,
-  clearLabelKey,
 } from "./exception-logic";
 
 describe("exception-logic", () => {
@@ -25,25 +23,15 @@ describe("exception-logic", () => {
   });
 
   it("offers the right resolution actions per pool", () => {
-    expect(resolutionActions("LOST")).toEqual(["rebuy", "compensate", "clear"]);
-    expect(resolutionActions("DAMAGED")).toEqual(["rebuy", "compensate", "clear"]);
-    expect(resolutionActions("ERRANT")).toEqual(["move", "rebuy", "clear"]);
-    expect(resolutionActions("DELAYED")).toEqual(["assignTrip", "clear"]);
-    // every pool can always at least be cleared
-    for (const p of EXCEPTION_POOLS) expect(resolutionActions(p)).toContain("clear");
-  });
-
-  it("knows which actions need a target container", () => {
-    expect(actionNeedsTarget("move")).toBe(true);
-    expect(actionNeedsTarget("assignTrip")).toBe(true);
-    expect(actionNeedsTarget("clear")).toBe(false);
-    expect(actionNeedsTarget("rebuy")).toBe(false);
-    expect(actionNeedsTarget("compensate")).toBe(false);
-  });
-
-  it("labels the clear action Found for loss pools, Clear for Delayed", () => {
-    expect(clearLabelKey("LOST")).toBe("exceptions.action.found");
-    expect(clearLabelKey("ERRANT")).toBe("exceptions.action.found");
-    expect(clearLabelKey("DELAYED")).toBe("exceptions.action.clear");
+    expect(resolutionActions("LOST")).toEqual(["recover", "rebuy", "compensate", "close"]);
+    expect(resolutionActions("DAMAGED")).toEqual(["recover", "rebuy", "compensate", "close"]);
+    // Errant is never final — only recover or convert to a loss
+    expect(resolutionActions("ERRANT")).toEqual(["recover", "convertLost", "convertDamaged"]);
+    expect(resolutionActions("DELAYED")).toEqual(["assignTrip", "recover"]);
+    // every pool can always be recovered back to a normal status
+    for (const p of EXCEPTION_POOLS) expect(resolutionActions(p)).toContain("recover");
+    // a loss can be settled (closed); Errant cannot be closed directly
+    expect(resolutionActions("LOST")).toContain("close");
+    expect(resolutionActions("ERRANT")).not.toContain("close");
   });
 });

@@ -582,8 +582,9 @@ model Issue {
   title       String
   note        String?
   status      String    @default("OPEN") // OPEN | SOLVED
+  outcome     String?   // closure reason for exception issues: RECOVERED | COMPENSATED | NO_COMPENSATION
   scope       String?
-  sourceType  String? // TRIP_MARK | MANUAL
+  sourceType  String? // TRIP_MARK | MANUAL | EXCEPTION
   sourceId    Int?
   createdById Int?
   createdAt   DateTime  @default(now())

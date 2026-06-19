@@ -29,33 +29,43 @@ export function poolOpensIssue(pool: string): boolean {
 // - move:       re-point the item to a chosen container (trip/hub).
 // - assignTrip: route a Delayed item to a specific trip.
 // - compensate: jump to the linked Issue to record a Compensation.
-export type ResolutionAction = "clear" | "rebuy" | "move" | "assignTrip" | "compensate";
+// Resolution actions per pool (Task-2 lifecycle):
+// - recover:        item found/returns to a normal status; pick a destination
+//                   (original container / hub / trip / traveler holding); a linked
+//                   Issue closes as RECOVERED.
+// - rebuy:          buy a replacement — a NEW unit enters the purchase pool; the
+//                   lost/damaged unit stays flagged and is closed separately.
+// - compensate:     jump to the linked Issue to record a Compensation.
+// - close:          settle the loss explicitly (COMPENSATED or NO_COMPENSATION);
+//                   the item is terminal (stays flagged), the Issue is SOLVED.
+// - convertLost/convertDamaged: an Errant item converts to a loss (carries its
+//                   Issue forward) — Errant is never final.
+// - assignTrip:     route a Delayed item to a specific trip.
+export type ResolutionAction = "recover" | "rebuy" | "compensate" | "close" | "convertLost" | "convertDamaged" | "assignTrip";
 
-/** Resolution actions offered for items currently in a given pool. */
 export function resolutionActions(pool: string): ResolutionAction[] {
   switch (pool) {
     case "LOST":
     case "DAMAGED":
-      return ["rebuy", "compensate", "clear"];
+      return ["recover", "rebuy", "compensate", "close"];
     case "ERRANT":
-      return ["move", "rebuy", "clear"];
+      return ["recover", "convertLost", "convertDamaged"];
     case "DELAYED":
-      return ["assignTrip", "clear"];
+      return ["assignTrip", "recover"];
     default:
-      return ["clear"];
+      return ["recover"];
   }
 }
 
-/** Actions that require the user to pick a target container (a trip/hub). */
-export function actionNeedsTarget(action: ResolutionAction): boolean {
-  return action === "move" || action === "assignTrip";
-}
+// Where a recovered item lands.
+export const RECOVER_KINDS = ["ORIGINAL", "HUB", "TRIP", "TRAVELER"] as const;
+export type RecoverKind = (typeof RECOVER_KINDS)[number];
 
-/** i18n key for a pool's display name and for the "clear" action label
- *  (Found for loss pools, Clear for Delayed). */
+// Explicit closure reasons for a settled loss.
+export const CLOSE_OUTCOMES = ["COMPENSATED", "NO_COMPENSATION"] as const;
+export type CloseOutcome = (typeof CLOSE_OUTCOMES)[number];
+
+/** i18n key for a pool's display name. */
 export function poolLabelKey(pool: string): string {
   return `exceptions.pool.${pool}`;
-}
-export function clearLabelKey(pool: string): string {
-  return poolOpensIssue(pool) ? "exceptions.action.found" : "exceptions.action.clear";
 }

@@ -5,7 +5,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
 import { EXCEPTION_POOLS, isExceptionPool, resolutionActions } from "@/lib/exceptions/exception-logic";
-import { listExceptions, tripsForPicker, hubsForPicker } from "@/lib/exceptions/exception-service";
+import { listExceptions, tripsForPicker, hubsForPicker, travelersForPicker } from "@/lib/exceptions/exception-service";
 import { ExceptionActions } from "./ExceptionActions";
 
 export default async function ExceptionsPage({ searchParams }: { searchParams: Promise<{ pool?: string }> }) {
@@ -13,7 +13,7 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
   if (!access.isAdmin && !access.can("logistics", "operate") && !access.can("operations", "operate")) redirect("/");
   const sp = await searchParams;
   const activePool = isExceptionPool(sp.pool) ? sp.pool : "LOST";
-  const [t, rows, trips, hubs] = await Promise.all([getT(), listExceptions(), tripsForPicker(), hubsForPicker()]);
+  const [t, rows, trips, hubs, travelers] = await Promise.all([getT(), listExceptions(), tripsForPicker(), hubsForPicker(), travelersForPicker()]);
 
   const counts = Object.fromEntries(EXCEPTION_POOLS.map((p) => [p, rows.filter((r) => r.pool === p).length]));
   const poolRows = rows.filter((r) => r.pool === activePool);
@@ -69,7 +69,7 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
                         {r.issueId ? <Link href={`/issues/${r.issueId}`} className="text-brand hover:underline">{r.issueUid ?? `#${r.issueId}`}</Link> : "—"}
                       </td>
                       <td className="td text-end">
-                        <ExceptionActions itemId={r.id} pool={activePool} actions={actions} hasRequest={r.hasRequest} issueId={r.issueId} trips={trips} hubs={hubs} />
+                        <ExceptionActions itemId={r.id} pool={activePool} actions={actions} hasRequest={r.hasRequest} issueId={r.issueId} trips={trips} hubs={hubs} travelers={travelers} />
                       </td>
                     </tr>
                   ))}

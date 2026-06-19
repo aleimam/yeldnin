@@ -6,10 +6,13 @@ import { writeAudit } from "@/lib/audit";
 import { isExceptionPool } from "@/lib/exceptions/exception-logic";
 import {
   flagToPool,
-  clearException,
-  returnToPool,
-  moveException,
+  recoverItem,
+  closeException,
+  convertErrant,
+  rebuyReplacement,
   assignDelayedToTrip,
+  settleIssue,
+  type RecoverDest,
 } from "@/lib/exceptions/exception-service";
 
 /** Logistics or Operations (OPERATE), or an admin, may flag and resolve exceptions. */
@@ -45,26 +48,47 @@ export async function flagItemsAction(
   }
 }
 
-export async function clearExceptionAction(itemIds: number[]): Promise<void> {
+/** Recover items to a normal status at a chosen destination. */
+export async function recoverItemAction(itemIds: number[], destKind: "ORIGINAL" | "HUB" | "TRIP" | "TRAVELER", destId?: number): Promise<void> {
   const access = await requireExceptionAccess();
-  await clearException(itemIds, access.user.id);
-  await writeAudit(access.user.id, "logistics", "item.exceptionClear", "item", itemIds[0] ?? 0, { count: itemIds.length });
+  const dest: RecoverDest = destKind === "ORIGINAL" ? { kind: "ORIGINAL" } : { kind: destKind, id: destId ?? 0 };
+  await recoverItem(itemIds, dest, access.user.id);
+  await writeAudit(access.user.id, "logistics", "item.recover", "item", itemIds[0] ?? 0, { destKind, destId, count: itemIds.length });
   revalidateExceptions();
 }
 
-export async function returnToPoolAction(itemIds: number[]): Promise<void> {
+/** Settle a lost/damaged loss (compensated / no compensation). */
+export async function closeExceptionAction(itemIds: number[], outcome: "COMPENSATED" | "NO_COMPENSATION"): Promise<void> {
   const access = await requireExceptionAccess();
-  await returnToPool(itemIds, access.user.id);
+  await closeException(itemIds, outcome, access.user.id);
+  await writeAudit(access.user.id, "logistics", "item.settle", "item", itemIds[0] ?? 0, { outcome, count: itemIds.length });
+  revalidateExceptions();
+}
+
+/** Convert an Errant item to a loss (Lost/Damaged). */
+export async function convertErrantAction(itemIds: number[], to: "LOST" | "DAMAGED"): Promise<void> {
+  const access = await requireExceptionAccess();
+  await convertErrant(itemIds, to, access.user.id);
+  await writeAudit(access.user.id, "logistics", "item.convert", "item", itemIds[0] ?? 0, { to, count: itemIds.length });
+  revalidateExceptions();
+}
+
+/** Re-buy: create a replacement unit in the purchase pool. */
+export async function rebuyReplacementAction(itemIds: number[]): Promise<void> {
+  const access = await requireExceptionAccess();
+  await rebuyReplacement(itemIds, access.user.id);
   await writeAudit(access.user.id, "logistics", "item.rebuy", "item", itemIds[0] ?? 0, { count: itemIds.length });
   revalidateExceptions();
   revalidatePath("/purchasing/pool");
 }
 
-export async function moveExceptionAction(itemIds: number[], targetType: "TRIP" | "HUB", targetId: number): Promise<void> {
+/** Settle an exception Issue from its Issue page (closes the issue's items). */
+export async function settleIssueAction(issueId: number, outcome: "COMPENSATED" | "NO_COMPENSATION"): Promise<void> {
   const access = await requireExceptionAccess();
-  await moveException(itemIds, { type: targetType, id: targetId }, access.user.id);
-  await writeAudit(access.user.id, "logistics", "item.exceptionMove", "item", itemIds[0] ?? 0, { targetType, targetId, count: itemIds.length });
+  await settleIssue(issueId, outcome, access.user.id);
+  await writeAudit(access.user.id, "logistics", "issue.settle", "issue", issueId, { outcome });
   revalidateExceptions();
+  revalidatePath(`/issues/${issueId}`);
 }
 
 export async function assignDelayedAction(itemIds: number[], tripId: number): Promise<void> {

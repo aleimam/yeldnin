@@ -3,8 +3,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useT } from "@/i18n/client";
-import { clearLabelKey, type ResolutionAction } from "@/lib/exceptions/exception-logic";
-import { clearExceptionAction, returnToPoolAction, moveExceptionAction, assignDelayedAction } from "./actions";
+import type { ResolutionAction } from "@/lib/exceptions/exception-logic";
+import { recoverItemAction, rebuyReplacementAction, closeExceptionAction, convertErrantAction, assignDelayedAction } from "./actions";
 
 interface Picker {
   id: number;
@@ -13,12 +13,12 @@ interface Picker {
 
 export function ExceptionActions({
   itemId,
-  pool,
   actions,
   hasRequest,
   issueId,
   trips,
   hubs,
+  travelers,
 }: {
   itemId: number;
   pool: string;
@@ -27,42 +27,43 @@ export function ExceptionActions({
   issueId: number | null;
   trips: Picker[];
   hubs: Picker[];
+  travelers: Picker[];
 }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [moveTarget, setMoveTarget] = useState("");
+  const [recoverDest, setRecoverDest] = useState("ORIGINAL");
   const [tripTarget, setTripTarget] = useState("");
+  const [outcome, setOutcome] = useState<"COMPENSATED" | "NO_COMPENSATION">("COMPENSATED");
 
-  const run = (fn: () => Promise<unknown>) =>
-    start(async () => {
-      await fn();
-      router.refresh();
-    });
+  const run = (fn: () => Promise<unknown>) => start(async () => { await fn(); router.refresh(); });
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-1.5">
-      {actions.includes("move") && (
+      {actions.includes("recover") && (
         <span className="flex items-center gap-1">
-          <select className="input h-8 w-36 py-0 text-xs" value={moveTarget} onChange={(e) => setMoveTarget(e.target.value)} disabled={pending}>
-            <option value="">{t("exceptions.pickTarget")}</option>
-            {hubs.map((h) => (
-              <option key={`H${h.id}`} value={`HUB:${h.id}`}>🏠 {h.label}</option>
-            ))}
-            {trips.map((tr) => (
-              <option key={`T${tr.id}`} value={`TRIP:${tr.id}`}>✈️ {tr.label}</option>
-            ))}
+          <select className="input h-8 w-40 py-0 text-xs" value={recoverDest} onChange={(e) => setRecoverDest(e.target.value)} disabled={pending}>
+            <option value="ORIGINAL">{t("exceptions.dest.original")}</option>
+            <optgroup label={t("container.HUB")}>
+              {hubs.map((h) => <option key={`H${h.id}`} value={`HUB:${h.id}`}>{h.label}</option>)}
+            </optgroup>
+            <optgroup label={t("container.TRIP")}>
+              {trips.map((tr) => <option key={`T${tr.id}`} value={`TRIP:${tr.id}`}>{tr.label}</option>)}
+            </optgroup>
+            <optgroup label={t("transfers.holding")}>
+              {travelers.map((tv) => <option key={`V${tv.id}`} value={`TRAVELER:${tv.id}`}>{tv.label}</option>)}
+            </optgroup>
           </select>
           <button
             type="button"
-            className="btn-secondary px-2 py-1 text-xs"
-            disabled={pending || !moveTarget}
+            className="btn-primary px-2 py-1 text-xs"
+            disabled={pending}
             onClick={() => {
-              const [type, id] = moveTarget.split(":");
-              run(() => moveExceptionAction([itemId], type as "TRIP" | "HUB", Number(id)));
+              const [kind, id] = recoverDest.split(":");
+              run(() => recoverItemAction([itemId], kind as "ORIGINAL" | "HUB" | "TRIP" | "TRAVELER", id ? Number(id) : undefined));
             }}
           >
-            {t("exceptions.action.move")}
+            {t("exceptions.action.recover")}
           </button>
         </span>
       )}
@@ -70,9 +71,7 @@ export function ExceptionActions({
         <span className="flex items-center gap-1">
           <select className="input h-8 w-36 py-0 text-xs" value={tripTarget} onChange={(e) => setTripTarget(e.target.value)} disabled={pending}>
             <option value="">{t("exceptions.pickTrip")}</option>
-            {trips.map((tr) => (
-              <option key={tr.id} value={tr.id}>{tr.label}</option>
-            ))}
+            {trips.map((tr) => <option key={tr.id} value={tr.id}>{tr.label}</option>)}
           </select>
           <button type="button" className="btn-secondary px-2 py-1 text-xs" disabled={pending || !tripTarget} onClick={() => run(() => assignDelayedAction([itemId], Number(tripTarget)))}>
             {t("exceptions.action.assignTrip")}
@@ -80,19 +79,33 @@ export function ExceptionActions({
         </span>
       )}
       {actions.includes("rebuy") && (
-        <button type="button" className="btn-secondary px-2 py-1 text-xs" disabled={pending || !hasRequest} onClick={() => run(() => returnToPoolAction([itemId]))}>
+        <button type="button" className="btn-secondary px-2 py-1 text-xs" disabled={pending || !hasRequest} onClick={() => run(() => rebuyReplacementAction([itemId]))}>
           {t("exceptions.action.rebuy")}
         </button>
       )}
-      {actions.includes("compensate") && issueId && (
-        <Link href={`/issues/${issueId}`} className="btn-secondary px-2 py-1 text-xs">
-          {t("exceptions.action.compensate")}
-        </Link>
-      )}
-      {actions.includes("clear") && (
-        <button type="button" className="btn-primary px-2 py-1 text-xs" disabled={pending} onClick={() => run(() => clearExceptionAction([itemId]))}>
-          {t(clearLabelKey(pool))}
+      {actions.includes("convertLost") && (
+        <button type="button" className="btn-secondary px-2 py-1 text-xs" disabled={pending} onClick={() => run(() => convertErrantAction([itemId], "LOST"))}>
+          {t("exceptions.action.convertLost")}
         </button>
+      )}
+      {actions.includes("convertDamaged") && (
+        <button type="button" className="btn-secondary px-2 py-1 text-xs" disabled={pending} onClick={() => run(() => convertErrantAction([itemId], "DAMAGED"))}>
+          {t("exceptions.action.convertDamaged")}
+        </button>
+      )}
+      {actions.includes("compensate") && issueId && (
+        <Link href={`/issues/${issueId}`} className="btn-secondary px-2 py-1 text-xs">{t("exceptions.action.compensate")}</Link>
+      )}
+      {actions.includes("close") && (
+        <span className="flex items-center gap-1">
+          <select className="input h-8 w-36 py-0 text-xs" value={outcome} onChange={(e) => setOutcome(e.target.value as "COMPENSATED" | "NO_COMPENSATION")} disabled={pending}>
+            <option value="COMPENSATED">{t("exceptions.outcome.COMPENSATED")}</option>
+            <option value="NO_COMPENSATION">{t("exceptions.outcome.NO_COMPENSATION")}</option>
+          </select>
+          <button type="button" className="btn-danger px-2 py-1 text-xs" disabled={pending} onClick={() => run(() => closeExceptionAction([itemId], outcome))}>
+            {t("exceptions.action.close")}
+          </button>
+        </span>
       )}
     </div>
   );
