@@ -5,8 +5,10 @@ import { requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import { canManageEmployee } from "@/lib/hr/hr-service";
 import { generateDraft, recompute, addTargetLine, addAdhocLine, removeLine, lockPayslip, type AdhocInput } from "@/lib/hr/payroll-service";
+import { generateAllDrafts } from "@/lib/hr/hr-analytics-service";
 
 export type PayrollResult = { ok: true } | { ok: false; error: string };
+export type BatchResult = { ok: true; count: number } | { ok: false; error: string };
 
 async function guard(employeeId: number) {
   const access = await requireUser();
@@ -75,6 +77,21 @@ export async function removeLineAction(employeeId: number, payslipId: number, li
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not remove the line." };
+  }
+}
+
+/** Company-wide: draft a payslip for every employee without a locked one. HR-manage. */
+export async function generateAllDraftsAction(year: number, month: number): Promise<BatchResult> {
+  const access = await requireUser();
+  if (!access.isAdmin && !access.can("human_resources", "manage")) redirect("/hr");
+  if (!Number.isInteger(year) || month < 1 || month > 12) return { ok: false, error: "Choose a valid month." };
+  try {
+    const { count } = await generateAllDrafts(year, month, access.user.id);
+    await writeAudit(access.user.id, "human_resources", "payslip.generateAll", "month", year * 100 + month, { count });
+    revalidatePath("/hr/payroll");
+    return { ok: true, count };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not generate the run." };
   }
 }
 

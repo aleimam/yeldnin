@@ -12,9 +12,9 @@ export default async function HrPage() {
     { href: "/hr/attendance", icon: "🗓️", label: t("hr.attendance"), ready: true },
     { href: "/hr/my-leave", icon: "🌴", label: t("leave.myLeave"), ready: true },
     { href: "/hr/my-salary", icon: "💵", label: t("salary.mySalary"), ready: true },
+    { href: "/hr/payroll", icon: "💰", label: t("pay.title"), ready: true },
+    { href: "/hr/analytics", icon: "📊", label: t("an.title"), ready: true },
     { href: "/hr/setup", icon: "⚙️", label: t("hr.setup"), ready: true },
-    { href: "#", icon: "💰", label: t("hr.payroll"), ready: false },
-    { href: "#", icon: "🎁", label: t("hr.bonuses"), ready: false },
   ];
   return (
     <AppShell access={access} moduleKey="human_resources" pageTitle={t("module.human_resources.name")}>
