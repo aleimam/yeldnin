@@ -323,6 +323,26 @@ async function main() {
     await prisma.dayType.upsert({ where: { code: dt.code }, update: {}, create: { ...dt, system: true } });
   }
 
+  // HR salary components (system catalog; idempotent — never overwrites admin edits).
+  const SALARY_COMPONENTS = [
+    { code: "BASIC", name: "Basic Salary", nameAr: "الراتب الأساسي", kind: "EARNING", valuation: "FIXED_MONTHLY", sortOrder: 1 },
+    { code: "MTARGET", name: "Monthly Target Bonus", nameAr: "مكافأة الهدف الشهري", kind: "BONUS", valuation: "FIXED_EVENT", sortOrder: 2 },
+    { code: "QTARGET", name: "Quarter Target Bonus", nameAr: "مكافأة الهدف الربع سنوي", kind: "BONUS", valuation: "FIXED_EVENT", sortOrder: 3 },
+    { code: "WEID", name: "Working in Eid Bonus", nameAr: "مكافأة العمل في العيد", kind: "BONUS", valuation: "PER_DAY_FIXED", sortOrder: 4 },
+    { code: "WVAC", name: "Working in Vacation Bonus", nameAr: "مكافأة العمل في الإجازة", kind: "BONUS", valuation: "PER_DAY_FIXED", sortOrder: 5 },
+  ];
+  for (const sc of SALARY_COMPONENTS) {
+    await prisma.salaryComponent.upsert({ where: { code: sc.code }, update: {}, create: { ...sc, system: true } });
+  }
+  // Wire the obvious duty→bonus links once (only when still unset, to respect admin choices).
+  const byCode = Object.fromEntries((await prisma.salaryComponent.findMany({ select: { id: true, code: true } })).map((c) => [c.code, c.id]));
+  for (const [dayCode, compCode] of [["ED", "WEID"], ["VD", "WVAC"]] as const) {
+    const dt = await prisma.dayType.findUnique({ where: { code: dayCode }, select: { id: true, bonusComponentId: true } });
+    if (dt && dt.bonusComponentId == null && byCode[compCode]) {
+      await prisma.dayType.update({ where: { id: dt.id }, data: { bonusComponentId: byCode[compCode] } });
+    }
+  }
+
   console.log("Seed complete.");
 }
 

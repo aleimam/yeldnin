@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import { isHolidayType, isComponentKind, isDayClass, validateLeaveRequest, type LeaveType } from "@/lib/hr/attendance-logic";
+import { isValuation } from "@/lib/hr/salary-logic";
 import { canManageEmployee, getEmployeeByUserId } from "@/lib/hr/hr-service";
 import {
   createLeaveRequest,
@@ -134,7 +135,8 @@ export type CatalogResult = { ok: true } | { ok: false; error: string };
 export async function createComponentAction(input: ComponentInput): Promise<CatalogResult> {
   const access = await requireHrManage();
   if (!input.code?.trim() || !input.name?.trim()) return { ok: false, error: "Code and name are required." };
-  if (!isComponentKind(input.kind)) return { ok: false, error: "Choose Bonus or Penalty." };
+  if (!isComponentKind(input.kind)) return { ok: false, error: "Choose Earning, Bonus or Penalty." };
+  if (!isValuation(input.valuation)) return { ok: false, error: "Choose how the figure is valued." };
   try {
     await createSalaryComponent(input, access.user.id);
     revalidatePath("/hr/setup");

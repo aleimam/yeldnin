@@ -15,8 +15,8 @@ export function isHolidayType(v: unknown): v is HolidayType {
   return typeof v === "string" && (HOLIDAY_TYPES as readonly string[]).includes(v);
 }
 
-// Configurable catalogs (Phase 2.5).
-export const COMPONENT_KINDS = ["BONUS", "PENALTY"] as const;
+// Configurable catalogs (Phase 2.5; EARNING added in Phase 3 for base pay).
+export const COMPONENT_KINDS = ["EARNING", "BONUS", "PENALTY"] as const;
 export type ComponentKind = (typeof COMPONENT_KINDS)[number];
 export function isComponentKind(v: unknown): v is ComponentKind {
   return typeof v === "string" && (COMPONENT_KINDS as readonly string[]).includes(v);

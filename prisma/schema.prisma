@@ -1248,8 +1248,9 @@ model Employee {
   updatedById       Int?
   updatedAt         DateTime  @updatedAt
 
-  photos EmployeePhoto[]
-  events EmployeeEvent[]
+  photos      EmployeePhoto[]
+  events      EmployeeEvent[]
+  salaryLines SalaryStructureLine[]
 
   @@index([lineManagerId])
 }
@@ -1383,20 +1384,79 @@ model HolidayBonus {
 }
 
 // ─── HR Phase 2.5 — Day Types & Salary Components (configurable catalogs) ──────
-// SalaryComponent: a Bonus or Penalty (its EGP value/rules come in Payroll P4).
+// SalaryComponent: a building block of pay. kind EARNING (base/allowances, sum in)
+// | BONUS (sum in, earned) | PENALTY (deduct). `valuation` says how a structure
+// line's figure is interpreted (Phase 3 stores the figure; Phase 4 realizes it):
+//   FIXED_MONTHLY  constant monthly amount (Basic, fixed allowances)        [EGP]
+//   FIXED_EVENT    fixed amount when earned/charged (target bonus, penalty) [EGP]
+//   PER_DAY_FIXED  fixed amount per qualifying day (working a vacation/Eid)  [EGP]
+//   DAYS_OF_BASIC  N × (basic ÷ 26) — bonus expressed in days of basic     [days]
+//   DAYS_OF_TOTAL  N × (total ÷ working days) — penalty in days of total   [days]
+// `defaultAmount` is the company-wide figure used when an employee has no override.
 model SalaryComponent {
-  id          Int       @id @default(autoincrement())
-  code        String    @unique
-  name        String
-  nameAr      String?
-  kind        String // BONUS | PENALTY
-  notes       String?
-  system      Boolean   @default(false)
-  archivedAt  DateTime?
-  sortOrder   Int       @default(0)
+  id            Int       @id @default(autoincrement())
+  code          String    @unique
+  name          String
+  nameAr        String?
+  kind          String // EARNING | BONUS | PENALTY
+  valuation     String    @default("FIXED_EVENT") // see header
+  defaultAmount Float? // company-wide default figure (EGP or days per valuation)
+  notes         String?
+  system        Boolean   @default(false)
+  archivedAt    DateTime?
+  sortOrder     Int       @default(0)
+  createdById   Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lines SalaryStructureLine[]
+}
+
+// ─── HR Phase 3 — Salary structures & raises ──────────────────────────────────
+// One line of an employee's salary structure: an applicable component + its
+// current figure. `amount` is EGP for fixed/per-day valuations, or a day-count
+// for DAYS_OF_* valuations (resolved to money in Payroll P4). Every change is
+// journalled in SalaryChange; the line always reflects the latest applied change.
+model SalaryStructureLine {
+  id          Int             @id @default(autoincrement())
+  employeeId  Int
+  employee    Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  componentId Int
+  component   SalaryComponent @relation(fields: [componentId], references: [id])
+  amount      Float           @default(0)
+  active      Boolean         @default(true)
+  note        String?
   createdById Int?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedById Int?
+  updatedAt   DateTime        @updatedAt
+
+  changes SalaryChange[]
+
+  @@unique([employeeId, componentId])
+  @@index([employeeId])
+}
+
+// Effective-dated history of every figure change on a structure line. changeType
+// SET (initial/explicit absolute) | FIXED (signed EGP delta) | PERCENT (% of old).
+// `delta` carries the entered value per type; old→new are the resulting amounts.
+// `batchId` groups the lines touched by one bulk raise.
+model SalaryChange {
+  id            Int                 @id @default(autoincrement())
+  lineId        Int
+  line          SalaryStructureLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  changeType    String // SET | FIXED | PERCENT
+  delta         Float
+  oldAmount     Float
+  newAmount     Float
+  effectiveDate DateTime
+  reason        String?
+  batchId       String?
+  byUserId      Int?
+  createdAt     DateTime            @default(now())
+
+  @@index([lineId])
+  @@index([effectiveDate])
 }
 
 // DayType: a configurable classification of a day. dayClass LEAVE (employee off)

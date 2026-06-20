@@ -194,13 +194,15 @@ export interface ComponentInput {
   name: string;
   nameAr?: string | null;
   kind: string;
+  valuation: string;
+  defaultAmount?: number | null;
   notes?: string | null;
 }
 export async function createSalaryComponent(input: ComponentInput, userId: number) {
-  return prisma.salaryComponent.create({ data: { code: input.code.trim(), name: input.name.trim(), nameAr: clean(input.nameAr), kind: input.kind, notes: clean(input.notes), createdById: userId } });
+  return prisma.salaryComponent.create({ data: { code: input.code.trim(), name: input.name.trim(), nameAr: clean(input.nameAr), kind: input.kind, valuation: input.valuation, defaultAmount: input.defaultAmount ?? null, notes: clean(input.notes), createdById: userId } });
 }
 export async function updateSalaryComponent(id: number, input: Omit<ComponentInput, "code">) {
-  return prisma.salaryComponent.update({ where: { id }, data: { name: input.name.trim(), nameAr: clean(input.nameAr), kind: input.kind, notes: clean(input.notes) } });
+  return prisma.salaryComponent.update({ where: { id }, data: { name: input.name.trim(), nameAr: clean(input.nameAr), kind: input.kind, valuation: input.valuation, defaultAmount: input.defaultAmount ?? null, notes: clean(input.notes) } });
 }
 export async function archiveSalaryComponent(id: number) {
   return prisma.salaryComponent.update({ where: { id }, data: { archivedAt: new Date() } });
