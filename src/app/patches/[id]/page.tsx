@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { AppShell } from "@/components/shell/AppShell";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getPatch, getPatchItems } from "@/lib/patches/patch-service";
@@ -23,6 +24,7 @@ export default async function PatchDetailPage({ params }: { params: Promise<{ id
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={t("patch.friendly", { count: items.length, supplier: patch.supplierName ?? "—", dest: patch.destinationName ?? "—" })} backHref="/patches">
       <div className="max-w-3xl space-y-6">
+        <InquiryLauncher unitKind="PATCH" unitId={patch.id} />
         <div className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">

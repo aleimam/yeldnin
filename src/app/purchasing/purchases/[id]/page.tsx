@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { AppShell } from "@/components/shell/AppShell";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { productScopes } from "@/lib/products/products-logic";
 import { getPurchase, getPurchaseItems } from "@/lib/purchasing/purchasing-service";
@@ -35,6 +36,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={t("purchase.friendly", { count: items.length, supplier: purchase.supplierName ?? "—", dest: purchase.destinationName ?? "—" })} backHref="/purchasing/purchases">
       <div className="max-w-3xl space-y-6">
+        <InquiryLauncher unitKind="PURCHASE" unitId={purchase.id} />
         <div className="card p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">

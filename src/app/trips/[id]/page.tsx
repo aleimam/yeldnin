@@ -4,6 +4,7 @@ import { formatBizDate } from "@/lib/format/dates";
 import { kg } from "@/lib/format/money";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getTrip } from "@/lib/trips/trip-service";
@@ -54,6 +55,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={trip.uid ?? `#${trip.id}`} backHref="/trips">
       <div className="max-w-3xl space-y-6">
+        <InquiryLauncher unitKind="TRIP" unitId={trip.id} />
         <div className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">

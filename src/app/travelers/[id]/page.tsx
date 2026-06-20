@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { parseTypes } from "@/lib/travelers/travelers-logic";
@@ -32,6 +33,7 @@ export default async function TravelerDetailPage({ params }: { params: Promise<{
       actions={canEdit ? <Link href={`/travelers/${tr.id}/edit`} className="btn-primary">{t("products.edit")}</Link> : null}
     >
       <div className="max-w-3xl space-y-6">
+        <InquiryLauncher unitKind="TRAVELER" unitId={tr.id} />
         <div className="card p-5">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-1 text-sm">
             {tr.contact && <div><span className="text-muted">{t("travelers.contact")}: </span><span className="text-ink">{tr.contact}</span></div>}

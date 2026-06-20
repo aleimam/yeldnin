@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { AppShell } from "@/components/shell/AppShell";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { getShipment, getShipmentItems } from "@/lib/operations/operations-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
@@ -21,6 +22,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
   return (
     <AppShell access={access} moduleKey="operations" pageTitle={shipment.uid ?? `#${shipment.id}`} backHref="/shipments">
       <div className="max-w-3xl space-y-6">
+        <InquiryLauncher unitKind="SHIPMENT" unitId={shipment.id} />
         <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
           <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
             <div><span className="text-muted">{t("shipments.scope")}: </span><span className="text-ink">{t(`scope.${shipment.scope}`)}</span></div>

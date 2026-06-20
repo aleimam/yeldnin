@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatBizDate } from "@/lib/format/dates";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
@@ -30,6 +31,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   return (
     <AppShell access={access} moduleKey={primaryRequestModule(access)} pageTitle={req.uid ?? `#${req.id}`} backHref="/requests">
       <div className="max-w-3xl space-y-6">
+        <InquiryLauncher unitKind="REQUEST" unitId={req.id} />
         <div className="card p-5">
           <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
             <div><span className="text-muted">{t("requests.type")}: </span><span className="text-ink">{t(`reqtype.${req.type}`)}</span></div>

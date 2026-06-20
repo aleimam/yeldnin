@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { kg } from "@/lib/format/money";
@@ -53,6 +54,7 @@ export default async function HubDetailPage({ params }: { params: Promise<{ id: 
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={hub.name} backHref="/hubs">
       <div className="max-w-3xl space-y-6">
+        <InquiryLauncher unitKind="HUB" unitId={hub.id} />
         <div className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
