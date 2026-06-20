@@ -2,21 +2,27 @@
 import Link from "next/link";
 import { useT } from "@/i18n/client";
 import { useDropdown } from "@/lib/use-dropdown";
+import { type ColorMode } from "@/lib/theme";
+import { PreferencesControls } from "./PreferencesControls";
 
 
-/** Avatar-triggered account menu: user info, Settings link, Sign out. */
+/** Avatar-triggered account menu: user info, appearance, Settings link, Sign out. */
 export function AccountMenu({
   name,
   email,
   tier,
   avatarUrl,
   showSettings,
+  theme,
+  mode,
 }: {
   name: string;
   email: string;
   tier: string;
   avatarUrl: string | null;
   showSettings: boolean;
+  theme: string;
+  mode: ColorMode;
 }) {
   const t = useT();
   const { open, setOpen, ref } = useDropdown<HTMLDivElement>();
@@ -40,7 +46,7 @@ export function AccountMenu({
       </button>
 
       {open && (
-        <div className="absolute end-0 z-40 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
+        <div className="absolute end-0 z-40 mt-2 w-64 overflow-hidden rounded-xl border border-line bg-surface shadow-lg">
           <div className="flex items-center gap-3 border-b border-line px-3 py-3">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -74,6 +80,16 @@ export function AccountMenu({
                 {t("common.settings")}
               </Link>
             )}
+
+            {/* Appearance (moved out of its own header icon, into this menu) */}
+            <div className="mt-1.5 border-t border-line px-2 pb-1 pt-2.5">
+              <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-muted">
+                <span>🎨</span>
+                {t("pref.appearance")}
+              </div>
+              <PreferencesControls theme={theme} mode={mode} />
+            </div>
+
             <form method="POST" action="/api/logout">
               <button
                 type="submit"

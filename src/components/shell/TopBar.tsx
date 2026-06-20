@@ -9,7 +9,6 @@ import { MODULES, childModules } from "@/lib/modules";
 import { canAccessSettings } from "@/lib/module-sections";
 import { canAccessCs } from "@/lib/cs/cs-logic";
 import { unreadCount } from "@/lib/notify/notify-message-service";
-import { PreferencesMenu } from "./PreferencesMenu";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { AccountMenu } from "./AccountMenu";
@@ -94,7 +93,6 @@ export async function TopBar({
         {/* Right cluster */}
         <div className="ms-auto flex items-center gap-3">
           <LocaleSwitcher />
-          <PreferencesMenu theme={theme} mode={mode} />
           <div className="hidden items-center gap-2 sm:flex">
             <span className="text-sm font-medium text-ink">{dn}</span>
             <span className="role-badge">{t(`tier.${user.tier}`)}</span>
@@ -113,6 +111,8 @@ export async function TopBar({
             tier={user.tier}
             avatarUrl={assetUrl(user.avatarUrl)}
             showSettings={showSettings}
+            theme={theme}
+            mode={mode}
           />
         </div>
       </div>
