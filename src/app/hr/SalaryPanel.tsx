@@ -141,7 +141,7 @@ function LineRow({ employeeId, line, readOnly }: { employeeId: number; line: Sal
           <input className="input h-8 w-36 py-0 text-xs" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <button type="button" className="btn-primary px-2 py-1 text-xs" disabled={pending || delta === ""} onClick={apply}>{t("salary.apply")}</button>
           <button type="button" className="text-xs text-muted hover:underline" disabled={pending} onClick={toggle}>{line.active ? t("salary.disable") : t("salary.enable")}</button>
-          {err && <span className="text-xs text-red-600">{err}</span>}
+          {err && <span className="text-xs text-red-600">{t(err)}</span>}
         </div>
       )}
     </div>
@@ -183,7 +183,7 @@ function AddComponent({ employeeId, eligible }: { employeeId: number; eligible: 
         <input className="input h-9 w-40 py-0 text-sm" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         <button type="button" className="btn-secondary px-3 py-1.5 text-sm" disabled={pending || !componentId} onClick={add}>{t("salary.add")}</button>
       </div>
-      {err && <p className="text-sm text-red-600">{err}</p>}
+      {err && <p className="text-sm text-red-600">{t(err)}</p>}
     </div>
   );
 }

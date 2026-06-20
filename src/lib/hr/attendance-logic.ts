@@ -99,9 +99,9 @@ export function effectiveAllowance(override: number | null | undefined, fallback
 /** Validate a leave-request draft. */
 export function validateLeaveRequest(input: { type?: string; startDate?: string; endDate?: string }): Record<string, string> {
   const e: Record<string, string> = {};
-  if (!isLeaveType(input.type)) e.type = "Choose a leave type.";
-  if (!input.startDate) e.startDate = "Start date is required.";
-  if (!input.endDate) e.endDate = "End date is required.";
-  if (input.startDate && input.endDate && input.endDate < input.startDate) e.endDate = "End date must not be before the start date.";
+  if (!isLeaveType(input.type)) e.type = "err.leaveType";
+  if (!input.startDate) e.startDate = "err.startDate";
+  if (!input.endDate) e.endDate = "err.endDate";
+  if (input.startDate && input.endDate && input.endDate < input.startDate) e.endDate = "err.endBeforeStart";
   return e;
 }

@@ -60,7 +60,7 @@ export function EmployeeCreateForm({ managers }: { managers: { id: number; label
         </label>
         <label className="block"><span className="label">{t("hr.hiringDate")}</span><input className="input" type="date" value={f.hiringDate} onChange={set("hiringDate")} /></label>
       </div>
-      {err && <p className="text-sm text-red-600">{err}</p>}
+      {err && <p className="text-sm text-red-600">{t(err)}</p>}
       <button type="button" className="btn-primary" disabled={pending || !f.name || !f.email || !f.password} onClick={submit}>{t("hr.createEmployee")}</button>
     </div>
   );

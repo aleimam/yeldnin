@@ -64,12 +64,12 @@ export interface DraftChange {
 /** Validate a raise/change draft. Returns field → message (empty = valid). */
 export function validateChange(input: DraftChange): Record<string, string> {
   const e: Record<string, string> = {};
-  if (!isChangeType(input.type)) e.type = "Choose how to apply the change.";
+  if (!isChangeType(input.type)) e.type = "err.changeType";
   const delta = typeof input.delta === "string" ? parseFloat(input.delta) : input.delta;
-  if (delta == null || Number.isNaN(delta)) e.delta = "Enter a value.";
-  else if (input.type === "SET" && delta < 0) e.delta = "Amount cannot be negative.";
-  else if (input.type === "PERCENT" && delta <= -100) e.delta = "Percentage would zero the amount.";
-  if (!input.effectiveDate) e.effectiveDate = "Effective date is required.";
+  if (delta == null || Number.isNaN(delta)) e.delta = "err.deltaRequired";
+  else if (input.type === "SET" && delta < 0) e.delta = "err.deltaNegative";
+  else if (input.type === "PERCENT" && delta <= -100) e.delta = "err.percentZero";
+  if (!input.effectiveDate) e.effectiveDate = "err.effectiveDate";
   return e;
 }
 

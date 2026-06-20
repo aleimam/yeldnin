@@ -85,7 +85,7 @@ function BulkRaiseSection({ components, teams }: { components: Component[]; team
     setMsg(null);
     start(async () => {
       const r = await bulkRaiseAction(Number(f.componentId), f.teamId ? Number(f.teamId) : null, f.type, Number(f.delta), f.effectiveDate, null);
-      if (!r.ok) { setMsg({ ok: false, text: r.error }); return; }
+      if (!r.ok) { setMsg({ ok: false, text: t(r.error) }); return; }
       setMsg({ ok: true, text: t("salary.bulkDone", { n: r.count }) });
       setF((s) => ({ ...s, delta: "" }));
       router.refresh();

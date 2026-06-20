@@ -37,8 +37,8 @@ export function wouldCreateCycle(
 /** Validate the minimal new-employee inputs (name + email; rich fields optional). */
 export function validateNewEmployee(input: { name?: string; email?: string }): Record<string, string> {
   const e: Record<string, string> = {};
-  if (!input.name?.trim()) e.name = "Name is required.";
-  if (!input.email?.trim()) e.email = "Email is required.";
-  else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email.trim())) e.email = "Enter a valid email.";
+  if (!input.name?.trim()) e.name = "err.nameRequired";
+  if (!input.email?.trim()) e.email = "err.emailRequired";
+  else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.email.trim())) e.email = "err.emailInvalid";
   return e;
 }

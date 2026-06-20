@@ -46,7 +46,7 @@ export function MyLeaveForm() {
         <label className="block"><span className="label">{t("leave.from")}</span><input className="input" type="date" value={start} onChange={(e) => setStart(e.target.value)} /></label>
         <label className="block"><span className="label">{t("leave.to")}</span><input className="input" type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
       </div>
-      {err && <p className="text-sm text-red-600">{err}</p>}
+      {err && <p className="text-sm text-red-600">{t(err)}</p>}
       {ok && <p className="text-sm text-green-600">{t("leave.submitted")}</p>}
       <button type="button" className="btn-primary" disabled={pending || !start || !end} onClick={submit}>{t("leave.apply")}</button>
     </div>
