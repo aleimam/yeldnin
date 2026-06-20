@@ -16,11 +16,12 @@ function safeEqual(a: string, b: string): boolean {
  * an external cron, e.g. every 10 min:
  *   *​/10 * * * * curl -fsS -H "x-cron-key: $CRON_SECRET" https://in.yeldn.com/api/cron/advance
  * Authorized by a matching `x-cron-key` header against CRON_SECRET, or an admin
- * session (so it can be triggered manually from the app).
+ * session (so it can be triggered manually from the app). Header-only — the secret
+ * is never read from the query string (which would leak it into access logs).
  */
 async function handle(req: Request) {
   const secret = process.env.CRON_SECRET;
-  const key = req.headers.get("x-cron-key") ?? new URL(req.url).searchParams.get("key");
+  const key = req.headers.get("x-cron-key");
   let authed = !!(secret && key && safeEqual(key, secret));
   if (!authed) {
     const access = await getAccess();

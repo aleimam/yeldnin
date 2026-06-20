@@ -28,14 +28,20 @@ function sign(payload: string): string {
   return crypto.createHmac("sha256", secret()).update(payload).digest("base64url");
 }
 
+export interface Session {
+  uid: number;
+  /** User.tokenVersion at issue time — must still match to be valid (revocation). */
+  tv: number;
+}
+
 /** Create a signed token: base64url(json).hmac */
-export function createToken(userId: number): string {
-  const body = b64url(JSON.stringify({ uid: userId, iat: Date.now() }));
+export function createToken(userId: number, tokenVersion: number): string {
+  const body = b64url(JSON.stringify({ uid: userId, tv: tokenVersion, iat: Date.now() }));
   return `${body}.${sign(body)}`;
 }
 
-/** Verify a token and return the userId, or null if invalid/tampered. */
-export function readToken(token: string | undefined): number | null {
+/** Verify a token and return its session payload, or null if invalid/tampered. */
+export function readToken(token: string | undefined): Session | null {
   if (!token) return null;
   const [body, mac] = token.split(".");
   if (!body || !mac) return null;
@@ -51,15 +57,16 @@ export function readToken(token: string | undefined): number | null {
     if (typeof parsed.iat === "number" && Date.now() - parsed.iat > MAX_AGE * 1000) {
       return null;
     }
-    return parsed.uid;
+    // Pre-revocation tokens have no `tv`; treat as version 0 (matches the default).
+    return { uid: parsed.uid, tv: typeof parsed.tv === "number" ? parsed.tv : 0 };
   } catch {
     return null;
   }
 }
 
-export async function setSessionCookie(userId: number): Promise<void> {
+export async function setSessionCookie(userId: number, tokenVersion: number): Promise<void> {
   const store = await cookies();
-  store.set(COOKIE, createToken(userId), {
+  store.set(COOKIE, createToken(userId, tokenVersion), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -73,7 +80,7 @@ export async function clearSessionCookie(): Promise<void> {
   store.delete(COOKIE);
 }
 
-export async function getSessionUserId(): Promise<number | null> {
+export async function getSession(): Promise<Session | null> {
   const store = await cookies();
   return readToken(store.get(COOKIE)?.value);
 }

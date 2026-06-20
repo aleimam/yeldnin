@@ -161,7 +161,12 @@ export async function updateUserProfile(id: number, input: UserProfileInput & { 
 
 export async function setUserPassword(id: number, password: string) {
   const passwordHash = await hashPassword(password);
-  return prisma.user.update({ where: { id }, data: { passwordHash } });
+  // Bump tokenVersion so every existing session token for this user is invalidated,
+  // and clear any failed-login lockout.
+  return prisma.user.update({
+    where: { id },
+    data: { passwordHash, tokenVersion: { increment: 1 }, failedLogins: 0, lockedUntil: null },
+  });
 }
 
 export async function setUserTeams(id: number, teamKeys: string[]) {

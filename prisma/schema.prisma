@@ -42,6 +42,9 @@ model User {
   colorMode    String   @default("system") // light | dark | system
   active       Boolean  @default(true)
   avatarUrl    String?
+  tokenVersion Int      @default(0) // bumped on password change → invalidates all existing session tokens
+  failedLogins Int      @default(0) // consecutive failed login attempts (reset on success)
+  lockedUntil  DateTime? // account temporarily locked after too many failed logins
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   archivedAt   DateTime?

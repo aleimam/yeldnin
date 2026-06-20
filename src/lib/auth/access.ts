@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { getSessionUserId } from "./session";
+import { getSession } from "./session";
 import {
   type Level,
   type Tier,
@@ -43,17 +43,18 @@ export interface Access {
 
 /** Load the current session + permissions. Memoized per request. */
 export const getAccess = cache(async (): Promise<Access> => {
-  const userId = await getSessionUserId();
-  if (!userId) return anonymous();
+  const session = await getSession();
+  if (!session) return anonymous();
 
   const user = await prisma.user.findFirst({
-    where: { id: userId, active: true, archivedAt: null },
+    where: { id: session.uid, active: true, archivedAt: null },
     include: {
       teamMembers: { include: { team: true } },
       modulePerms: true,
     },
   });
-  if (!user) return anonymous();
+  // Reject a token whose version no longer matches (revoked by a password change).
+  if (!user || user.tokenVersion !== session.tv) return anonymous();
 
   const tier = user.tier as Tier;
   const levels = new Map<string, Level>();

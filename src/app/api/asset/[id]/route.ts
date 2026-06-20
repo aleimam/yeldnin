@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { readAsset } from "@/lib/assets/assets-service";
 import { getAccess } from "@/lib/auth/access";
+import { canManageEmployee, getEmployeeByUserId } from "@/lib/hr/hr-service";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 
 export async function GET(
@@ -21,6 +23,25 @@ export async function GET(
   if (!isBranding) {
     const access = await getAccess();
     if (!access.user) return new NextResponse("Unauthorized", { status: 401 });
+
+    // Per-object gate for the two sensitive asset types the audit flagged: expense
+    // receipts (→ Expenses VIEW) and HR documents like national-ID scans (→ the
+    // owning employee, their manager/HR, or admin). Asset ids are unguessable cuids;
+    // other photos (product/CS/avatars) stay logged-in-only.
+    const [expenseAtt, empPhoto, eventPhoto] = await Promise.all([
+      prisma.expenseAttachment.findFirst({ where: { assetId: id }, select: { id: true } }),
+      prisma.employeePhoto.findFirst({ where: { assetId: id }, select: { employeeId: true } }),
+      prisma.employeeEventPhoto.findFirst({ where: { assetId: id }, select: { event: { select: { employeeId: true } } } }),
+    ]);
+    if (expenseAtt && !access.canModule("expenses", "VIEW")) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+    const hrEmployeeId = empPhoto?.employeeId ?? eventPhoto?.event.employeeId ?? null;
+    if (hrEmployeeId != null) {
+      const own = (await getEmployeeByUserId(access.user.id))?.id === hrEmployeeId;
+      const allowed = own || access.can("human_resources", "operate") || (await canManageEmployee(access, hrEmployeeId));
+      if (!allowed) return new NextResponse("Forbidden", { status: 403 });
+    }
   }
 
   const asset = await readAsset(id);
