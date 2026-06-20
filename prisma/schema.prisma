@@ -1251,6 +1251,7 @@ model Employee {
   photos      EmployeePhoto[]
   events      EmployeeEvent[]
   salaryLines SalaryStructureLine[]
+  payslips    Payslip[]
 
   @@index([lineManagerId])
 }
@@ -1457,6 +1458,65 @@ model SalaryChange {
 
   @@index([lineId])
   @@index([effectiveDate])
+}
+
+// ─── HR Phase 4 — Payroll run (computed, saved payslips) ──────────────────────
+// One employee's payslip for a pay-month M. Per the doc's pay-window (day 24–31):
+// basic + allowances are for the current month M, attendance-derived bonuses come
+// from the previous month M−1, absences/penalties from the current month M. A slip
+// is DRAFT (recomputable) then LOCKED (immutable history). Header fields are the
+// frozen roll-up; PayslipLine holds the breakdown. net is floored at zero.
+model Payslip {
+  id              Int       @id @default(autoincrement())
+  uid             String?   @unique // PS<YY><MM><seq3>
+  employeeId      Int
+  employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  year            Int
+  month           Int // pay-month M (1–12)
+  status          String    @default("DRAFT") // DRAFT | LOCKED
+  basic           Float     @default(0) // basic salary (for day-of-basic reference)
+  earningsTotal   Float     @default(0)
+  bonusTotal      Float     @default(0)
+  penaltyTotal    Float     @default(0)
+  gross           Float     @default(0) // earnings + bonuses (before penalties)
+  net             Float     @default(0) // max(0, gross − penalties)
+  workingDays     Int       @default(0) // company working days in M (day-of-total divisor)
+  dayOfBasic      Float     @default(0) // basic ÷ 26
+  dayOfTotal      Float     @default(0) // gross ÷ workingDays
+  absentOverLimit Int       @default(0) // over-limit absences in M (penalised)
+  notes           String?
+  generatedById   Int?
+  lockedById      Int?
+  lockedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  lines PayslipLine[]
+
+  @@unique([employeeId, year, month])
+  @@index([employeeId])
+}
+
+// A single breakdown line. `source` distinguishes auto-derived lines (regenerated
+// on recompute) from manual ones (TARGET toggle, ADHOC event — preserved). For
+// day-valued lines, qty/rate/valuation are stored so `amount` can be recomputed.
+model PayslipLine {
+  id          Int      @id @default(autoincrement())
+  payslipId   Int
+  payslip     Payslip  @relation(fields: [payslipId], references: [id], onDelete: Cascade)
+  kind        String // EARNING | BONUS | PENALTY
+  source      String // STRUCTURE | DUTY | TARGET | ABSENCE | ADHOC
+  componentId Int?
+  label       String
+  valuation   String? // for recompute of day-valued lines
+  qty         Float? // duty-day count, or number of days for days-of-X
+  rate        Float? // per-day or fixed figure
+  amount      Float    @default(0) // resolved magnitude (sign implied by kind)
+  detail      String? // human-readable computation note
+  createdById Int?
+  createdAt   DateTime @default(now())
+
+  @@index([payslipId])
 }
 
 // DayType: a configurable classification of a day. dayClass LEAVE (employee off)

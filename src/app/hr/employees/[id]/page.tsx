@@ -8,10 +8,12 @@ import { formatBizDate } from "@/lib/format/dates";
 import { getEmployee, managerOptions, canManageEmployee } from "@/lib/hr/hr-service";
 import { leaveBalance, listAbsences, dutyDayTypes, listDuties } from "@/lib/hr/attendance-service";
 import { listStructure, eligibleComponents, listChanges } from "@/lib/hr/salary-service";
+import { payrollForEmployee } from "@/lib/hr/payroll-service";
 import { ymd } from "@/lib/hr/attendance-logic";
 import { EmployeeManage } from "../../EmployeeManage";
 import { AttendancePanel } from "../../AttendancePanel";
 import { SalaryPanel } from "../../SalaryPanel";
+import { PayrollPanel } from "../../PayrollPanel";
 
 export default async function EmployeeProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -31,6 +33,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   const structure = canManage ? await listStructure(emp.id) : null;
   const eligible = canManage ? await eligibleComponents(emp.id) : [];
   const salaryChanges = canManage ? await listChanges(emp.id) : [];
+  const payroll = canManage ? await payrollForEmployee(emp.id) : null;
 
   const detail = (label: string, value: React.ReactNode) =>
     value ? <div><span className="text-muted">{label}: </span><span className="text-ink">{value}</span></div> : null;
@@ -121,6 +124,19 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
             monthlyBase={structure.monthlyBase}
             eligible={eligible.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr, kind: c.kind, valuation: c.valuation, defaultAmount: c.defaultAmount }))}
             changes={salaryChanges.map((c) => ({ id: c.id, date: formatBizDate(c.effectiveDate), changeType: c.changeType, delta: c.delta, oldAmount: c.oldAmount, newAmount: c.newAmount, reason: c.reason, componentName: c.componentName }))}
+          />
+        )}
+
+        {canManage && payroll && (
+          <PayrollPanel
+            employeeId={emp.id}
+            slips={payroll.slips.map((s) => ({
+              id: s.id, year: s.year, month: s.month, status: s.status,
+              earningsTotal: s.earningsTotal, bonusTotal: s.bonusTotal, penaltyTotal: s.penaltyTotal,
+              gross: s.gross, net: s.net, workingDays: s.workingDays, dayOfBasic: s.dayOfBasic, dayOfTotal: s.dayOfTotal,
+              lines: s.lines.map((l) => ({ id: l.id, kind: l.kind, source: l.source, label: l.label, amount: l.amount, detail: l.detail })),
+            }))}
+            targets={payroll.targets}
           />
         )}
 
