@@ -20,7 +20,8 @@ next-env.d.ts
 # uploads (local file storage for attachments)
 /uploads/
 
-# env
+# env — real config lives here (untracked); .env.example is the committed template
+.env
 .env.local
 .env*.local
 

@@ -9,10 +9,7 @@ import {
   type ColorMode,
 } from "@/lib/theme";
 import { persistPrefs } from "@/app/prefs-actions";
-
-function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${value}; path=/; max-age=${60 * 60 * 24 * 365}`;
-}
+import { writePrefCookie as setCookie } from "@/lib/ui/pref-cookie";
 
 function applyMode(mode: ColorMode) {
   const dark =

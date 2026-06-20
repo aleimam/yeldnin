@@ -12,6 +12,24 @@ const nextConfig = {
     // Lint is run separately in CI; don't block production builds on it.
     ignoreDuringBuilds: true,
   },
+  // Baseline security headers on every response. (A full script-src CSP needs
+  // per-request nonces for Next's inline bootstrap; deferred — `frame-ancestors`
+  // here already blocks clickjacking alongside X-Frame-Options.)
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

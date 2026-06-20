@@ -1,8 +1,12 @@
 import "server-only";
 import bcrypt from "bcryptjs";
 
+// Cost factor for new hashes. Existing hashes keep verifying (bcrypt stores the
+// cost in the hash); only newly-set passwords use the stronger factor.
+const BCRYPT_ROUNDS = 12;
+
 export function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, 10);
+  return bcrypt.hash(plain, BCRYPT_ROUNDS);
 }
 
 export function verifyPassword(plain: string, hash: string): Promise<boolean> {

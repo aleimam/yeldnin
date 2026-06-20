@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useState } from "react";
 import { SIDEBAR_COOKIE } from "@/lib/module-sections";
+import { writePrefCookie } from "@/lib/ui/pref-cookie";
 
 interface SidebarState {
   collapsed: boolean; // desktop rail collapsed (icons only)
@@ -25,7 +26,7 @@ export function SidebarProvider({
   const toggleCollapsed = useCallback(() => {
     setCollapsed((c) => {
       const next = !c;
-      document.cookie = `${SIDEBAR_COOKIE}=${next ? "collapsed" : "open"}; path=/; max-age=${60 * 60 * 24 * 365}`;
+      writePrefCookie(SIDEBAR_COOKIE, next ? "collapsed" : "open");
       return next;
     });
   }, []);

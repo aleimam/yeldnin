@@ -10,7 +10,9 @@ const utcDay = (s: string) => new Date(`${s}T00:00:00Z`);
 
 // ── Config + allowances ─────────────────────────────────────────────────────
 export async function getHrConfig() {
-  return (await prisma.hrConfig.findFirst()) ?? (await prisma.hrConfig.create({ data: {} }));
+  // orderBy makes this a deterministic singleton read — if a row ever got
+  // duplicated, every caller still resolves the same (earliest) config.
+  return (await prisma.hrConfig.findFirst({ orderBy: { id: "asc" } })) ?? (await prisma.hrConfig.create({ data: {} }));
 }
 export async function setHrConfig(input: { annualDefault: number; urgentDefault: number; weeklyOffDays: string }, userId: number) {
   const cfg = await getHrConfig();
@@ -112,7 +114,7 @@ export async function decideLeave(id: number, approve: boolean, note: string | n
   }
 
   const year = lr.startDate.getUTCFullYear();
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const [emp, cfg] = await Promise.all([
       tx.employee.findUnique({ where: { id: lr.employeeId }, select: { annualAllowance: true, urgentAllowance: true } }),
       tx.hrConfig.findFirst(),
@@ -136,6 +138,9 @@ export async function decideLeave(id: number, approve: boolean, note: string | n
     });
     return { ok: true };
   });
+  // Approving an urgent leave consumes shared capacity → re-derive absence coverage.
+  if (result.ok && lr.type === "URGENT") await recomputeAbsenceCoverage(lr.employeeId, year);
+  return result;
 }
 
 export function getLeaveRequest(id: number) {
@@ -162,18 +167,51 @@ export async function pendingApprovals(access: { isAdmin: boolean; can: (m: stri
 }
 
 // ── Absences ──────────────────────────────────────────────────────────────
+
+/**
+ * Re-derive each absence's `coveredByUrgent` flag deterministically: the urgent
+ * allowance not already taken by approved urgent leave covers the *chronologically
+ * first* absences; the rest are over-limit (→ payroll penalty). Recomputed on every
+ * change so the flags never depend on the order absences were marked, and a freed
+ * slot (deleted absence / declined leave) promotes a later over-limit one.
+ */
+export async function recomputeAbsenceCoverage(employeeId: number, year: number): Promise<void> {
+  const [emp, cfg] = await Promise.all([
+    prisma.employee.findUnique({ where: { id: employeeId }, select: { urgentAllowance: true } }),
+    getHrConfig(),
+  ]);
+  const allowance = effectiveAllowance(emp?.urgentAllowance, cfg.urgentDefault);
+  const approvedUrgentLeave = await prisma.leaveRequest.findMany({
+    where: { employeeId, status: "APPROVED", type: "URGENT", startDate: { gte: yearStart(year), lte: yearEnd(year) } },
+    select: { days: true },
+  });
+  const usedByLeave = approvedUrgentLeave.reduce((s, r) => s + r.days, 0);
+  const capacity = Math.max(0, allowance - usedByLeave);
+  const absences = await prisma.absence.findMany({
+    where: { employeeId, date: { gte: yearStart(year), lte: yearEnd(year) } },
+    orderBy: { date: "asc" },
+    select: { id: true, coveredByUrgent: true },
+  });
+  const ops = absences
+    .map((a, i) => ({ id: a.id, want: i < capacity, has: a.coveredByUrgent }))
+    .filter((a) => a.want !== a.has)
+    .map((a) => prisma.absence.update({ where: { id: a.id }, data: { coveredByUrgent: a.want } }));
+  if (ops.length) await prisma.$transaction(ops);
+}
+
 export async function markAbsence(employeeId: number, dateStr: string, note: string | null, markedById: number) {
   const date = utcDay(dateStr);
-  const bal = await leaveBalance(employeeId, date.getUTCFullYear());
-  const coveredByUrgent = bal.urgent.remaining > 0;
   await prisma.absence.upsert({
     where: { employeeId_date: { employeeId, date } },
-    update: { note: clean(note), coveredByUrgent, markedById },
-    create: { employeeId, date, note: clean(note), coveredByUrgent, markedById },
+    update: { note: clean(note), markedById },
+    create: { employeeId, date, note: clean(note), coveredByUrgent: false, markedById },
   });
+  await recomputeAbsenceCoverage(employeeId, date.getUTCFullYear());
 }
 export async function clearAbsence(employeeId: number, dateStr: string) {
-  await prisma.absence.deleteMany({ where: { employeeId, date: utcDay(dateStr) } });
+  const date = utcDay(dateStr);
+  await prisma.absence.deleteMany({ where: { employeeId, date } });
+  await recomputeAbsenceCoverage(employeeId, date.getUTCFullYear());
 }
 export function listAbsences(employeeId: number, year: number) {
   return prisma.absence.findMany({ where: { employeeId, date: { gte: yearStart(year), lte: yearEnd(year) } }, orderBy: { date: "desc" } });

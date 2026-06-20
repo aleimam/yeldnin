@@ -26,6 +26,7 @@ export function AccessForm({
   const t = useT();
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [teamKeys, setTeamKeys] = useState<Set<string>>(new Set(initialTeamKeys));
   const [levels, setLevels] = useState<Record<string, string>>(() => {
     const m: Record<string, string> = {};
@@ -42,9 +43,11 @@ export function AccessForm({
 
   function submit() {
     setSaved(false);
+    setError(null);
     start(async () => {
-      await saveAccessAction({ userId, teamKeys: [...teamKeys], levels });
-      setSaved(true);
+      const res = await saveAccessAction({ userId, teamKeys: [...teamKeys], levels });
+      if (res.ok) setSaved(true);
+      else setError(t(res.error));
     });
   }
 
@@ -52,7 +55,12 @@ export function AccessForm({
     <div className="card space-y-6 p-6">
       {saved && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
-          {t("common.saveAll")} ✓
+          {t("common.changesSaved")} ✓
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {error}
         </div>
       )}
 

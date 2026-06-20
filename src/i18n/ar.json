@@ -825,6 +825,7 @@
   "users.newPassword": "كلمة مرور جديدة",
   "users.updatePassword": "تحديث كلمة المرور",
   "users.adminTierNote": "هذا المستخدم بمستوى مدير ولديه وصول كامل لكل الوحدات بغض النظر عن المستويات أدناه.",
+  "users.cantEditOwnAccess": "لا يمكنك تغيير مستويات وصولك. اطلب من مدير آخر.",
   "tier.SUPER_ADMIN": "مدير عام",
   "tier.ADMIN": "مدير",
   "tier.MEMBER": "عضو",

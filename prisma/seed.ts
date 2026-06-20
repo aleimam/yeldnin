@@ -253,7 +253,7 @@ async function main() {
   if (userCount === 0) {
     const email = "admin@yeldn.local";
     const password = "ChangeMe!2026";
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     const admin = await prisma.user.create({
       data: {
         name: "Administrator",
@@ -271,7 +271,7 @@ async function main() {
     }
     console.log(`\n  Seeded default super-admin:`);
     console.log(`    email:    ${email}`);
-    console.log(`    password: ${password}  (change after first login)\n`);
+    console.log(`    password: (the documented default — change it after first login)\n`);
   }
 
   // Starter footer pages (drafts) — only if none exist yet.

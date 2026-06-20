@@ -287,8 +287,11 @@ export interface YearlyReport {
   localByCategory: { name: string; amount: number }[];
 }
 export async function yearlyReport(year: string, now: Date): Promise<YearlyReport> {
-  const reports: MonthlyReport[] = [];
-  for (let m = 1; m <= 12; m++) reports.push(await monthlyReport(`${year}-${String(m).padStart(2, "0")}`, now));
+  // The 12 monthly reports are independent — run them concurrently instead of
+  // 12 sequential round-trips.
+  const reports: MonthlyReport[] = await Promise.all(
+    Array.from({ length: 12 }, (_, i) => monthlyReport(`${year}-${String(i + 1).padStart(2, "0")}`, now)),
+  );
   const sum = (f: (r: MonthlyReport) => number) => reports.reduce((s, r) => s + f(r), 0);
   const netProfit = round2(sum((r) => r.netProfit));
   const catMap = new Map<string, number>();

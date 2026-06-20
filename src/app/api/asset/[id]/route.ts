@@ -26,12 +26,17 @@ export async function GET(
   const asset = await readAsset(id);
   if (!asset) return new NextResponse("Not found", { status: 404 });
 
+  // Non-image attachments (e.g. uploaded PDFs) are still shown inline, but
+  // sandboxed so an embedded script can't run in our origin if opened directly.
+  const isImage = asset.mimeType.startsWith("image/");
+
   return new NextResponse(new Uint8Array(asset.buffer), {
     headers: {
       "Content-Type": asset.mimeType,
       "Content-Disposition": "inline",
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, max-age=31536000, immutable",
+      ...(isImage ? {} : { "Content-Security-Policy": "sandbox" }),
     },
   });
 }

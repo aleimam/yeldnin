@@ -99,10 +99,16 @@ export async function saveAccessAction(payload: {
   userId: number;
   teamKeys: string[];
   levels: Record<string, string>;
-}): Promise<void> {
+}): Promise<UserResult> {
   const access = await requireCapability("user_access", "manageUsers");
+  // Privilege-escalation guard: a non-super-admin can't edit their OWN access
+  // (otherwise a manageUsers holder could grant themselves MANAGE everywhere).
+  if (payload.userId === access.user.id && access.user.tier !== "SUPER_ADMIN") {
+    return { ok: false, error: "users.cantEditOwnAccess" };
+  }
   await setUserTeams(payload.userId, payload.teamKeys);
   await setUserModuleLevels(payload.userId, payload.levels);
   await writeAudit(access.user.id, "user_access", "user.access.update", "user", payload.userId);
   revalidatePath(`/users/${payload.userId}`);
+  return { ok: true, id: payload.userId };
 }

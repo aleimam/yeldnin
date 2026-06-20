@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
@@ -34,12 +35,17 @@ function penaltySpec(valuation: string, amount: number): { valuation: string; qt
   return { valuation: "FIXED_EVENT", qty: null, rate: amount };
 }
 
+// Config + holidays are identical for every employee in a payroll run, so memoize
+// them per request — a company-wide run then fetches each once instead of N times.
+const reqHrConfig = cache(() => prisma.hrConfig.findFirst({ orderBy: { id: "asc" } }));
+const reqHolidayRanges = cache(() => prisma.holiday.findMany({ where: { archivedAt: null }, select: { startDate: true, endDate: true } }));
+
 // ── Build the auto-derived lines for a slip (no persistence) ─────────────────
 async function buildAutoLines(employeeId: number, year: number, month: number) {
   const [structure, cfg, holidayRanges] = await Promise.all([
     prisma.salaryStructureLine.findMany({ where: { employeeId, active: true }, include: { component: true } }),
-    prisma.hrConfig.findFirst(),
-    prisma.holiday.findMany({ where: { archivedAt: null }, select: { startDate: true, endDate: true } }),
+    reqHrConfig(),
+    reqHolidayRanges(),
   ]);
   const weeklyOff = parseWeeklyOff(cfg?.weeklyOffDays ?? "5");
   const holidayKeys = expandHolidayKeys(holidayRanges);

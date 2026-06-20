@@ -825,6 +825,7 @@
   "users.newPassword": "New password",
   "users.updatePassword": "Update password",
   "users.adminTierNote": "This user is an admin tier and has full access to every module regardless of the levels below.",
+  "users.cantEditOwnAccess": "You can’t change your own access levels. Ask another admin.",
   "tier.SUPER_ADMIN": "Super Admin",
   "tier.ADMIN": "Admin",
   "tier.MEMBER": "Member",

@@ -51,6 +51,8 @@ export function toEgp(
 export function validateStaffShares(shares: { sharePct: number }[]): string | null {
   for (const s of shares) if (!(s.sharePct >= 0)) return "Share % cannot be negative.";
   const total = shares.reduce((sum, s) => sum + s.sharePct, 0);
-  if (total !== 0 && Math.round(total) !== 100) return `Staff shares must total 100% (got ${round2(total)}%).`;
+  // Exact 100% (within float noise). `Math.round` previously accepted 99.5–100.49,
+  // letting ±0.5% of every month's profit silently misallocate.
+  if (total !== 0 && Math.abs(total - 100) > 0.01) return `Staff shares must total 100% (got ${round2(total)}%).`;
   return null;
 }

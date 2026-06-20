@@ -2,6 +2,7 @@
 import { useLocale } from "@/i18n/client";
 import { LOCALE_COOKIE, type Locale } from "@/i18n";
 import { persistPrefs } from "@/app/prefs-actions";
+import { writePrefCookie } from "@/lib/ui/pref-cookie";
 
 export function LocaleSwitcher() {
   const locale = useLocale();
@@ -10,7 +11,7 @@ export function LocaleSwitcher() {
     if (next === locale) return;
     // 1 year cookie + persist to the account (no-op when signed out); reload so
     // server components re-render in the new locale/dir.
-    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=${60 * 60 * 24 * 365}`;
+    writePrefCookie(LOCALE_COOKIE, next);
     void persistPrefs({ locale: next });
     window.location.reload();
   }

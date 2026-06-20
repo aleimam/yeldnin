@@ -1,7 +1,15 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { getAccess } from "@/lib/auth/access";
 import { advanceDueItems } from "@/lib/items/items-service";
 import { runSlaAlerts } from "@/lib/sla/sla-service";
+
+/** Constant-time string compare (avoids leaking the secret via response timing). */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && crypto.timingSafeEqual(ab, bb);
+}
 
 /**
  * Auto-advance sweep (HUB→Transit→Global Shipping). Drive it on a schedule with
@@ -13,7 +21,7 @@ import { runSlaAlerts } from "@/lib/sla/sla-service";
 async function handle(req: Request) {
   const secret = process.env.CRON_SECRET;
   const key = req.headers.get("x-cron-key") ?? new URL(req.url).searchParams.get("key");
-  let authed = !!(secret && key && key === secret);
+  let authed = !!(secret && key && safeEqual(key, secret));
   if (!authed) {
     const access = await getAccess();
     authed = access.isAdmin;
