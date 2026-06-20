@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
@@ -5,23 +6,29 @@ import { getT, getLocale } from "@/i18n/server";
 import { prisma } from "@/lib/db";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { displayName } from "@/lib/users/users-logic";
-import { getTransaction, listCategories } from "@/lib/expenses/expenses-service";
+import { getTransaction, userNameMap, canFlagExpense } from "@/lib/expenses/expenses-service";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { canEditExpense } from "@/lib/expenses/expenses-logic";
-import { ExpenseForm } from "../../ExpenseForm";
+import { formatBizDate } from "@/lib/format/dates";
+import { FlagControls } from "../../FlagControls";
 import { deleteTransactionAction, deleteAttachmentAction } from "../../actions";
 
-export default async function TransactionDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+const FLAG_BANNER: Record<string, string> = {
+  RED: "border-red-300 bg-red-50 text-red-700",
+  YELLOW: "border-amber-300 bg-amber-50 text-amber-700",
+};
+
+/** Registering timestamp as "17 Jul · 14:32" (UTC parts — matches formatBizDate, locale-stable). */
+function registeredAt(d: Date): string {
+  return `${formatBizDate(d)} · ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+}
+
+export default async function TransactionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("expenses", "VIEW");
   const { id } = await params;
   const tx = await getTransaction(Number(id));
   if (!tx) notFound();
-  const [t, locale, categories] = await Promise.all([getT(), getLocale(), listCategories()]);
-  const arByName = Object.fromEntries(categories.filter((c) => c.nameAr).map((c) => [c.name, c.nameAr as string]));
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
 
   const editable = canEditExpense({
     isManager: access.can("expenses", "editAny"),
@@ -31,37 +38,58 @@ export default async function TransactionDetailPage({
     now: new Date(),
   });
   const canDelete = access.can("expenses", "deleteTxn") || editable;
+  const canFlag = canFlagExpense(access);
 
-  const assets = await prisma.asset.findMany({
-    where: { id: { in: tx.attachments.map((a) => a.assetId) } },
-  });
+  const [assets, flaggerNames] = await Promise.all([
+    prisma.asset.findMany({ where: { id: { in: tx.attachments.map((a) => a.assetId) } } }),
+    userNameMap([tx.flaggedById]),
+  ]);
   const mimeOf = new Map(assets.map((a) => [a.id, a.mimeType]));
+  const flaggerName = tx.flaggedById ? flaggerNames.get(tx.flaggedById) ?? `#${tx.flaggedById}` : null;
+
+  const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="flex justify-between gap-4 border-b border-line py-2 text-sm last:border-0">
+      <span className="text-muted">{label}</span>
+      <span className="text-end font-medium text-ink">{children}</span>
+    </div>
+  );
 
   return (
-    <AppShell access={access} moduleKey="expenses" pageTitle={`#${tx.id} · ${categoryLabel(t, tx.categoryNameSnapshot, locale, arByName)}`} backHref="/expenses/transactions">
+    <AppShell
+      access={access}
+      moduleKey="expenses"
+      pageTitle={`#${tx.id} · ${categoryLabel(t, tx.categoryNameSnapshot, locale)}`}
+      backHref="/expenses/transactions"
+      actions={editable ? <Link href={`/expenses/transactions/${tx.id}/edit`} className="btn-primary">{t("common.edit")}</Link> : null}
+    >
+      {tx.flag && (
+        <div className={`mb-4 rounded-lg border px-4 py-3 text-sm ${FLAG_BANNER[tx.flag] ?? "border-line"}`}>
+          <span className="font-medium">🚩 {t("exp.flaggedBanner")} · {t(tx.flag === "RED" ? "exp.flagRed" : "exp.flagYellow")}</span>
+          {tx.flagNote && <span> — {tx.flagNote}</span>}
+          {flaggerName && <span className="opacity-80"> ({flaggerName}{tx.flaggedAt ? ` · ${formatBizDate(tx.flaggedAt)}` : ""})</span>}
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {editable ? (
-          <ExpenseForm
-            categories={categories.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr }))}
-            txId={tx.id}
-            initial={{ categoryId: tx.categoryId ?? undefined, amount: String(tx.amount), note: tx.note ?? "" }}
-          />
-        ) : (
-          <div className="card space-y-3 p-6">
-            <div><span className="text-muted">{t("exp.category")}: </span>{categoryLabel(t, tx.categoryNameSnapshot)}</div>
-            <div><span className="text-muted">{t("exp.amount")}: </span>{Math.round(tx.amount).toLocaleString()} EGP</div>
-            {tx.note && <div><span className="text-muted">{t("exp.note")}: </span>{tx.note}</div>}
-            <p className="text-sm text-amber-600">{t("exp.editWindowOver")}</p>
-          </div>
-        )}
+        <div className="card p-6">
+          <h2 className="mb-3 font-semibold text-ink">{t("exp.details")}</h2>
+          <Row label={t("exp.category")}>{categoryLabel(t, tx.categoryNameSnapshot, locale)}</Row>
+          <Row label={t("exp.type")}>{tx.categoryTypeSnapshot === "TRANSFER" ? t("exp.transfer") : t("exp.expense")}</Row>
+          <Row label={t("exp.amount")}>{Math.round(tx.amount).toLocaleString()} EGP</Row>
+          <Row label={t("exp.accruingDate")}>{formatBizDate(tx.accruingDate ?? tx.createdAt)}</Row>
+          <Row label={t("exp.registered")}>{registeredAt(tx.createdAt)}</Row>
+          <Row label={t("exp.createdBy")}>{displayName(tx.createdBy, locale)}</Row>
+          {tx.note && <Row label={t("exp.note")}>{tx.note}</Row>}
+        </div>
 
-        <div className="card space-y-4 p-6">
-          <div className="text-sm text-muted">
-            {t("exp.createdBy")}: {displayName(tx.createdBy, locale)} · {new Date(tx.createdAt).toLocaleString()}
-          </div>
+        <div className="space-y-6">
+          {canFlag && (
+            <div className="card p-6">
+              <FlagControls id={tx.id} current={tx.flag} currentNote={tx.flagNote} />
+            </div>
+          )}
 
-          <div>
+          <div className="card p-6">
             <h2 className="mb-2 font-semibold text-ink">{t("exp.attachments")}</h2>
             <div className="flex flex-wrap gap-2">
               {tx.attachments.map((a) => {

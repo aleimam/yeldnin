@@ -26,9 +26,20 @@ export function canEditOwnExpense(access: AuthedAccess): boolean {
 export function canDeleteAnyExpense(access: AuthedAccess): boolean {
   return access.can("expenses", "deleteTxn");
 }
+/** Flag/unflag a transaction for review — admins/managers only; operate users only see flags. */
+export function canFlagExpense(access: AuthedAccess): boolean {
+  return access.can("expenses", "flagTxn");
+}
 
 export function monthRange(year: number, month: number): { gte: Date; lt: Date } {
   return { gte: new Date(year, month - 1, 1), lt: new Date(year, month, 1) };
+}
+
+/** Parse a YYYY-MM-DD string to UTC-midnight (date-only), or null. */
+function utcDateOnly(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const d = new Date(`${s}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 export async function userNameMap(
@@ -55,7 +66,7 @@ async function categorySnapshot(categoryId: number): Promise<{ name: string; typ
 // ---------------- Transactions ----------------
 
 export async function createExpenseTransaction(
-  input: { amount: number; categoryId: number; note?: string | null; attachmentAssetIds?: string[] },
+  input: { amount: number; categoryId: number; note?: string | null; accruingDate?: string | null; attachmentAssetIds?: string[] },
   access: AuthedAccess,
 ) {
   const snap = await categorySnapshot(input.categoryId);
@@ -66,6 +77,7 @@ export async function createExpenseTransaction(
       categoryNameSnapshot: snap.name,
       categoryTypeSnapshot: snap.type,
       note: input.note || null,
+      accruingDate: utcDateOnly(input.accruingDate) ?? new Date(),
       createdById: access.user.id,
       attachments: input.attachmentAssetIds?.length
         ? { create: input.attachmentAssetIds.map((assetId) => ({ assetId, uploadedById: access.user.id })) }
@@ -82,7 +94,7 @@ export async function createExpenseTransaction(
 
 export async function updateExpenseTransaction(
   id: number,
-  input: { amount: number; categoryId: number; note?: string | null },
+  input: { amount: number; categoryId: number; note?: string | null; accruingDate?: string | null },
   access: AuthedAccess,
 ) {
   const tx = await prisma.expenseTransaction.findUnique({ where: { id } });
@@ -100,10 +112,14 @@ export async function updateExpenseTransaction(
   }
 
   const snap = await categorySnapshot(input.categoryId);
+  const newAccruing = utcDateOnly(input.accruingDate);
   const changes: { field: string; old: unknown; new: unknown }[] = [];
   if (tx.amount !== input.amount) changes.push({ field: "amount", old: tx.amount, new: input.amount });
   if (tx.categoryNameSnapshot !== snap.name) changes.push({ field: "category", old: tx.categoryNameSnapshot, new: snap.name });
   if ((tx.note || "") !== (input.note || "")) changes.push({ field: "note", old: tx.note, new: input.note });
+  if (newAccruing && tx.accruingDate?.getTime() !== newAccruing.getTime()) {
+    changes.push({ field: "accruingDate", old: tx.accruingDate, new: newAccruing });
+  }
 
   const updated = await prisma.expenseTransaction.update({
     where: { id },
@@ -113,6 +129,7 @@ export async function updateExpenseTransaction(
       categoryNameSnapshot: snap.name,
       categoryTypeSnapshot: snap.type,
       note: input.note || null,
+      ...(newAccruing ? { accruingDate: newAccruing } : {}),
       updatedById: access.user.id,
     },
   });
@@ -148,20 +165,72 @@ export function getTransaction(id: number) {
   });
 }
 
+const FLAGS = new Set(["RED", "YELLOW"]);
+
+/** Set/change a transaction's review flag (RED|YELLOW), with an optional note for clarification. */
+export async function setTransactionFlag(id: number, flag: string, note: string | null, access: AuthedAccess) {
+  if (!FLAGS.has(flag)) throw new Error("Invalid flag");
+  const tx = await prisma.expenseTransaction.update({
+    where: { id },
+    data: { flag, flagNote: note?.trim() || null, flaggedById: access.user.id, flaggedAt: new Date() },
+  });
+  await writeAudit(access.user.id, "expenses", "expense.tx.flag", "expenseTransaction", id, { flag, note: note?.trim() || null });
+  return tx;
+}
+
+/** Clear a transaction's review flag. */
+export async function clearTransactionFlag(id: number, access: AuthedAccess) {
+  const tx = await prisma.expenseTransaction.update({
+    where: { id },
+    data: { flag: null, flagNote: null, flaggedById: null, flaggedAt: null },
+  });
+  await writeAudit(access.user.id, "expenses", "expense.tx.unflag", "expenseTransaction", id);
+  return tx;
+}
+
+export type TxSort = "accruing_desc" | "accruing_asc" | "registered_desc" | "registered_asc" | "amount_desc" | "amount_asc";
+export type TxFlagFilter = "RED" | "YELLOW" | "NONE" | "ANY";
+
+function txOrderBy(sort: TxSort | undefined) {
+  switch (sort) {
+    case "accruing_asc": return [{ accruingDate: "asc" as const }, { createdAt: "asc" as const }];
+    case "registered_desc": return [{ createdAt: "desc" as const }];
+    case "registered_asc": return [{ createdAt: "asc" as const }];
+    case "amount_desc": return [{ amount: "desc" as const }];
+    case "amount_asc": return [{ amount: "asc" as const }];
+    default: return [{ accruingDate: "desc" as const }, { createdAt: "desc" as const }]; // accruing_desc
+  }
+}
+
 export async function listTransactions(opts: {
   type?: "EXPENSE" | "TRANSFER";
+  categoryId?: number;
+  flag?: TxFlagFilter;
   search?: string;
+  sort?: TxSort;
   take?: number;
   skip?: number;
 }) {
+  const search = opts.search?.trim();
+  const asNum = search && Number.isFinite(Number(search)) ? Number(search) : null;
   return prisma.expenseTransaction.findMany({
     where: {
       ...(opts.type ? { categoryTypeSnapshot: opts.type } : {}),
-      ...(opts.search ? { note: { contains: opts.search } } : {}),
+      ...(opts.categoryId ? { categoryId: opts.categoryId } : {}),
+      ...(opts.flag === "NONE" ? { flag: null } : opts.flag === "RED" || opts.flag === "YELLOW" ? { flag: opts.flag } : opts.flag === "ANY" ? { flag: { not: null } } : {}),
+      ...(search
+        ? {
+            OR: [
+              { note: { contains: search } },
+              { categoryNameSnapshot: { contains: search } },
+              ...(asNum != null ? [{ amount: asNum }] : []),
+            ],
+          }
+        : {}),
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: txOrderBy(opts.sort),
     include: { createdBy: { select: { name: true, nameAr: true } }, attachments: true },
-    take: opts.take ?? 100,
+    take: opts.take ?? 200,
     skip: opts.skip ?? 0,
   });
 }
@@ -268,10 +337,30 @@ export async function getExpenseReports() {
   }
   const byMonth = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([label, v]) => ({ label, ...v }));
 
+  const cats = byCategory.map((c) => ({ name: c.categoryNameSnapshot, type: c.categoryTypeSnapshot, total: c._sum.amount ?? 0, count: c._count }));
+  const expenseCats = cats.filter((c) => c.type !== "TRANSFER");
+  const transferCats = cats.filter((c) => c.type === "TRANSFER");
+  const sum = (xs: { total: number }[]) => xs.reduce((s, x) => s + x.total, 0);
+  const cnt = (xs: { count: number }[]) => xs.reduce((s, x) => s + x.count, 0);
+  const totalExpenses = sum(expenseCats);
+  const totalTransfers = sum(transferCats);
+  const expenseCount = cnt(expenseCats);
+  const transferCount = cnt(transferCats);
+
   return {
-    byCategory: byCategory.map((c) => ({ name: c.categoryNameSnapshot, type: c.categoryTypeSnapshot, total: c._sum.amount ?? 0, count: c._count })),
+    byCategory: cats,
     byUser,
     byMonth,
+    typeSplit: { expenses: totalExpenses, transfers: totalTransfers },
+    summary: {
+      totalExpenses,
+      totalTransfers,
+      txCount: expenseCount + transferCount,
+      expenseCount,
+      avgExpense: expenseCount ? totalExpenses / expenseCount : 0,
+      topCategory: expenseCats[0] ? { name: expenseCats[0].name, total: expenseCats[0].total } : null,
+      topSpender: byUser[0] ? { user: byUser[0].user, total: byUser[0].total } : null,
+    },
   };
 }
 

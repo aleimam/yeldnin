@@ -1029,17 +1029,25 @@ model ExpenseTransaction {
   categoryNameSnapshot String
   categoryTypeSnapshot String // "EXPENSE" | "TRANSFER"
   note                 String?
+  accruingDate         DateTime? // user-entered execution date (تاريخ التنفيذ); UTC-midnight, date-only. Null on legacy rows → falls back to createdAt.
   createdById          Int
   createdBy            User             @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
-  createdAt            DateTime         @default(now())
+  createdAt            DateTime         @default(now()) // registering timestamp (system-stamped, date + time)
   updatedById          Int?
   updatedAt            DateTime         @updatedAt
+
+  // Admin/manager review flag for clarification or discussion; operate users see it but can't set it.
+  flag        String? // null | "RED" | "YELLOW"
+  flagNote    String?
+  flaggedById Int?
+  flaggedAt   DateTime?
 
   attachments ExpenseAttachment[]
 
   @@index([categoryTypeSnapshot])
   @@index([createdAt])
   @@index([createdById])
+  @@index([flag])
 }
 
 // Links an expense transaction to an uploaded Asset (reuses the shared upload primitive).

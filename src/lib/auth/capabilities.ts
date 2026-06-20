@@ -34,6 +34,7 @@ export const CAPABILITIES: Capability[] = [
   { key: "editOwn", module: "expenses", labelKey: "cap.expenses.editOwn", defaultLevel: "OPERATE" },
   { key: "editAny", module: "expenses", labelKey: "cap.expenses.editAny", defaultLevel: "MANAGE" },
   { key: "deleteTxn", module: "expenses", labelKey: "cap.expenses.deleteTxn", defaultLevel: "MANAGE" },
+  { key: "flagTxn", module: "expenses", labelKey: "cap.expenses.flagTxn", defaultLevel: "MANAGE" },
   { key: "manageReference", module: "expenses", labelKey: "cap.expenses.manageReference", defaultLevel: "MANAGE" },
   { key: "manageAdmin", module: "expenses", labelKey: "cap.expenses.manageAdmin", defaultLevel: "MANAGE" },
 

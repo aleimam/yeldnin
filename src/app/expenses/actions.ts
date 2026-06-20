@@ -8,6 +8,8 @@ import {
   createExpenseTransaction,
   updateExpenseTransaction,
   deleteExpenseTransaction,
+  setTransactionFlag,
+  clearTransactionFlag,
   canEditAnyExpense,
   canEditOwnExpense,
 } from "@/lib/expenses/expenses-service";
@@ -15,17 +17,20 @@ import { canEditExpense } from "@/lib/expenses/expenses-logic";
 import { deleteAsset } from "@/lib/assets/assets-service";
 
 export type TxResult = { ok: true; id: number } | { ok: false; error: string };
+export type FlagResult = { ok: true } | { ok: false; error: string };
 
 interface TxPayload {
   amount: number;
   categoryId: number;
   note?: string;
+  accruingDate?: string;
   attachmentIds?: string[];
 }
 
 function validate(p: TxPayload): string | null {
   if (!Number.isFinite(p.amount) || p.amount <= 0) return "Amount must be greater than 0.";
   if (!Number.isFinite(p.categoryId) || p.categoryId <= 0) return "Category is required.";
+  if (!p.accruingDate || Number.isNaN(new Date(`${p.accruingDate}T00:00:00Z`).getTime())) return "A valid accruing date is required.";
   return null;
 }
 
@@ -35,7 +40,7 @@ export async function createTransactionAction(p: TxPayload): Promise<TxResult> {
   if (err) return { ok: false, error: err };
   try {
     const tx = await createExpenseTransaction(
-      { amount: p.amount, categoryId: p.categoryId, note: p.note ?? null, attachmentAssetIds: p.attachmentIds },
+      { amount: p.amount, categoryId: p.categoryId, note: p.note ?? null, accruingDate: p.accruingDate ?? null, attachmentAssetIds: p.attachmentIds },
       access,
     );
     revalidatePath("/expenses/transactions");
@@ -52,7 +57,7 @@ export async function updateTransactionAction(id: number, p: TxPayload): Promise
   const err = validate(p);
   if (err) return { ok: false, error: err };
   try {
-    await updateExpenseTransaction(id, { amount: p.amount, categoryId: p.categoryId, note: p.note ?? null }, access);
+    await updateExpenseTransaction(id, { amount: p.amount, categoryId: p.categoryId, note: p.note ?? null, accruingDate: p.accruingDate ?? null }, access);
     if (p.attachmentIds?.length) {
       await prisma.expenseAttachment.createMany({
         data: p.attachmentIds.map((assetId) => ({ transactionId: id, assetId, uploadedById: access.user.id })),
@@ -98,4 +103,30 @@ export async function deleteAttachmentAction(formData: FormData): Promise<void> 
   await deleteAsset(att.assetId);
   await writeAudit(access.user.id, "expenses", "expense.attachment.remove", "expenseTransaction", tx.id, { attachmentId: attId });
   revalidatePath(`/expenses/transactions/${tx.id}`);
+}
+
+// ── Review flags (admins/managers; operate users only see them) ──────────────
+
+export async function flagTransactionAction(id: number, flag: string, note: string | null): Promise<FlagResult> {
+  const access = await requireCapability("expenses", "flagTxn");
+  try {
+    await setTransactionFlag(id, flag, note, access);
+    revalidatePath(`/expenses/transactions/${id}`);
+    revalidatePath("/expenses/transactions");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Could not flag the transaction." };
+  }
+}
+
+export async function clearFlagAction(id: number): Promise<FlagResult> {
+  const access = await requireCapability("expenses", "flagTxn");
+  try {
+    await clearTransactionFlag(id, access);
+    revalidatePath(`/expenses/transactions/${id}`);
+    revalidatePath("/expenses/transactions");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Could not clear the flag." };
+  }
 }
