@@ -1,16 +1,14 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { useLocale, useT } from "@/i18n/client";
 import { displayName } from "@/lib/users/users-logic";
 import type { ChatEvent } from "@/lib/chat/chat-logic";
 import { useChatStream } from "@/lib/chat/use-chat-stream";
-import type {
-  ConversationRow,
-  MessageRow,
-  ChatablePerson,
-  ChatUserLite,
-} from "@/lib/chat/chat-service";
+import { statusLabelKey } from "@/lib/inquiry/inquiry-logic";
+import type { ConversationRow, MessageRow, ChatablePerson, ChatUserLite } from "@/lib/chat/chat-service";
+import type { InquiryListRow } from "@/lib/inquiry/inquiry-service";
 import {
   loadConversationsAction,
   loadMessagesAction,
@@ -21,21 +19,23 @@ import {
   markReadAction,
   startConversationAction,
 } from "@/app/chat/actions";
+import { loadMyInquiriesAction } from "@/app/inquiries/actions";
 import { ConversationList } from "./ConversationList";
 import { MessageThread } from "./MessageThread";
 import { NewChatPicker } from "./NewChatPicker";
 
 type View = "list" | "thread" | "new";
+type Tab = "chats" | "inquiries";
 
-/** Header 💬 launcher + a floating chat panel (portaled to <body> so the header's
- *  backdrop-blur containing block doesn't trap it). Phase A: text chat, live via
- *  SSE. Mounted in TopBar; a Phase-B hoist to a root provider will let an open
- *  panel survive navigation. */
+/** Header 💬 launcher + a floating panel (portaled to <body> so the header's
+ *  backdrop-blur containing block doesn't trap it). Two tabs: Chats (1:1 live
+ *  chat) and Inquiries (unit-scoped Q&A). Live via SSE. Mounted in TopBar. */
 export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnread: number }) {
   const t = useT();
   const locale = useLocale();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>("chats");
   const [view, setView] = useState<View>("list");
   const [unread, setUnread] = useState(initialUnread);
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
@@ -43,16 +43,23 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
   const [activeId, setActiveId] = useState<number | null>(null);
   const [activeOther, setActiveOther] = useState<ChatUserLite | null>(null);
   const [messages, setMessages] = useState<MessageRow[]>([]);
+  const [inquiries, setInquiries] = useState<InquiryListRow[]>([]);
+  const [inquiryDot, setInquiryDot] = useState(false);
 
   const openRef = useRef(open);
   openRef.current = open;
   const activeIdRef = useRef<number | null>(null);
   activeIdRef.current = activeId;
+  const tabRef = useRef<Tab>(tab);
+  tabRef.current = tab;
 
   useEffect(() => setMounted(true), []);
 
   const refreshConversations = useCallback(async () => {
     setConversations(await loadConversationsAction());
+  }, []);
+  const refreshInquiries = useCallback(async () => {
+    setInquiries(await loadMyInquiriesAction());
   }, []);
 
   const openConversation = useCallback(
@@ -67,11 +74,15 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
     [refreshConversations],
   );
 
-  // Live stream: keep the badge, the open thread and the list in sync.
   const onEvent = useCallback(
     (e: ChatEvent) => {
       if (e.kind === "unread") {
         setUnread(e.count);
+        return;
+      }
+      if (e.kind === "inquiry") {
+        if (openRef.current && tabRef.current === "inquiries") void refreshInquiries();
+        else setInquiryDot(true);
         return;
       }
       const cur = activeIdRef.current;
@@ -83,20 +94,23 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
         }
         return;
       }
-      // receipt | edit | unsend → refresh the open thread if it's the affected one
-      // (the "inquiry" event is handled by the Inquiries tab, added in Phase C5)
       if ((e.kind === "receipt" || e.kind === "edit" || e.kind === "unsend") && cur != null && e.conversationId === cur) {
         loadMessagesAction(cur).then(setMessages);
       }
     },
-    [refreshConversations],
+    [refreshConversations, refreshInquiries],
   );
   useChatStream(onEvent);
 
-  // Load the list whenever the panel shows it.
   useEffect(() => {
-    if (open && view === "list") void refreshConversations();
-  }, [open, view, refreshConversations]);
+    if (open && tab === "chats" && view === "list") void refreshConversations();
+    if (open && tab === "inquiries") void refreshInquiries();
+  }, [open, tab, view, refreshConversations, refreshInquiries]);
+
+  function switchTab(next: Tab) {
+    setTab(next);
+    if (next === "inquiries") setInquiryDot(false);
+  }
 
   async function startNew() {
     setView("new");
@@ -116,12 +130,7 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
     replyToId: number | null,
   ) {
     if (activeId == null) return;
-    const res = await sendMessageAction({
-      conversationId: activeId,
-      body,
-      attachments,
-      replyToId: replyToId ?? undefined,
-    });
+    const res = await sendMessageAction({ conversationId: activeId, body, attachments, replyToId: replyToId ?? undefined });
     if (res.ok) {
       setMessages((prev) => [...prev, res.message]);
       void refreshConversations();
@@ -141,28 +150,26 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
     }
   }
 
-  const headerTitle =
-    view === "thread" && activeOther
+  const inChatThread = tab === "chats" && view !== "list";
+  const headerTitle = inChatThread
+    ? view === "thread" && activeOther
       ? displayName(activeOther, locale)
-      : view === "new"
-        ? t("chat.newChat")
-        : t("chat.title");
+      : t("chat.newChat")
+    : tab === "inquiries"
+      ? t("inq.title")
+      : t("chat.title");
 
   const panel = open ? (
     <div className="fixed inset-2 z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl sm:inset-auto sm:bottom-4 sm:end-4 sm:h-[32rem] sm:max-h-[80vh] sm:w-[22rem]">
       <div className="flex items-center gap-2 border-b border-line px-3 py-2">
-        {view !== "list" && (
-          <button
-            onClick={() => setView("list")}
-            className="text-muted hover:text-ink"
-            aria-label={t("common.back")}
-          >
+        {inChatThread && (
+          <button onClick={() => setView("list")} className="text-muted hover:text-ink" aria-label={t("common.back")}>
             <span className="rtl-flip">←</span>
           </button>
         )}
         <span className="truncate font-semibold text-ink">{headerTitle}</span>
         <div className="ms-auto flex items-center gap-1.5">
-          {view === "list" && (
+          {tab === "chats" && view === "list" && (
             <button onClick={startNew} className="btn-primary btn-sm">
               {t("chat.new")}
             </button>
@@ -172,12 +179,36 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
           </button>
         </div>
       </div>
+
+      {!inChatThread && (
+        <div className="flex border-b border-line">
+          {(["chats", "inquiries"] as Tab[]).map((tk) => (
+            <button
+              key={tk}
+              onClick={() => switchTab(tk)}
+              className={`relative flex-1 py-2 text-sm font-medium ${tab === tk ? "border-b-2 border-brand text-ink" : "text-muted hover:text-ink"}`}
+            >
+              {tk === "chats" ? t("chat.title") : t("inq.title")}
+              {tk === "inquiries" && inquiryDot && (
+                <span className="absolute end-3 top-1.5 h-2 w-2 rounded-full bg-red-600" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="min-h-0 flex-1">
-        {view === "list" && <ConversationList rows={conversations} onOpen={openConversation} />}
-        {view === "thread" && activeId != null && (
-          <MessageThread meId={meId} messages={messages} onSend={send} onEdit={editMsg} onUnsend={unsendMsg} />
+        {tab === "chats" ? (
+          <>
+            {view === "list" && <ConversationList rows={conversations} onOpen={openConversation} />}
+            {view === "thread" && activeId != null && (
+              <MessageThread meId={meId} messages={messages} onSend={send} onEdit={editMsg} onUnsend={unsendMsg} />
+            )}
+            {view === "new" && <NewChatPicker people={people} onPick={pickPerson} />}
+          </>
+        ) : (
+          <InquiriesPanel rows={inquiries} locale={locale} onNavigate={() => setOpen(false)} />
         )}
-        {view === "new" && <NewChatPicker people={people} onPick={pickPerson} />}
       </div>
     </div>
   ) : null;
@@ -199,5 +230,37 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
       </button>
       {mounted && panel ? createPortal(panel, document.body) : null}
     </>
+  );
+}
+
+function InquiriesPanel({
+  rows,
+  locale,
+  onNavigate,
+}: {
+  rows: InquiryListRow[];
+  locale: string;
+  onNavigate: () => void;
+}) {
+  const t = useT();
+  if (!rows.length) {
+    return <p className="grid h-full place-items-center px-6 text-center text-sm text-muted">{t("inq.empty")}</p>;
+  }
+  return (
+    <ul className="h-full divide-y divide-line overflow-y-auto">
+      {rows.map((r) => (
+        <li key={r.id}>
+          <Link href={`/inquiries/${r.id}`} onClick={onNavigate} className="block px-3 py-2.5 hover:bg-canvas">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-medium text-ink">{r.uid ?? `#${r.id}`}</span>
+              <span className="shrink-0 text-[10px] text-muted">{t(statusLabelKey(r.status))}</span>
+            </div>
+            <div className="truncate text-xs text-muted">
+              {displayName(r.initiator, locale)} → {displayName(r.recipient, locale)} · {r.unitKind} #{r.unitId}
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
