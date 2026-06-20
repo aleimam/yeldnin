@@ -3,8 +3,7 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { salaryAnalytics, bonusPenaltyAgg, companyActivity } from "@/lib/hr/hr-analytics-service";
-
-const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+import { formatEgp as fmt } from "@/lib/format/money";
 
 export default async function HrAnalyticsPage() {
   const access = await requireUser();

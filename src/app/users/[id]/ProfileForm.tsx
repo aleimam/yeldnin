@@ -62,7 +62,7 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
   return (
     <div className="card space-y-4 p-6">
       <h2 className="font-semibold text-ink">{t("users.profile")}</h2>
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("users.saved")}</div>}
 
       <div className="grid gap-4 sm:grid-cols-2">

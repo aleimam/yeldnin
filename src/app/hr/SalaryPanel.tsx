@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { CHANGE_TYPES } from "@/lib/hr/salary-logic";
+import { formatEgp as fmt } from "@/lib/format/money";
 import { applyLineChangeAction, setLineActiveAction } from "./salary-actions";
 
 export interface SalaryLine {
@@ -38,7 +39,6 @@ export interface SalaryChangeView {
 const KINDS = ["EARNING", "BONUS", "PENALTY"] as const;
 const kindKey: Record<string, string> = { EARNING: "comp.earning", BONUS: "comp.bonus", PENALTY: "comp.penalty" };
 const today = () => new Date().toISOString().slice(0, 10);
-const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 export function SalaryPanel({
   employeeId,

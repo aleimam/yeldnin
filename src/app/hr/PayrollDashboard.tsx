@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { formatEgp as fmt } from "@/lib/format/money";
 import { generateAllDraftsAction, lockPayslipAction } from "./payroll-actions";
 
 interface Row {
@@ -22,7 +23,6 @@ interface Totals {
   none: number;
 }
 
-const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 const statusClass: Record<string, string> = { NONE: "bg-canvas text-muted", DRAFT: "bg-amber-100 text-amber-700", LOCKED: "bg-green-100 text-green-700" };
 
 export function PayrollDashboard({ year, month, rows, totals }: { year: number; month: number; rows: Row[]; totals: Totals }) {

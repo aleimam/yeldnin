@@ -123,7 +123,7 @@ export function ProductForm({
 
   return (
     <div className="card max-w-3xl space-y-4 p-6">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("products.saved")}</div>}
 
       {/* Desktop: Name (3fr) + SKU (1fr) on the first row. */}

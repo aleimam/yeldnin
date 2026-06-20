@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { formatBizDate } from "@/lib/format/dates";
+import { kg } from "@/lib/format/money";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
@@ -36,7 +37,6 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     getWorkflow(),
   ]);
   const loc = locale === "ar" ? "ar" : "en";
-  const kg = (g: number) => `${(g / 1000).toFixed(1)} kg`;
   const invWeight = inventory.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
   const inboundWeight = inbound.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
   const totalCount = inventory.length + inbound.length;

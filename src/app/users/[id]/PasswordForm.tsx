@@ -14,7 +14,7 @@ export function PasswordForm({ userId }: { userId: number }) {
       <h2 className="font-semibold text-ink">{t("users.setPassword")}</h2>
       <input type="hidden" name="id" value={userId} />
       {state.error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="alert alert-error">
           {state.error}
         </div>
       )}

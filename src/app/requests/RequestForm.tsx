@@ -98,7 +98,7 @@ export function RequestForm({
 
   return (
     <div className="card max-w-3xl space-y-4 p-6">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>

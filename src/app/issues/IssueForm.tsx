@@ -25,7 +25,7 @@ export function IssueForm() {
 
   return (
     <div className="card max-w-xl space-y-4 p-6">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       <div><label className="label">{t("issues.titleField")}</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
       <div><label className="label">{t("issues.note")}</label><textarea className="input" rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></div>
       <div><label className="label">{t("issues.photos")}</label><PhotoUpload photos={photos} onChange={setPhotos} /></div>

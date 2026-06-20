@@ -58,7 +58,7 @@ export function CustomerForm({
 
   return (
     <div className="card max-w-xl space-y-4 p-6">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("customers.saved")}</div>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className="label">{t("customers.name")}</label><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></div>

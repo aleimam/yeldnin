@@ -36,7 +36,7 @@ export function PageEditor({
   return (
     <div className="max-w-4xl space-y-4">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="alert alert-error">{error}</div>
       )}
       <form action={action} className="card space-y-4 p-6">
         {page && <input type="hidden" name="id" value={page.id} />}

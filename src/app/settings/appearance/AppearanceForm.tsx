@@ -35,7 +35,7 @@ export function AppearanceForm({
   return (
     <form action={action} className="card max-w-2xl space-y-6 p-6">
       {state.error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="alert alert-error">
           {state.error}
         </div>
       )}

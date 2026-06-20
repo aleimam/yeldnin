@@ -106,7 +106,7 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
       {/* Record / edit form */}
       {canManage && !closed && (
         <div className="card space-y-3 p-4">
-          {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {error && <div className="alert alert-error">{error}</div>}
           <div className="grid gap-3 sm:grid-cols-4">
             <div>
               <label className="label">{t("xexp.category")}</label>

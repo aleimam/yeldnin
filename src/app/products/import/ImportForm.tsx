@@ -30,7 +30,7 @@ export function ImportForm({ scopes }: { scopes: string[] }) {
 
   return (
     <form onSubmit={onSubmit} className="card max-w-lg space-y-4 p-6">
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
       {result && (
         <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
           {t("pimport.created")}: {result.created} · {t("pimport.skipped")}: {result.skipped}

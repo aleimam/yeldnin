@@ -1,5 +1,6 @@
 "use client";
 import { useT } from "@/i18n/client";
+import { formatEgp as fmt } from "@/lib/format/money";
 
 export interface PayLine {
   id: number;
@@ -24,7 +25,6 @@ export interface PaySlip {
   dayOfTotal: number;
 }
 
-const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const sourceKey: Record<string, string> = { STRUCTURE: "pay.src.structure", DUTY: "pay.src.duty", TARGET: "pay.src.target", ABSENCE: "pay.src.absence", ADHOC: "pay.src.adhoc" };
 
 export function PayslipBreakdown({ slip, lines, onRemove, pending }: { slip: PaySlip; lines: PayLine[]; onRemove?: (lineId: number) => void; pending?: boolean }) {

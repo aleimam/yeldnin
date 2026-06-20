@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
+import { kg } from "@/lib/format/money";
 import { getHub } from "@/lib/hubs/hubs-service";
 import { currentContainerItems, inboundPendingItems } from "@/lib/items/items-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
@@ -24,7 +25,6 @@ export default async function HubDetailPage({ params }: { params: Promise<{ id: 
     getWorkflow(),
   ]);
   const loc = locale === "ar" ? "ar" : "en";
-  const kg = (g: number) => `${(g / 1000).toFixed(1)} kg`;
   const invWeight = inventory.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
   const inboundWeight = inbound.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
 
