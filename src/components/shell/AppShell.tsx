@@ -6,6 +6,7 @@ import { SidebarProvider } from "./SidebarContext";
 import { TitleSetter } from "./TitleSetter";
 import { AutoCards } from "./AutoCards";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
+import { getT } from "@/i18n/server";
 import type { Access, SessionUser } from "@/lib/auth/access";
 import { sectionsFor, visibleSettingsGroups, SIDEBAR_COOKIE } from "@/lib/module-sections";
 
@@ -28,7 +29,7 @@ export async function AppShell({
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const [store, settings] = await Promise.all([cookies(), getPlatformSettings()]);
+  const [store, settings, t] = await Promise.all([cookies(), getPlatformSettings(), getT()]);
   const initialCollapsed = store.get(SIDEBAR_COOKIE)?.value === "collapsed";
 
   const isSettings = moduleKey === "settings";
@@ -59,7 +60,7 @@ export async function AppShell({
             <div className="mb-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 {backHref && (
-                  <Link href={backHref} className="text-muted hover:text-ink" aria-label="Back">
+                  <Link href={backHref} className="text-muted hover:text-ink" aria-label={t("common.back")}>
                     ←
                   </Link>
                 )}

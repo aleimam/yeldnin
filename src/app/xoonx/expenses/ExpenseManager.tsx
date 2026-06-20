@@ -85,9 +85,9 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
       {/* Month nav + balances */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <button onClick={() => goMonth(shiftMonth(month, -1))} className="btn-secondary px-2 py-1">‹</button>
+          <button onClick={() => goMonth(shiftMonth(month, -1))} className="btn-secondary px-2 py-1" aria-label={t("common.prev")}>‹</button>
           <span className="min-w-28 text-center font-semibold text-ink">{month}</span>
-          <button onClick={() => goMonth(shiftMonth(month, 1))} className="btn-secondary px-2 py-1">›</button>
+          <button onClick={() => goMonth(shiftMonth(month, 1))} className="btn-secondary px-2 py-1" aria-label={t("common.next")}>›</button>
         </div>
         <div className="flex gap-3">
           <div className="card px-4 py-2 text-sm">

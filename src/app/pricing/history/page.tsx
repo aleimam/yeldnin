@@ -4,7 +4,8 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { listHistory } from "@/lib/pricing/pricing-service";
 import { displayName } from "@/lib/users/users-logic";
-import { DeleteButton } from "../DeleteButton";
+import { DeleteButton } from "@/components/DeleteButton";
+import { deleteCalculationAction } from "../actions";
 import { HardDeleteButton, PurgeHistoryButton } from "../HistoryActions";
 
 export default async function HistoryPage() {
@@ -65,7 +66,7 @@ export default async function HistoryPage() {
                     {canManageHistory ? (
                       <HardDeleteButton id={r.id} />
                     ) : (
-                      canSoftDelete && !r.deletedAt && <DeleteButton id={r.id} />
+                      canSoftDelete && !r.deletedAt && <DeleteButton onDelete={deleteCalculationAction.bind(null, r.id)} />
                     )}
                   </div>
                 </td>
