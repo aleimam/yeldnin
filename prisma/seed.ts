@@ -348,6 +348,16 @@ async function main() {
     }
   }
 
+  // Inquiry close dispositions (admin-editable; seed the three defaults once).
+  const DISPOSITIONS = [
+    { key: "solved", label: "Solved", labelAr: "تم الحل", sortOrder: 1 },
+    { key: "not_answered", label: "Not Answered", labelAr: "لم يُجب", sortOrder: 2 },
+    { key: "no_need", label: "No Need", labelAr: "لا حاجة", sortOrder: 3 },
+  ];
+  for (const d of DISPOSITIONS) {
+    await prisma.inquiryDisposition.upsert({ where: { key: d.key }, update: {}, create: d });
+  }
+
   console.log("Seed complete.");
 }
 

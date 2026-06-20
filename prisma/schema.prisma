@@ -60,6 +60,9 @@ model User {
   chatConversationsA  ChatConversation[]   @relation("ChatUserA")
   chatConversationsB  ChatConversation[]   @relation("ChatUserB")
   chatMessages        ChatMessage[]        @relation("ChatSender")
+  inquiriesInitiated  Inquiry[]            @relation("InquiryInitiator")
+  inquiriesReceived   Inquiry[]            @relation("InquiryRecipient")
+  inquiryMessages     InquiryMessage[]
 }
 
 model PasswordResetToken {
@@ -1644,4 +1647,77 @@ model ChatAttachment {
   createdAt DateTime    @default(now())
 
   @@index([messageId])
+}
+
+// ─── Inquiry (unit-scoped Q&A) ────────────────────────────────────────────────
+// See CHAT.md. A question about a unit — an Item, or a "container" (Purchase /
+// Trip / Patch / Transfer / Shipment / Hub / Traveler / Request) — directed at a
+// user who acted on it during its history; routed to that user's team. The first
+// reply auto-marks ANSWERED; anyone on the INITIATOR's team closes it with a
+// disposition. Both teams can see and reply.
+model Inquiry {
+  id              Int                 @id @default(autoincrement())
+  uid             String?             @unique // INQ<YY><MM><seq3>
+  unitKind        String // ITEM | REQUEST | PURCHASE | PATCH | TRANSFER | TRIP | HUB | TRAVELER | SHIPMENT | ORDER
+  unitId          Int
+  initiatorId     Int
+  initiator       User                @relation("InquiryInitiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  initiatorTeamId Int? // initiator's team at creation — its members can see + close
+  recipientUserId Int
+  recipient       User                @relation("InquiryRecipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  recipientTeamId Int? // recipient's team — its members are notified + can reply
+  status          String              @default("OPEN") // OPEN | ANSWERED | CLOSED
+  dispositionId   Int?
+  disposition     InquiryDisposition? @relation(fields: [dispositionId], references: [id])
+  answeredAt      DateTime?
+  closedAt        DateTime?
+  closedById      Int?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  messages InquiryMessage[]
+
+  @@index([unitKind, unitId])
+  @@index([initiatorId])
+  @@index([recipientTeamId])
+  @@index([initiatorTeamId])
+  @@index([status])
+}
+
+model InquiryMessage {
+  id        Int      @id @default(autoincrement())
+  inquiryId Int
+  inquiry   Inquiry  @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  senderId  Int
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body      String   @default("")
+  createdAt DateTime @default(now())
+
+  attachments InquiryAttachment[]
+
+  @@index([inquiryId])
+}
+
+model InquiryAttachment {
+  id        Int            @id @default(autoincrement())
+  messageId Int
+  message   InquiryMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  assetId   String
+  createdAt DateTime       @default(now())
+
+  @@index([messageId])
+}
+
+// Admin-editable close dispositions (seeded: Solved / Not Answered / No Need).
+model InquiryDisposition {
+  id        Int       @id @default(autoincrement())
+  key       String    @unique // solved | not_answered | no_need | <custom>
+  label     String
+  labelAr   String?
+  sortOrder Int       @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  inquiries Inquiry[]
 }
