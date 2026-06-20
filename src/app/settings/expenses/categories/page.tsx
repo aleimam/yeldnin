@@ -4,6 +4,7 @@ import { getT } from "@/i18n/server";
 import { listCategories } from "@/lib/expenses/expenses-service";
 import { saveCategoriesAction, deleteCategoryAction } from "../actions";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ActionForm } from "@/components/ActionForm";
 
 export default async function CategoriesSettingsPage() {
   const access = await requireCapability("expenses", "manageReference");
@@ -11,7 +12,7 @@ export default async function CategoriesSettingsPage() {
 
   return (
     <AppShell access={access} moduleKey="settings" pageTitle={t("exp.categories")} backHref="/settings">
-      <form action={saveCategoriesAction} className="card max-w-3xl space-y-2 p-6">
+      <ActionForm action={saveCategoriesAction} className="card max-w-3xl space-y-2 p-6">
         <input type="hidden" name="ids" value={categories.map((c) => c.id).join(",")} />
 
         <div className="hidden grid-cols-[1fr_1fr_130px_70px_70px] gap-3 px-1 text-xs font-semibold text-muted sm:grid">
@@ -44,11 +45,7 @@ export default async function CategoriesSettingsPage() {
             <option value="TRANSFER">{t("exp.transfer")}</option>
           </select>
         </div>
-
-        <div className="pt-3">
-          <button type="submit" className="btn-primary">{t("common.saveAll")}</button>
-        </div>
-      </form>
+      </ActionForm>
     </AppShell>
   );
 }

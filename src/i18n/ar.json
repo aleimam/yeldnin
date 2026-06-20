@@ -55,6 +55,8 @@
   "hr.noEmployees": "لا يوجد موظفون بعد.",
   "common.save": "حفظ",
   "common.saveAll": "حفظ الكل",
+  "common.changesSaved": "تم حفظ التغييرات",
+  "common.saveError": "تعذّر حفظ التغييرات. حاول مرة أخرى.",
   "common.cancel": "إلغاء",
   "common.delete": "حذف",
   "common.edit": "تعديل",

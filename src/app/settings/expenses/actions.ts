@@ -3,13 +3,14 @@ import { revalidatePath } from "next/cache";
 import { requireCapability } from "@/lib/auth/access";
 import { saveCategoryBatch, saveAccountBatch, deleteCategory, deleteAccount } from "@/lib/expenses/expenses-service";
 import { writeAudit } from "@/lib/audit";
+import { saved, saveError, type SaveState } from "@/lib/forms/action-state";
 
 const on = (fd: FormData, k: string) => fd.get(k) === "on";
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const idList = (fd: FormData) => str(fd, "ids").split(",").filter(Boolean).map(Number);
 
 /** Save All for expense categories. */
-export async function saveCategoriesAction(fd: FormData): Promise<void> {
+export async function saveCategoriesAction(prev: SaveState, fd: FormData): Promise<SaveState> {
   const access = await requireCapability("expenses", "manageReference");
   const rows = idList(fd).map((id) => ({
     id,
@@ -20,9 +21,14 @@ export async function saveCategoriesAction(fd: FormData): Promise<void> {
     enabled: on(fd, `enabled_${id}`),
   }));
   const newName = str(fd, "new_name");
-  await saveCategoryBatch(rows, newName ? { name: newName, nameAr: str(fd, "new_nameAr") || null, type: str(fd, "new_type") } : null);
-  await writeAudit(access.user.id, "expenses", "expense.categories.save", "expenseCategory", "batch", { rows: rows.length });
-  revalidatePath("/settings/expenses/categories");
+  try {
+    await saveCategoryBatch(rows, newName ? { name: newName, nameAr: str(fd, "new_nameAr") || null, type: str(fd, "new_type") } : null);
+    await writeAudit(access.user.id, "expenses", "expense.categories.save", "expenseCategory", "batch", { rows: rows.length });
+    revalidatePath("/settings/expenses/categories");
+    return saved(prev);
+  } catch {
+    return saveError(prev);
+  }
 }
 
 /** Save All for expense accounts. */

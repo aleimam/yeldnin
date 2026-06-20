@@ -55,6 +55,8 @@
   "hr.noEmployees": "No employees yet.",
   "common.save": "Save",
   "common.saveAll": "Save all",
+  "common.changesSaved": "Changes saved",
+  "common.saveError": "Couldn’t save your changes. Please try again.",
   "common.cancel": "Cancel",
   "common.delete": "Delete",
   "common.edit": "Edit",
