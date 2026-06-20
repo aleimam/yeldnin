@@ -28,11 +28,12 @@ export async function GET(
     // receipts (→ Expenses VIEW) and HR documents like national-ID scans (→ the
     // owning employee, their manager/HR, or admin). Asset ids are unguessable cuids;
     // other photos (product/CS/avatars) stay logged-in-only.
-    const [expenseAtt, empPhoto, eventPhoto, chatAtt] = await Promise.all([
+    const [expenseAtt, empPhoto, eventPhoto, chatAtt, inqAtt] = await Promise.all([
       prisma.expenseAttachment.findFirst({ where: { assetId: id }, select: { id: true } }),
       prisma.employeePhoto.findFirst({ where: { assetId: id }, select: { employeeId: true } }),
       prisma.employeeEventPhoto.findFirst({ where: { assetId: id }, select: { event: { select: { employeeId: true } } } }),
       prisma.chatAttachment.findFirst({ where: { assetId: id }, select: { message: { select: { conversation: { select: { userAId: true, userBId: true } } } } } }),
+      prisma.inquiryAttachment.findFirst({ where: { assetId: id }, select: { message: { select: { inquiry: { select: { initiatorId: true, recipientUserId: true, initiatorTeamId: true, recipientTeamId: true } } } } } }),
     ]);
     if (expenseAtt && !access.canModule("expenses", "VIEW")) {
       return new NextResponse("Forbidden", { status: 403 });
@@ -50,6 +51,19 @@ export async function GET(
       if (c.userAId !== access.user.id && c.userBId !== access.user.id) {
         return new NextResponse("Forbidden", { status: 403 });
       }
+    }
+
+    // Inquiry photos: only the two sides (initiator + recipient, and their teams).
+    if (inqAtt) {
+      const q = inqAtt.message.inquiry;
+      let ok = q.initiatorId === access.user.id || q.recipientUserId === access.user.id;
+      if (!ok) {
+        const teams = [q.initiatorTeamId, q.recipientTeamId].filter((t): t is number => t != null);
+        if (teams.length) {
+          ok = !!(await prisma.teamMember.findFirst({ where: { userId: access.user.id, teamId: { in: teams } }, select: { id: true } }));
+        }
+      }
+      if (!ok) return new NextResponse("Forbidden", { status: 403 });
     }
   }
 

@@ -130,4 +130,5 @@ export type ChatEvent =
   | { kind: "receipt"; conversationId: number; state: "delivered" | "read"; messageId?: number }
   | { kind: "edit"; conversationId: number; messageId: number }
   | { kind: "unsend"; conversationId: number; messageId: number }
-  | { kind: "unread"; count: number };
+  | { kind: "unread"; count: number }
+  | { kind: "inquiry"; inquiryId: number };

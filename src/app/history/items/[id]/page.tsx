@@ -7,6 +7,7 @@ import { getItemWithEvents } from "@/lib/history/history-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
+import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 
 export default async function ItemHistoryPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("history", "VIEW");
@@ -38,6 +39,8 @@ export default async function ItemHistoryPage({ params }: { params: Promise<{ id
         {canFlag && !item.exceptionFlag && (
           <FlagItemsControl items={[{ id: item.id, label: `${item.product.name} ${item.uid ?? `#${item.id}`}` }]} single />
         )}
+
+        <InquiryLauncher unitKind="ITEM" unitId={item.id} />
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("history.timeline")}</h2>

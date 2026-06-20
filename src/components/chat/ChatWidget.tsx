@@ -84,7 +84,8 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
         return;
       }
       // receipt | edit | unsend → refresh the open thread if it's the affected one
-      if (cur != null && e.conversationId === cur) {
+      // (the "inquiry" event is handled by the Inquiries tab, added in Phase C5)
+      if ((e.kind === "receipt" || e.kind === "edit" || e.kind === "unsend") && cur != null && e.conversationId === cur) {
         loadMessagesAction(cur).then(setMessages);
       }
     },

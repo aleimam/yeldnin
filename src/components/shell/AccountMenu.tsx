@@ -70,6 +70,14 @@ export function AccountMenu({
               <span>🔔</span>
               {t("common.notifications")}
             </Link>
+            <Link
+              href="/inquiries"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-ink hover:bg-canvas"
+            >
+              <span>❓</span>
+              {t("inq.title")}
+            </Link>
             {showSettings && (
               <Link
                 href="/settings"
