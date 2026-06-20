@@ -57,3 +57,19 @@ export async function loadDispositionsAction() {
   await requireMe();
   return inq.listDispositions();
 }
+
+async function requireAdmin(): Promise<void> {
+  const access = await getAccess();
+  if (!access.user || !access.isAdmin) throw new Error("Forbidden");
+}
+
+export async function createDispositionAction(label: string, labelAr?: string) {
+  await requireAdmin();
+  return inq.createDisposition({ label, labelAr });
+}
+
+export async function deleteDispositionAction(id: number) {
+  await requireAdmin();
+  await inq.deleteDisposition(id);
+  return { ok: true as const };
+}

@@ -9,8 +9,10 @@ import {
   listMyInquiries,
   listAllInquiries,
   inquiryAnalytics,
+  listDispositions,
   type InquiryListRow,
 } from "@/lib/inquiry/inquiry-service";
+import { DispositionEditor } from "@/components/inquiry/DispositionEditor";
 
 function pillTone(status: string): string {
   return status === "CLOSED"
@@ -22,12 +24,13 @@ function pillTone(status: string): string {
 
 export default async function InquiriesPage() {
   const access = await requireUser();
-  const [t, locale, mine, all, analytics] = await Promise.all([
+  const [t, locale, mine, all, analytics, dispositions] = await Promise.all([
     getT(),
     getLocale(),
     listMyInquiries(access.user.id),
     access.isAdmin ? listAllInquiries() : Promise.resolve(null),
     access.isAdmin ? inquiryAnalytics() : Promise.resolve(null),
+    access.isAdmin ? listDispositions() : Promise.resolve(null),
   ]);
 
   const row = (r: InquiryListRow) => (
@@ -88,6 +91,8 @@ export default async function InquiriesPage() {
           {all.length ? all.map(row) : <p className="px-3 py-6 text-center text-sm text-muted">{t("inq.empty")}</p>}
         </div>
       )}
+
+      {dispositions && <DispositionEditor dispositions={dispositions} />}
     </AppShell>
   );
 }

@@ -365,6 +365,25 @@ export async function listDispositions(): Promise<{ id: number; key: string; lab
   });
 }
 
+export async function createDisposition(input: { label: string; labelAr?: string }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const label = input.label.trim();
+  if (!label) return { ok: false, error: "inq.err.empty" };
+  const base = label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "disposition";
+  let key = base;
+  let n = 1;
+  while (await prisma.inquiryDisposition.findUnique({ where: { key }, select: { id: true } })) key = `${base}_${++n}`;
+  const last = await prisma.inquiryDisposition.findFirst({ orderBy: { sortOrder: "desc" }, select: { sortOrder: true } });
+  await prisma.inquiryDisposition.create({
+    data: { key, label, labelAr: input.labelAr?.trim() || null, sortOrder: (last?.sortOrder ?? 0) + 1 },
+  });
+  return { ok: true };
+}
+
+/** Soft-delete a disposition (kept on historical inquiries via their dispositionId). */
+export async function deleteDisposition(id: number): Promise<void> {
+  await prisma.inquiryDisposition.update({ where: { id }, data: { deletedAt: new Date() } });
+}
+
 // ─── analytics (admin) ────────────────────────────────────────────────────────
 
 export interface InquiryAnalytics {
