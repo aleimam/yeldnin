@@ -7,12 +7,13 @@ import { saveAppearanceAction, type FormState } from "./actions";
 const initial: FormState = {};
 
 function CurrentImage({ src, label }: { src: string | null; label: string }) {
+  const t = useT();
   return (
     <div className="mb-2 flex h-12 items-center">
       {src ? (
         <img src={src} alt={label} className="max-h-12 max-w-[160px] object-contain" />
       ) : (
-        <span className="text-xs text-muted">— none —</span>
+        <span className="text-xs text-muted">{t("common.none")}</span>
       )}
     </div>
   );
@@ -110,7 +111,7 @@ export function AppearanceForm({
       </div>
 
       <button type="submit" className="btn-primary" disabled={pending}>
-        {pending ? "Saving…" : t("common.save")}
+        {pending ? `${t("common.save")}…` : t("common.save")}
       </button>
     </form>
   );

@@ -3,11 +3,6 @@ import Link from "next/link";
 import { useT } from "@/i18n/client";
 import { useDropdown } from "@/lib/use-dropdown";
 
-const TIER_LABEL: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Admin",
-  MEMBER: "Member",
-};
 
 /** Avatar-triggered account menu: user info, Settings link, Sign out. */
 export function AccountMenu({
@@ -56,7 +51,7 @@ export function AccountMenu({
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-ink">{name}</div>
               <div className="truncate text-xs text-muted">{email}</div>
-              <span className="role-badge mt-1 inline-block">{TIER_LABEL[tier] ?? tier}</span>
+              <span className="role-badge mt-1 inline-block">{t(`tier.${tier}`)}</span>
             </div>
           </div>
 

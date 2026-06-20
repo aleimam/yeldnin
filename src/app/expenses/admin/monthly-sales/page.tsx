@@ -33,7 +33,7 @@ export default async function MonthlySalesPage() {
       </ActionForm>
 
       <div className="card overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr><th className="th">{t("exp.month")}</th><th className="th text-end">{t("exp.totalSales")}</th><th className="th">{t("exp.status")}</th></tr>
           </thead>
@@ -42,9 +42,9 @@ export default async function MonthlySalesPage() {
               const chk = checkSalesBreakdown(r);
               return (
                 <tr key={r.id}>
-                  <td className="td">{r.year}-{String(r.month).padStart(2, "0")}</td>
-                  <td className="td text-end">{Math.round(r.totalSales).toLocaleString()}</td>
-                  <td className="td">{chk.matches ? <span className="text-green-600">{t("exp.breakdownOk")}</span> : <span className="text-amber-600">{t("exp.breakdownOff")} {Math.round(chk.difference).toLocaleString()}</span>}</td>
+                  <td className="td" data-label={t("exp.month")}>{r.year}-{String(r.month).padStart(2, "0")}</td>
+                  <td className="td text-end" data-label={t("exp.totalSales")}>{Math.round(r.totalSales).toLocaleString()}</td>
+                  <td className="td" data-label={t("exp.status")}>{chk.matches ? <span className="text-green-600">{t("exp.breakdownOk")}</span> : <span className="text-amber-600">{t("exp.breakdownOff")} {Math.round(chk.difference).toLocaleString()}</span>}</td>
                 </tr>
               );
             })}

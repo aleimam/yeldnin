@@ -15,12 +15,6 @@ import { ModuleSwitcher } from "./ModuleSwitcher";
 import { AccountMenu } from "./AccountMenu";
 import { GlobalSearch } from "./GlobalSearch";
 
-const TIER_LABEL: Record<string, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ADMIN: "Admin",
-  MEMBER: "Member",
-};
-
 /**
  * Application top bar. When `activeModuleKey` is set (inside a module, within a
  * SidebarProvider) it shows the module name + a mobile menu button.
@@ -103,7 +97,7 @@ export async function TopBar({
           <PreferencesMenu theme={theme} mode={mode} />
           <div className="hidden items-center gap-2 sm:flex">
             <span className="text-sm font-medium text-ink">{dn}</span>
-            <span className="role-badge">{TIER_LABEL[user.tier] ?? user.tier}</span>
+            <span className="role-badge">{t(`tier.${user.tier}`)}</span>
           </div>
           <Link href="/notifications" aria-label={t("common.notifications")} className="relative text-muted hover:text-ink">
             🔔

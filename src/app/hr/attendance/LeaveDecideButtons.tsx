@@ -20,7 +20,7 @@ export function LeaveDecideButtons({ id }: { id: number }) {
     <span className="flex flex-col items-end gap-1">
       <span className="flex gap-1.5">
         <button type="button" className="btn-primary px-2 py-1 text-xs" disabled={pending} onClick={() => run(true)}>{t("leave.approve")}</button>
-        <button type="button" className="btn-danger px-2 py-1 text-xs" disabled={pending} onClick={() => run(false)}>{t("leave.decline")}</button>
+        <button type="button" className="btn-danger px-2 py-1 text-xs" disabled={pending} onClick={() => { if (confirm(t("leave.declineConfirm"))) run(false); }}>{t("leave.decline")}</button>
       </span>
       {err && <span className="text-[11px] text-red-600">{err}</span>}
     </span>

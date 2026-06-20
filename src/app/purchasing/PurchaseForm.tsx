@@ -156,14 +156,14 @@ export function PurchaseForm({
         {scopePool.length === 0 ? (
           <p className="text-sm text-muted">{t("purchasing.poolEmpty")}</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" data-cards>
             <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("purchasing.pending")}</th><th className="th text-end">{t("purchasing.buyQty")}</th></tr></thead>
             <tbody className="divide-y divide-line">
               {scopePool.map((p) => (
                 <tr key={p.productId}>
-                  <td className="td"><Link href={`/products/${p.productId}`} className="text-brand hover:underline">{p.productName}</Link></td>
-                  <td className="td text-end text-muted">{p.count}</td>
-                  <td className="td text-end">
+                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${p.productId}`} className="text-brand hover:underline">{p.productName}</Link></td>
+                  <td className="td text-end text-muted" data-label={t("purchasing.pending")}>{p.count}</td>
+                  <td className="td text-end" data-label={t("purchasing.buyQty")}>
                     <input
                       type="number" min={0} max={p.count}
                       className="input ms-auto h-8 w-20 py-1 text-end"

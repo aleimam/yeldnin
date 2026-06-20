@@ -82,7 +82,7 @@ export function AttendancePanel({
                   {a.coveredByUrgent ? <span className="text-[10px] text-muted">({t("leave.urgent")})</span> : <span className="text-[10px] text-red-600">({t("leave.overLimit")})</span>}
                   {a.note && <span className="text-muted"> · {a.note}</span>}
                 </span>
-                <button type="button" className="text-xs text-red-600 hover:underline" disabled={pending} onClick={() => refresh(() => clearAbsenceAction(employeeId, a.date))}>{t("leave.clear")}</button>
+                <button type="button" className="text-xs text-red-600 hover:underline" disabled={pending} onClick={() => { if (confirm(t("common.deleteConfirm"))) refresh(() => clearAbsenceAction(employeeId, a.date)); }}>{t("leave.clear")}</button>
               </li>
             ))}
           </ul>
@@ -104,7 +104,7 @@ export function AttendancePanel({
             {duties.map((d) => (
               <li key={d.date} className="flex items-center justify-between border-b border-line/60 py-1">
                 <span>{d.date} <span className="text-[10px] text-muted">({d.dayTypeCode} · {d.dayTypeName})</span>{d.note && <span className="text-muted"> · {d.note}</span>}</span>
-                <button type="button" className="text-xs text-red-600 hover:underline" disabled={pending} onClick={() => refresh(() => clearDutyAction(employeeId, d.date))}>{t("leave.clear")}</button>
+                <button type="button" className="text-xs text-red-600 hover:underline" disabled={pending} onClick={() => { if (confirm(t("common.deleteConfirm"))) refresh(() => clearDutyAction(employeeId, d.date)); }}>{t("leave.clear")}</button>
               </li>
             ))}
           </ul>
