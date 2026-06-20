@@ -25,6 +25,9 @@ export async function saveAppearanceAction(
 
   const appName = String(formData.get("appName") ?? "").trim();
   const themeKey = String(formData.get("themeKey") ?? "default");
+  const version = String(formData.get("version") ?? "").trim();
+  const copyrightEn = String(formData.get("copyrightEn") ?? "").trim();
+  const copyrightAr = String(formData.get("copyrightAr") ?? "").trim();
 
   const updates: {
     appName?: string;
@@ -32,9 +35,19 @@ export async function saveAppearanceAction(
     logoUrl?: string;
     darkLogoUrl?: string;
     faviconUrl?: string;
+    version?: string;
+    versionShowMobile?: boolean;
+    versionShowDesktop?: boolean;
+    copyrightEn?: string | null;
+    copyrightAr?: string | null;
   } = {};
   if (appName) updates.appName = appName;
   if (isThemeKey(themeKey)) updates.themeKey = themeKey;
+  if (version) updates.version = version;
+  updates.versionShowMobile = formData.get("versionShowMobile") === "on";
+  updates.versionShowDesktop = formData.get("versionShowDesktop") === "on";
+  updates.copyrightEn = copyrightEn || null;
+  updates.copyrightAr = copyrightAr || null;
 
   for (const [field, key] of UPLOAD_FIELDS) {
     const f = formData.get(field);

@@ -27,6 +27,11 @@ export function AppearanceForm({
     logoUrl: string | null;
     darkLogoUrl: string | null;
     faviconUrl: string | null;
+    version: string;
+    versionShowMobile: boolean;
+    versionShowDesktop: boolean;
+    copyrightEn: string | null;
+    copyrightAr: string | null;
   };
 }) {
   const t = useT();
@@ -40,7 +45,7 @@ export function AppearanceForm({
         </div>
       )}
       {state.ok && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+        <div className="alert alert-success">
           {t("settings.appearance.saved")}
         </div>
       )}
@@ -48,6 +53,26 @@ export function AppearanceForm({
       <div>
         <label htmlFor="appName" className="label">{t("settings.appearance.appName")}</label>
         <input id="appName" name="appName" className="input" defaultValue={current.appName} />
+      </div>
+
+      <div>
+        <label htmlFor="version" className="label">{t("settings.appearance.version")}</label>
+        <input id="version" name="version" className="input max-w-xs" defaultValue={current.version} />
+        <div className="mt-2 flex flex-wrap gap-4 text-sm">
+          <label className="flex items-center gap-2"><input type="checkbox" name="versionShowMobile" defaultChecked={current.versionShowMobile} /> {t("settings.appearance.versionShowMobile")}</label>
+          <label className="flex items-center gap-2"><input type="checkbox" name="versionShowDesktop" defaultChecked={current.versionShowDesktop} /> {t("settings.appearance.versionShowDesktop")}</label>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="copyrightEn" className="label">{t("settings.appearance.copyrightEn")}</label>
+          <input id="copyrightEn" name="copyrightEn" className="input" defaultValue={current.copyrightEn ?? ""} placeholder="© 2026 Yeldn Health" />
+        </div>
+        <div>
+          <label htmlFor="copyrightAr" className="label">{t("settings.appearance.copyrightAr")}</label>
+          <input id="copyrightAr" name="copyrightAr" dir="rtl" className="input" defaultValue={current.copyrightAr ?? ""} placeholder="© 2026 يلدن هيلث" />
+        </div>
       </div>
 
       <div>

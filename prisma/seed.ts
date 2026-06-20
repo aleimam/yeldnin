@@ -38,12 +38,17 @@ const TEAMS = [
 ];
 
 async function main() {
-  // Platform settings (single row, id=1)
+  // Platform settings (single row, id=1). Version is admin-managed now — the
+  // seed no longer clobbers it; it only migrates the old "1.2" default to "1.18"
+  // once and fills the copyright placeholders if they're still empty.
   await prisma.platformSettings.upsert({
     where: { id: 1 },
-    update: { version: "1.2" },
-    create: { id: 1, appName: "YeldnIN", version: "1.2" },
+    update: {},
+    create: { id: 1, appName: "YeldnIN", version: "1.18" },
   });
+  await prisma.platformSettings.updateMany({ where: { version: "1.2" }, data: { version: "1.18" } });
+  await prisma.platformSettings.updateMany({ where: { copyrightEn: null }, data: { copyrightEn: "© Yeldn Health. All rights reserved." } });
+  await prisma.platformSettings.updateMany({ where: { copyrightAr: null }, data: { copyrightAr: "© يلدن هيلث. جميع الحقوق محفوظة." } });
 
   // One-time rename: egv_pricer -> pricing (module key, permissions, audit). Idempotent.
   await prisma.module.deleteMany({ where: { key: "egv_pricer" } });

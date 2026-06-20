@@ -221,7 +221,11 @@ model PlatformSettings {
   logoUrl     String?  // light-mode logo (asset key)
   darkLogoUrl String?  // dark-mode logo (asset key)
   faviconUrl  String?  // favicon (asset key)
-  version     String   @default("0.1.0")
+  version     String   @default("0.1.0") // app version label (admin-editable; seed no longer clobbers it)
+  versionShowMobile  Boolean @default(false) // show the version badge on mobile?
+  versionShowDesktop Boolean @default(true)  // show the version badge on desktop?
+  copyrightEn String? // footer copyright note (English)
+  copyrightAr String? // footer copyright note (Arabic)
   updatedAt   DateTime @updatedAt
 }
 

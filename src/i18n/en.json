@@ -249,6 +249,11 @@
 
   "settings.appearance.title": "Appearance",
   "settings.appearance.appName": "Application name",
+  "settings.appearance.version": "Version label",
+  "settings.appearance.versionShowMobile": "Show on mobile",
+  "settings.appearance.versionShowDesktop": "Show on desktop",
+  "settings.appearance.copyrightEn": "Footer copyright (English)",
+  "settings.appearance.copyrightAr": "Footer copyright (Arabic)",
   "settings.appearance.defaultTheme": "Default theme",
   "settings.appearance.logo": "Logo",
   "settings.appearance.darkLogo": "Dark-mode logo",

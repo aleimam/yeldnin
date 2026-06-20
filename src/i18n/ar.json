@@ -249,6 +249,11 @@
 
   "settings.appearance.title": "المظهر",
   "settings.appearance.appName": "اسم التطبيق",
+  "settings.appearance.version": "رقم الإصدار",
+  "settings.appearance.versionShowMobile": "إظهار على الجوال",
+  "settings.appearance.versionShowDesktop": "إظهار على سطح المكتب",
+  "settings.appearance.copyrightEn": "حقوق النشر في التذييل (إنجليزي)",
+  "settings.appearance.copyrightAr": "حقوق النشر في التذييل (عربي)",
   "settings.appearance.defaultTheme": "السمة الافتراضية",
   "settings.appearance.logo": "الشعار",
   "settings.appearance.darkLogo": "شعار الوضع الداكن",

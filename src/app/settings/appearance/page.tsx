@@ -18,6 +18,11 @@ export default async function AppearanceSettingsPage() {
           logoUrl: assetUrl(s.logoUrl),
           darkLogoUrl: assetUrl(s.darkLogoUrl),
           faviconUrl: assetUrl(s.faviconUrl),
+          version: s.version,
+          versionShowMobile: s.versionShowMobile,
+          versionShowDesktop: s.versionShowDesktop,
+          copyrightEn: s.copyrightEn,
+          copyrightAr: s.copyrightAr,
         }}
       />
     </AppShell>
