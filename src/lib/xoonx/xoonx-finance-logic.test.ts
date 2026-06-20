@@ -2,19 +2,19 @@ import { describe, it, expect } from "vitest";
 import { monthKey, monthRange, monthCloseable, toEgp, validateStaffShares } from "./xoonx-finance-logic";
 
 describe("month helpers", () => {
-  it("monthKey formats YYYY-MM", () => {
-    expect(monthKey(new Date(2026, 5, 17))).toBe("2026-06"); // month is 0-based → June
-    expect(monthKey(new Date(2026, 11, 1))).toBe("2026-12");
+  it("monthKey formats YYYY-MM (UTC)", () => {
+    expect(monthKey(new Date("2026-06-17T12:00:00Z"))).toBe("2026-06"); // month is 0-based → June
+    expect(monthKey(new Date("2026-12-01T00:00:00Z"))).toBe("2026-12");
   });
-  it("monthRange spans the calendar month", () => {
+  it("monthRange spans the calendar month (UTC)", () => {
     const { gte, lt } = monthRange("2026-06");
-    expect(gte).toEqual(new Date(2026, 5, 1));
-    expect(lt).toEqual(new Date(2026, 6, 1));
+    expect(gte).toEqual(new Date(Date.UTC(2026, 5, 1)));
+    expect(lt).toEqual(new Date(Date.UTC(2026, 6, 1)));
   });
   it("monthCloseable only 7 days after month end", () => {
-    expect(monthCloseable("2026-06", new Date(2026, 6, 1))).toBe(false); // day after end
-    expect(monthCloseable("2026-06", new Date(2026, 6, 7))).toBe(false); // 6 days after
-    expect(monthCloseable("2026-06", new Date(2026, 6, 8))).toBe(true); // 7 days after
+    expect(monthCloseable("2026-06", new Date("2026-07-01T00:00:00Z"))).toBe(false); // day after end
+    expect(monthCloseable("2026-06", new Date("2026-07-07T00:00:00Z"))).toBe(false); // 6 days after
+    expect(monthCloseable("2026-06", new Date("2026-07-08T00:00:00Z"))).toBe(true); // 7 days after
   });
 });
 

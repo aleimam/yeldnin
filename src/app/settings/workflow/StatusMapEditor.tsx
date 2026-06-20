@@ -100,7 +100,7 @@ export function StatusMapEditor({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" data-cards>
           <thead>
             <tr className="border-b border-line text-start">
               <th className="th">{t("workflow.status")}</th>
@@ -115,33 +115,33 @@ export function StatusMapEditor({
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
               <tr key={r.key}>
-                <td className="td font-mono text-[11px] text-muted">{r.key}</td>
-                <td className="td">
+                <td className="td font-mono text-[11px] text-muted" data-label={t("workflow.status")}>{r.key}</td>
+                <td className="td" data-label={t("workflow.labelEn")}>
                   <input className="input h-8 py-1" value={labels[r.key].en} onChange={(e) => setLabel(r.key, "en", e.target.value)} />
                 </td>
-                <td className="td">
+                <td className="td" data-label={t("workflow.labelAr")}>
                   <input className="input h-8 py-1" dir="rtl" value={labels[r.key].ar} onChange={(e) => setLabel(r.key, "ar", e.target.value)} />
                 </td>
-                <td className="td text-center">
+                <td className="td text-center sm:text-center" data-label={t("workflow.carryNormal")}>
                   <input
                     type="checkbox"
                     checked={hideNormal[r.key]}
                     onChange={(e) => { setHideNormal((p) => ({ ...p, [r.key]: e.target.checked })); dirty(); }}
                   />
                 </td>
-                <td className="td text-center">
+                <td className="td text-center sm:text-center" data-label={t("workflow.carrySpecial")}>
                   <input
                     type="checkbox"
                     checked={hideSpecial[r.key]}
                     onChange={(e) => { setHideSpecial((p) => ({ ...p, [r.key]: e.target.checked })); dirty(); }}
                   />
                 </td>
-                <td className="td text-xs text-muted">
+                <td className="td text-xs text-muted" data-label={t("workflow.salesPreview")}>
                   <span title="normal">{preview.salesLabel(r.key, false, "en")}</span>
                   {" · "}
                   <span title="special">{preview.salesLabel(r.key, true, "en")}</span>
                 </td>
-                <td className="td text-xs text-muted">{r.containers || "—"}</td>
+                <td className="td text-xs text-muted" data-label={t("workflow.containers")}>{r.containers || "—"}</td>
               </tr>
             ))}
           </tbody>

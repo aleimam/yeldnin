@@ -117,7 +117,7 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
       </form>
 
       <div className="card overflow-x-auto p-0">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
               <th className="th">{t("cs.qTitle")}</th>
@@ -130,14 +130,14 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
           <tbody className="divide-y divide-line">
             {questions.map((q) => (
               <tr key={q.id} className={q.active ? "" : "opacity-50"}>
-                <td className="td">
+                <td className="td" data-label={t("cs.qTitle")}>
                   <span className="font-medium text-ink">{localized(q.title, q.titleAr, locale)}</span>
                   {!q.active && <span className="ms-2 text-xs text-muted">({t("cs.inactive")})</span>}
                   <span className="block text-xs text-muted">{localized(q.criteria, q.criteriaAr, locale)}</span>
                 </td>
-                <td className="td">{t(`cs.scope.${q.scope}`)}</td>
-                <td className="td text-muted">{localized(q.typeName, q.typeNameAr, locale)}</td>
-                <td className="td text-end">{q.weight}</td>
+                <td className="td" data-label={t("cs.scope")}>{t(`cs.scope.${q.scope}`)}</td>
+                <td className="td text-muted" data-label={t("cs.type")}>{localized(q.typeName, q.typeNameAr, locale)}</td>
+                <td className="td text-end" data-label={t("cs.weight")}>{q.weight}</td>
                 <td className="td text-end whitespace-nowrap">
                   <button onClick={() => edit(q)} className="text-brand hover:underline">{t("common.edit")}</button>
                   <button onClick={() => archive(q.id)} className="ms-3 text-red-600 hover:underline">{t("common.delete")}</button>

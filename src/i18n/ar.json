@@ -1197,6 +1197,8 @@
   "pages.public": "عام",
   "pages.internal": "داخلي (يتطلب تسجيل الدخول)",
   "pages.published": "منشور",
+  "pages.publishedYes": "منشور",
+  "pages.publishedNo": "مسودة",
   "pages.footer": "إظهار في التذييل",
   "pages.menu": "إظهار في القائمة",
   "pages.view": "عرض",

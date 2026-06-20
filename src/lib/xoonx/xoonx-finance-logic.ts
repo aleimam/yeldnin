@@ -8,13 +8,15 @@ export type FxCurrency = (typeof FX_CURRENCIES)[number];
 
 export const round2 = (n: number) => Math.round(n * 100) / 100;
 
+// Month bucketing is UTC throughout, so a transaction near a month boundary is
+// attributed to the same financial month regardless of the server's timezone.
 export function monthKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 export function monthRange(month: string): { gte: Date; lt: Date } {
   const [y, m] = month.split("-").map(Number);
-  return { gte: new Date(y, m - 1, 1), lt: new Date(y, m, 1) };
+  return { gte: new Date(Date.UTC(y, m - 1, 1)), lt: new Date(Date.UTC(y, m, 1)) };
 }
 
 /** A month can be closed once it has ended + 7 days have passed. */

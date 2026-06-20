@@ -53,7 +53,7 @@ export function validateRequest(input: {
   if (requiresCustomer(input.type ?? "") && !input.customerId && !input.newCustomerName?.trim()) {
     e.customer = "A special order needs a customer.";
   }
-  const lines = (input.lines ?? []).filter((l) => l.productId && l.count >= 1);
+  const lines = (input.lines ?? []).filter((l) => l.productId && Number.isInteger(l.count) && l.count >= 1);
   if (!lines.length) e.lines = "Add at least one product line.";
   return e;
 }

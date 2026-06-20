@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
+import { validatePasswordStrength } from "@/lib/auth/password";
 import { validateNewEmployee } from "@/lib/hr/hr-logic";
 import {
   createEmployeeWithUser,
@@ -40,7 +41,8 @@ export async function createEmployeeAction(input: NewEmployeeInput): Promise<HrR
   const access = await requireHrCreate();
   const errs = validateNewEmployee({ name: input.name, email: input.email });
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
-  if (!input.password || input.password.length < 6) return { ok: false, error: "Password must be at least 6 characters." };
+  const pwErr = validatePasswordStrength(input.password ?? "");
+  if (pwErr) return { ok: false, error: pwErr };
   try {
     const { employeeId } = await createEmployeeWithUser(input, access.user.id);
     await writeAudit(access.user.id, "human_resources", "employee.create", "employee", employeeId, { email: input.email });

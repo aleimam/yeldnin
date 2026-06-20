@@ -48,9 +48,10 @@ export function isTripPurchaseEligible(
   if (trip.status !== "APPROVED" && trip.status !== "STARTED_SHIPPING") return false;
   if (!trip.lastReceivingDate) return false;
   const d = new Date(trip.lastReceivingDate);
-  // Must be strictly after today (not today, not in the past).
-  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-  return d.getTime() > endOfToday.getTime();
+  // Must be strictly after today (not today, not in the past). UTC end-of-day so
+  // the boundary is timezone-stable, consistent with the rest of the date logic.
+  const endOfToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999);
+  return d.getTime() > endOfToday;
 }
 
 export function validateTrip(input: {

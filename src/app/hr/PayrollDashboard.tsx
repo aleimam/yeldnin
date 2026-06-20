@@ -65,8 +65,8 @@ export function PayrollDashboard({ year, month, rows, totals }: { year: number; 
         <Stat label={t("dash.status")} value={`${totals.locked} ${t("pay.status.LOCKED")} · ${totals.draft} ${t("pay.status.DRAFT")} · ${totals.none} —`} small />
       </div>
 
-      <div className="card overflow-x-auto p-0" data-cards>
-        <table className="w-full text-sm">
+      <div className="card overflow-x-auto p-0">
+        <table className="w-full text-sm" data-cards>
           <thead>
             <tr>
               <th className="th text-start">{t("hr.employees")}</th>
@@ -79,10 +79,10 @@ export function PayrollDashboard({ year, month, rows, totals }: { year: number; 
           <tbody>
             {rows.map((r) => (
               <tr key={r.employeeId}>
-                <td className="td"><Link href={`/hr/employees/${r.employeeId}`} className="text-brand hover:underline">{r.name}</Link></td>
-                <td className="td text-end">{fmt(r.projected)}</td>
-                <td className="td text-center"><span className={`rounded px-2 py-0.5 text-[11px] ${statusClass[r.status] ?? "bg-canvas text-muted"}`}>{r.status === "NONE" ? "—" : t(`pay.status.${r.status}`)}</span></td>
-                <td className="td text-end">{r.net != null ? fmt(r.net) : "—"}</td>
+                <td className="td" data-label={t("hr.employees")}><Link href={`/hr/employees/${r.employeeId}`} className="text-brand hover:underline">{r.name}</Link></td>
+                <td className="td text-end" data-label={t("dash.projected")}>{fmt(r.projected)}</td>
+                <td className="td text-center" data-label={t("dash.status")}><span className={`rounded px-2 py-0.5 text-[11px] ${statusClass[r.status] ?? "bg-canvas text-muted"}`}>{r.status === "NONE" ? "—" : t(`pay.status.${r.status}`)}</span></td>
+                <td className="td text-end" data-label={t("pay.net")}>{r.net != null ? fmt(r.net) : "—"}</td>
                 <td className="td text-end">{r.status === "DRAFT" && r.payslipId && <button type="button" className="text-xs text-brand hover:underline" disabled={pending} onClick={() => lock(r.employeeId, r.payslipId!)}>{t("pay.lock")}</button>}</td>
               </tr>
             ))}

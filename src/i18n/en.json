@@ -1197,6 +1197,8 @@
   "pages.public": "Public",
   "pages.internal": "Internal (login required)",
   "pages.published": "Published",
+  "pages.publishedYes": "Published",
+  "pages.publishedNo": "Draft",
   "pages.footer": "Show in footer",
   "pages.menu": "Show in menu",
   "pages.view": "View",
