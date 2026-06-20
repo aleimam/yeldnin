@@ -1,7 +1,10 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { clean } from "@/lib/text";
 import { applyChange, monthlyBaseEarnings, type ChangeType } from "./salary-logic";
+
+type Tx = Prisma.TransactionClient;
 
 const utcDay = (s: string) => new Date(`${s}T00:00:00Z`);
 const KIND_ORDER: Record<string, number> = { EARNING: 0, BONUS: 1, PENALTY: 2 };
@@ -67,19 +70,26 @@ export interface LineChange {
   batchId?: string;
 }
 
-export async function applyLineChange(p: LineChange) {
-  const existing = await prisma.salaryStructureLine.findUnique({ where: { employeeId_componentId: { employeeId: p.employeeId, componentId: p.componentId } } });
+/** Core of a line change inside a caller-supplied transaction: the amount, the
+ *  SalaryChange journal entry, and the audit event must land together (else the
+ *  raise history diverges from the actual figure). `compName` is pre-resolved. */
+async function applyLineChangeTx(tx: Tx, p: LineChange, compName: string | null) {
+  const existing = await tx.salaryStructureLine.findUnique({ where: { employeeId_componentId: { employeeId: p.employeeId, componentId: p.componentId } } });
   const oldAmount = existing?.amount ?? 0;
   const newAmount = applyChange(oldAmount, p.type, p.delta);
   const line = existing
-    ? await prisma.salaryStructureLine.update({ where: { id: existing.id }, data: { amount: newAmount, active: true, updatedById: p.byUserId } })
-    : await prisma.salaryStructureLine.create({ data: { employeeId: p.employeeId, componentId: p.componentId, amount: newAmount, createdById: p.byUserId, updatedById: p.byUserId } });
-  await prisma.salaryChange.create({
+    ? await tx.salaryStructureLine.update({ where: { id: existing.id }, data: { amount: newAmount, active: true, updatedById: p.byUserId } })
+    : await tx.salaryStructureLine.create({ data: { employeeId: p.employeeId, componentId: p.componentId, amount: newAmount, createdById: p.byUserId, updatedById: p.byUserId } });
+  await tx.salaryChange.create({
     data: { lineId: line.id, changeType: p.type, delta: p.delta, oldAmount, newAmount, effectiveDate: utcDay(p.effectiveDate), reason: clean(p.reason), batchId: p.batchId ?? null, byUserId: p.byUserId },
   });
-  const comp = await prisma.salaryComponent.findUnique({ where: { id: p.componentId }, select: { name: true } });
-  await prisma.employeeEvent.create({ data: { employeeId: p.employeeId, type: "PROFILE_EDIT", message: describeChange(comp?.name ?? "Component", p.type, p.delta, oldAmount, newAmount, !existing), byUserId: p.byUserId } });
+  await tx.employeeEvent.create({ data: { employeeId: p.employeeId, type: "PROFILE_EDIT", message: describeChange(compName ?? "Component", p.type, p.delta, oldAmount, newAmount, !existing), byUserId: p.byUserId } });
   return line;
+}
+
+export async function applyLineChange(p: LineChange) {
+  const comp = await prisma.salaryComponent.findUnique({ where: { id: p.componentId }, select: { name: true } });
+  return prisma.$transaction((tx) => applyLineChangeTx(tx, p, comp?.name ?? null));
 }
 
 /** Enable/disable a line without losing its history. */
@@ -109,14 +119,22 @@ export async function bulkRaise(p: BulkRaise): Promise<{ count: number; batchId:
     employeeIds = (await prisma.employee.findMany({ where: { userId: { in: userIds } }, select: { id: true } })).map((e) => e.id);
   }
   const batchId = `bulk_${Date.now()}`;
-  let count = 0;
-  for (const employeeId of employeeIds) {
-    // Only adjust existing structures — bulk raise never creates new lines.
-    const existing = await prisma.salaryStructureLine.findUnique({ where: { employeeId_componentId: { employeeId, componentId: p.componentId } } });
-    if (!existing) continue;
-    await applyLineChange({ employeeId, componentId: p.componentId, type: p.type, delta: p.delta, effectiveDate: p.effectiveDate, reason: p.reason, byUserId: p.byUserId, batchId });
-    count++;
-  }
+  const comp = await prisma.salaryComponent.findUnique({ where: { id: p.componentId }, select: { name: true } });
+  // All-or-nothing: a company-wide raise must never half-apply.
+  const count = await prisma.$transaction(
+    async (tx) => {
+      let n = 0;
+      for (const employeeId of employeeIds) {
+        // Only adjust existing structures — bulk raise never creates new lines.
+        const existing = await tx.salaryStructureLine.findUnique({ where: { employeeId_componentId: { employeeId, componentId: p.componentId } }, select: { id: true } });
+        if (!existing) continue;
+        await applyLineChangeTx(tx, { employeeId, componentId: p.componentId, type: p.type, delta: p.delta, effectiveDate: p.effectiveDate, reason: p.reason, byUserId: p.byUserId, batchId }, comp?.name ?? null);
+        n++;
+      }
+      return n;
+    },
+    { timeout: 20000 },
+  );
   return { count, batchId };
 }
 

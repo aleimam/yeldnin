@@ -142,7 +142,17 @@ export async function generateDraft(employeeId: number, year: number, month: num
     if (existing.status === "LOCKED") throw new Error("A locked payslip already exists for this month.");
     return recomputeInner(existing.id);
   }
-  const slip = await prisma.payslip.create({ data: { employeeId, year, month, generatedById: userId } });
+  let slip;
+  try {
+    slip = await prisma.payslip.create({ data: { employeeId, year, month, generatedById: userId } });
+  } catch {
+    // A concurrent generate won the unique (employee, year, month) race (P2002) —
+    // fall back to the slip that now exists instead of surfacing a raw DB error.
+    const dup = await prisma.payslip.findUnique({ where: { employeeId_year_month: { employeeId, year, month } }, select: { id: true, status: true } });
+    if (!dup) throw new Error("Could not generate the payslip.");
+    if (dup.status === "LOCKED") throw new Error("A locked payslip already exists for this month.");
+    return recomputeInner(dup.id);
+  }
   return recomputeInner(slip.id);
 }
 
@@ -205,8 +215,11 @@ export async function lockPayslip(payslipId: number, userId: number) {
   const fresh = await recomputeInner(payslipId);
   if (!fresh) throw new Error("Payslip not found.");
   const uid = await nextUid("PS");
-  await prisma.payslip.update({ where: { id: payslipId }, data: { status: "LOCKED", lockedById: userId, lockedAt: new Date(), uid } });
-  await prisma.employeeEvent.create({ data: { employeeId: fresh.employeeId, type: "PROFILE_EDIT", message: `Payslip ${fresh.year}-${String(fresh.month).padStart(2, "0")} finalized: net ${fresh.net.toFixed(2)}.`, byUserId: userId } });
+  // Lock + audit event together — a locked payslip must always have its event.
+  await prisma.$transaction([
+    prisma.payslip.update({ where: { id: payslipId }, data: { status: "LOCKED", lockedById: userId, lockedAt: new Date(), uid } }),
+    prisma.employeeEvent.create({ data: { employeeId: fresh.employeeId, type: "PROFILE_EDIT", message: `Payslip ${fresh.year}-${String(fresh.month).padStart(2, "0")} finalized: net ${fresh.net.toFixed(2)}.`, byUserId: userId } }),
+  ]);
   return prisma.payslip.findUnique({ where: { id: payslipId }, include: { lines: true } });
 }
 
