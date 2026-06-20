@@ -95,9 +95,9 @@ export function AdminPanel({ month, currencies, fx, categories, staff }: Props) 
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-semibold text-ink">{t("xadm.fx")}</h2>
           <div className="flex items-center gap-2">
-            <button onClick={() => router.push(`/settings/xoonx?m=${shiftMonth(month, -1)}`)} className="btn-secondary px-2 py-1">‹</button>
+            <button onClick={() => router.push(`/settings/xoonx?m=${shiftMonth(month, -1)}`)} className="btn-secondary px-2 py-1"><span className="rtl-flip">‹</span></button>
             <span className="min-w-24 text-center text-sm font-medium text-ink">{month}</span>
-            <button onClick={() => router.push(`/settings/xoonx?m=${shiftMonth(month, 1)}`)} className="btn-secondary px-2 py-1">›</button>
+            <button onClick={() => router.push(`/settings/xoonx?m=${shiftMonth(month, 1)}`)} className="btn-secondary px-2 py-1"><span className="rtl-flip">›</span></button>
           </div>
         </div>
         <p className="mb-3 text-xs text-muted">{t("xadm.fxHint")}</p>

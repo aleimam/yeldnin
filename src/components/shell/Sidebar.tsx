@@ -117,7 +117,7 @@ export function Sidebar({
           aria-label={collapsed ? t("common.expand") : t("common.collapse")}
           title={collapsed ? t("common.expand") : t("common.collapse")}
         >
-          <span>{collapsed ? "»" : "«"}</span>
+          <span className="rtl-flip">{collapsed ? "»" : "«"}</span>
         </button>
       </aside>
 
@@ -132,7 +132,7 @@ export function Sidebar({
           aria-label={t("common.expand")}
           title={t("common.expand")}
         >
-          <span>»</span>
+          <span className="rtl-flip">»</span>
         </button>
       </aside>
 
@@ -144,7 +144,7 @@ export function Sidebar({
             <div className="flex h-14 items-center justify-between border-b border-line px-3">
               <span className="font-semibold text-ink">{t("common.modules")}</span>
               <button onClick={closeDrawer} className="text-muted hover:text-ink" aria-label={t("common.collapse")}>
-                «
+                <span className="rtl-flip">«</span>
               </button>
             </div>
             <div className="overflow-y-auto">

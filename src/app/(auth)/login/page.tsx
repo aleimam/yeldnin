@@ -3,6 +3,7 @@ import { getT } from "@/i18n/server";
 import { getAccess } from "@/lib/auth/access";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
+import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage({
   searchParams,
@@ -43,37 +44,7 @@ export default async function LoginPage({
           </div>
         )}
 
-        <form method="POST" action="/api/login" className="space-y-4">
-          <div>
-            <label htmlFor="identifier" className="label">
-              {t("login.identifier")}
-            </label>
-            <input
-              id="identifier"
-              name="identifier"
-              type="text"
-              autoComplete="username"
-              required
-              className="input"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="label">
-              {t("login.password")}
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="input"
-            />
-          </div>
-          <button type="submit" className="btn-primary w-full">
-            {t("login.submit")}
-          </button>
-        </form>
+        <LoginForm />
       </div>
     </main>
   );

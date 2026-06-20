@@ -78,9 +78,9 @@ export default async function XoonxReportsPage({ searchParams }: { searchParams:
         <div className="max-w-4xl space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Link href={`/xoonx/reports?y=${Number(year) - 1}`} className="btn-secondary px-2 py-1">‹</Link>
+              <Link href={`/xoonx/reports?y=${Number(year) - 1}`} className="btn-secondary px-2 py-1"><span className="rtl-flip">‹</span></Link>
               <span className="min-w-16 text-center font-semibold text-ink">{year}</span>
-              <Link href={`/xoonx/reports?y=${Number(year) + 1}`} className="btn-secondary px-2 py-1">›</Link>
+              <Link href={`/xoonx/reports?y=${Number(year) + 1}`} className="btn-secondary px-2 py-1"><span className="rtl-flip">›</span></Link>
             </div>
             <Link href="/xoonx/reports" className="text-sm text-brand hover:underline">{t("xrep.monthlyView")}</Link>
           </div>

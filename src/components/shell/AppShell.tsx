@@ -61,7 +61,7 @@ export async function AppShell({
               <div className="flex items-center gap-3">
                 {backHref && (
                   <Link href={backHref} className="text-muted hover:text-ink" aria-label={t("common.back")}>
-                    ←
+                    <span className="rtl-flip">←</span>
                   </Link>
                 )}
                 {pageTitle && <h1 className="text-xl font-bold text-ink">{pageTitle}</h1>}
