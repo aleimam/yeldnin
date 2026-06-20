@@ -45,7 +45,9 @@ export interface ConversationRow {
  *  preview and my unread count per conversation. */
 export async function listConversations(me: number): Promise<ConversationRow[]> {
   const convs = await prisma.chatConversation.findMany({
-    where: { OR: [{ userAId: me }, { userBId: me }] },
+    // Only conversations that actually have a message — a freshly "started" chat
+    // with nothing sent yet shouldn't linger blank in the list.
+    where: { OR: [{ userAId: me }, { userBId: me }], messages: { some: {} } },
     orderBy: { lastMessageAt: "desc" },
     include: {
       userA: { select: USER_SELECT },

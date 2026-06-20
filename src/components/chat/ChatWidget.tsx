@@ -256,7 +256,7 @@ function InquiriesPanel({
               <span className="shrink-0 text-[10px] text-muted">{t(statusLabelKey(r.status))}</span>
             </div>
             <div className="truncate text-xs text-muted">
-              {displayName(r.initiator, locale)} → {displayName(r.recipient, locale)} · {r.unitKind} #{r.unitId}
+              {displayName(r.initiator, locale)} → {displayName(r.recipient, locale)} · {t(`inq.kind.${r.unitKind}`)} #{r.unitId}
             </div>
           </Link>
         </li>

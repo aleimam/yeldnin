@@ -47,7 +47,7 @@ export default async function InquiriesPage() {
           </span>
         </div>
         <div className="truncate text-xs text-muted">
-          {displayName(r.initiator, locale)} → {displayName(r.recipient, locale)} · {r.unitKind} #{r.unitId}
+          {displayName(r.initiator, locale)} → {displayName(r.recipient, locale)} · {t(`inq.kind.${r.unitKind}`)} #{r.unitId}
         </div>
       </div>
       <div className="shrink-0 text-end text-[11px] text-muted">

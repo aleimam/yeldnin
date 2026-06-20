@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useT } from "@/i18n/client";
 import { displayName } from "@/lib/users/users-logic";
+import { formatBizDate } from "@/lib/format/dates";
 import { uploadImage } from "@/lib/chat/upload-image";
 import { statusLabelKey } from "@/lib/inquiry/inquiry-logic";
 import { replyInquiryAction, closeInquiryAction } from "@/app/inquiries/actions";
@@ -98,7 +99,7 @@ export function InquiryThread({
             <span className="text-ink">{displayName(detail.recipient, locale)}</span>
           </div>
           <div className="text-xs text-muted">
-            {t("inq.unit")}: {detail.unitKind} #{detail.unitId}
+            {t("inq.unit")}: {t(`inq.kind.${detail.unitKind}`)} #{detail.unitId}
           </div>
         </div>
         {detail.dispositionLabel && (
@@ -113,7 +114,7 @@ export function InquiryThread({
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${mine ? "bg-brand text-brand-fg" : "bg-canvas text-ink"}`}>
                 <div className={`mb-0.5 text-[11px] ${mine ? "text-brand-fg/70" : "text-muted"}`}>
-                  {displayName(m.sender, locale)} · {hhmm(m.createdAt)}
+                  {displayName(m.sender, locale)} · {formatBizDate(m.createdAt)} {hhmm(m.createdAt)}
                 </div>
                 {m.attachments.length > 0 && (
                   <div className="mb-1 flex flex-wrap gap-1">
