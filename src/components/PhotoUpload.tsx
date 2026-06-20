@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "@/i18n/client";
+import { compressImage } from "@/lib/chat/compress";
 
 export interface UploadedPhoto {
   id: string;
@@ -10,7 +11,15 @@ export interface UploadedPhoto {
 
 async function uploadFile(file: File): Promise<UploadedPhoto> {
   const fd = new FormData();
-  fd.append("file", file);
+  // Compress images client-side (WebP, ≤1600px) before upload so every module's
+  // photo uploads stay small; non-images (PDFs) pass through untouched.
+  if (file.type.startsWith("image/")) {
+    const { blob } = await compressImage(file);
+    const base = file.name.replace(/\.[^.]+$/, "") || "image";
+    fd.append("file", new File([blob], `${base}.webp`, { type: blob.type || "image/webp" }));
+  } else {
+    fd.append("file", file);
+  }
   const res = await fetch("/api/upload", { method: "POST", body: fd });
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
