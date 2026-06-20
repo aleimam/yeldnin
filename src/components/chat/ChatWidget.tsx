@@ -16,6 +16,8 @@ import {
   loadMessagesAction,
   loadChatablePeopleAction,
   sendMessageAction,
+  editMessageAction,
+  unsendMessageAction,
   markReadAction,
   startConversationAction,
 } from "@/app/chat/actions";
@@ -107,11 +109,33 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
     }
   }
 
-  async function send(body: string) {
+  async function send(
+    body: string,
+    attachments: { assetId: string; width: number; height: number }[],
+    replyToId: number | null,
+  ) {
     if (activeId == null) return;
-    const res = await sendMessageAction({ conversationId: activeId, body });
+    const res = await sendMessageAction({
+      conversationId: activeId,
+      body,
+      attachments,
+      replyToId: replyToId ?? undefined,
+    });
     if (res.ok) {
       setMessages((prev) => [...prev, res.message]);
+      void refreshConversations();
+    }
+  }
+
+  async function editMsg(id: number, body: string) {
+    const res = await editMessageAction(id, body);
+    if (res.ok && activeId != null) setMessages(await loadMessagesAction(activeId));
+  }
+
+  async function unsendMsg(id: number) {
+    const res = await unsendMessageAction(id);
+    if (res.ok && activeId != null) {
+      setMessages(await loadMessagesAction(activeId));
       void refreshConversations();
     }
   }
@@ -124,7 +148,7 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
         : t("chat.title");
 
   const panel = open ? (
-    <div className="fixed bottom-4 end-4 z-50 flex h-[32rem] max-h-[80vh] w-[22rem] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
+    <div className="fixed inset-2 z-50 flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl sm:inset-auto sm:bottom-4 sm:end-4 sm:h-[32rem] sm:max-h-[80vh] sm:w-[22rem]">
       <div className="flex items-center gap-2 border-b border-line px-3 py-2">
         {view !== "list" && (
           <button
@@ -150,7 +174,7 @@ export function ChatWidget({ meId, initialUnread }: { meId: number; initialUnrea
       <div className="min-h-0 flex-1">
         {view === "list" && <ConversationList rows={conversations} onOpen={openConversation} />}
         {view === "thread" && activeId != null && (
-          <MessageThread meId={meId} messages={messages} onSend={send} />
+          <MessageThread meId={meId} messages={messages} onSend={send} onEdit={editMsg} onUnsend={unsendMsg} />
         )}
         {view === "new" && <NewChatPicker people={people} onPick={pickPerson} />}
       </div>

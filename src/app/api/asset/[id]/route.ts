@@ -28,10 +28,11 @@ export async function GET(
     // receipts (→ Expenses VIEW) and HR documents like national-ID scans (→ the
     // owning employee, their manager/HR, or admin). Asset ids are unguessable cuids;
     // other photos (product/CS/avatars) stay logged-in-only.
-    const [expenseAtt, empPhoto, eventPhoto] = await Promise.all([
+    const [expenseAtt, empPhoto, eventPhoto, chatAtt] = await Promise.all([
       prisma.expenseAttachment.findFirst({ where: { assetId: id }, select: { id: true } }),
       prisma.employeePhoto.findFirst({ where: { assetId: id }, select: { employeeId: true } }),
       prisma.employeeEventPhoto.findFirst({ where: { assetId: id }, select: { event: { select: { employeeId: true } } } }),
+      prisma.chatAttachment.findFirst({ where: { assetId: id }, select: { message: { select: { conversation: { select: { userAId: true, userBId: true } } } } } }),
     ]);
     if (expenseAtt && !access.canModule("expenses", "VIEW")) {
       return new NextResponse("Forbidden", { status: 403 });
@@ -41,6 +42,14 @@ export async function GET(
       const own = (await getEmployeeByUserId(access.user.id))?.id === hrEmployeeId;
       const allowed = own || access.can("human_resources", "operate") || (await canManageEmployee(access, hrEmployeeId));
       if (!allowed) return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    // Chat photos: only the two participants of the conversation.
+    if (chatAtt) {
+      const c = chatAtt.message.conversation;
+      if (c.userAId !== access.user.id && c.userBId !== access.user.id) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
     }
   }
 
