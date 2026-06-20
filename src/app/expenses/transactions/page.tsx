@@ -2,14 +2,14 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
-import { listTransactions } from "@/lib/expenses/expenses-service";
+import { listTransactions, categoryArMap } from "@/lib/expenses/expenses-service";
 import { displayName } from "@/lib/users/users-logic";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { formatBizDate } from "@/lib/format/dates";
 
 export default async function TransactionsPage() {
   const access = await requireModule("expenses", "VIEW");
-  const [t, locale, rows] = await Promise.all([getT(), getLocale(), listTransactions({})]);
+  const [t, locale, rows, arMap] = await Promise.all([getT(), getLocale(), listTransactions({}), categoryArMap()]);
   const canCreate = access.can("expenses", "createTxn");
 
   return (
@@ -38,7 +38,7 @@ export default async function TransactionsPage() {
                   </Link>
                 </td>
                 <td className="td" data-label={t("exp.category")}>
-                  {categoryLabel(t, r.categoryNameSnapshot)}
+                  {categoryLabel(t, r.categoryNameSnapshot, locale, arMap)}
                   {r.attachments.length > 0 && <span className="ms-2 text-xs text-muted">📎{r.attachments.length}</span>}
                 </td>
                 <td className="td" data-label={t("exp.type")}>

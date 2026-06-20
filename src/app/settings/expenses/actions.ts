@@ -15,11 +15,12 @@ export async function saveCategoriesAction(fd: FormData): Promise<void> {
     id,
     remove: on(fd, `remove_${id}`),
     name: str(fd, `name_${id}`),
+    nameAr: str(fd, `nameAr_${id}`) || null,
     type: str(fd, `type_${id}`),
     enabled: on(fd, `enabled_${id}`),
   }));
   const newName = str(fd, "new_name");
-  await saveCategoryBatch(rows, newName ? { name: newName, type: str(fd, "new_type") } : null);
+  await saveCategoryBatch(rows, newName ? { name: newName, nameAr: str(fd, "new_nameAr") || null, type: str(fd, "new_type") } : null);
   await writeAudit(access.user.id, "expenses", "expense.categories.save", "expenseCategory", "batch", { rows: rows.length });
   revalidatePath("/settings/expenses/categories");
 }

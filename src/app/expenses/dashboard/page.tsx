@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
-import { getExpensesDashboard } from "@/lib/expenses/expenses-service";
+import { getT, getLocale } from "@/i18n/server";
+import { getExpensesDashboard, categoryArMap } from "@/lib/expenses/expenses-service";
+import { categoryLabel } from "@/lib/expenses/category-label";
 
 const RECON_COLOR: Record<string, string> = {
   GREEN: "bg-green-100 text-green-700",
@@ -12,7 +13,7 @@ const RECON_COLOR: Record<string, string> = {
 
 export default async function ExpensesDashboard() {
   const access = await requireModule("expenses", "VIEW");
-  const [t, d] = await Promise.all([getT(), getExpensesDashboard()]);
+  const [t, locale, d, arMap] = await Promise.all([getT(), getLocale(), getExpensesDashboard(), categoryArMap()]);
   const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
   const maxBar = Math.max(1, ...d.byMonth.map((m) => Math.max(m.expenses, m.transfers)));
 
@@ -51,7 +52,7 @@ export default async function ExpensesDashboard() {
           <ul className="space-y-2">
             {d.topCategories.map((c) => (
               <li key={c.name} className="flex justify-between text-sm">
-                <span className="text-ink">{c.name}</span>
+                <span className="text-ink">{categoryLabel(t, c.name, locale, arMap)}</span>
                 <span className="text-muted">{egp(c.total)}</span>
               </li>
             ))}

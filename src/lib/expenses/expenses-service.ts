@@ -336,10 +336,11 @@ export interface CategoryRow {
   id: number;
   remove: boolean;
   name: string;
+  nameAr: string | null;
   type: string;
   enabled: boolean;
 }
-export async function saveCategoryBatch(rows: CategoryRow[], add: { name: string; type: string } | null) {
+export async function saveCategoryBatch(rows: CategoryRow[], add: { name: string; nameAr: string | null; type: string } | null) {
   const ops = [];
   for (const r of rows) {
     if (r.remove) {
@@ -348,13 +349,19 @@ export async function saveCategoryBatch(rows: CategoryRow[], add: { name: string
       ops.push(
         prisma.expenseCategory.update({
           where: { id: r.id },
-          data: { name: r.name, type: normType(r.type), enabled: r.enabled },
+          data: { name: r.name, nameAr: r.nameAr || null, type: normType(r.type), enabled: r.enabled },
         }),
       );
     }
   }
-  if (add?.name) ops.push(prisma.expenseCategory.create({ data: { name: add.name, type: normType(add.type) } }));
+  if (add?.name) ops.push(prisma.expenseCategory.create({ data: { name: add.name, nameAr: add.nameAr || null, type: normType(add.type) } }));
   if (ops.length) await prisma.$transaction(ops);
+}
+
+/** name → Arabic-name map for categories that have a translation (display use). */
+export async function categoryArMap(): Promise<Record<string, string>> {
+  const cats = await prisma.expenseCategory.findMany({ where: { nameAr: { not: null } }, select: { name: true, nameAr: true } });
+  return Object.fromEntries(cats.map((c) => [c.name, c.nameAr as string]));
 }
 
 export interface AccountRow {

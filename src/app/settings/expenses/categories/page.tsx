@@ -14,16 +14,18 @@ export default async function CategoriesSettingsPage() {
       <form action={saveCategoriesAction} className="card max-w-3xl space-y-2 p-6">
         <input type="hidden" name="ids" value={categories.map((c) => c.id).join(",")} />
 
-        <div className="hidden grid-cols-[1fr_140px_80px_80px] gap-3 px-1 text-xs font-semibold text-muted sm:grid">
+        <div className="hidden grid-cols-[1fr_1fr_130px_70px_70px] gap-3 px-1 text-xs font-semibold text-muted sm:grid">
           <span>{t("exp.name")}</span>
+          <span>{t("exp.nameAr")}</span>
           <span>{t("exp.type")}</span>
           <span>{t("exp.enabled")}</span>
           <span>{t("common.delete")}</span>
         </div>
 
         {categories.map((c) => (
-          <div key={c.id} className="grid grid-cols-2 items-center gap-3 sm:grid-cols-[1fr_140px_80px_80px]">
+          <div key={c.id} className="grid grid-cols-2 items-center gap-3 sm:grid-cols-[1fr_1fr_130px_70px_70px]">
             <input name={`name_${c.id}`} defaultValue={c.name} className="input" />
+            <input name={`nameAr_${c.id}`} defaultValue={c.nameAr ?? ""} dir="rtl" className="input" />
             <select name={`type_${c.id}`} defaultValue={c.type} className="input">
               <option value="EXPENSE">{t("exp.expense")}</option>
               <option value="TRANSFER">{t("exp.transfer")}</option>
@@ -34,8 +36,9 @@ export default async function CategoriesSettingsPage() {
         ))}
 
         {/* New row */}
-        <div className="grid grid-cols-2 items-center gap-3 border-t border-line pt-3 sm:grid-cols-[1fr_140px_80px_80px]">
+        <div className="grid grid-cols-2 items-center gap-3 border-t border-line pt-3 sm:grid-cols-[1fr_1fr_130px_70px_70px]">
           <input name="new_name" placeholder={`+ ${t("exp.name")}`} className="input" />
+          <input name="new_nameAr" placeholder={t("exp.nameAr")} dir="rtl" className="input" />
           <select name="new_type" className="input">
             <option value="EXPENSE">{t("exp.expense")}</option>
             <option value="TRANSFER">{t("exp.transfer")}</option>

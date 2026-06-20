@@ -21,6 +21,7 @@ export default async function TransactionDetailPage({
   const tx = await getTransaction(Number(id));
   if (!tx) notFound();
   const [t, locale, categories] = await Promise.all([getT(), getLocale(), listCategories()]);
+  const arByName = Object.fromEntries(categories.filter((c) => c.nameAr).map((c) => [c.name, c.nameAr as string]));
 
   const editable = canEditExpense({
     isManager: access.can("expenses", "editAny"),
@@ -37,12 +38,12 @@ export default async function TransactionDetailPage({
   const mimeOf = new Map(assets.map((a) => [a.id, a.mimeType]));
 
   return (
-    <AppShell access={access} moduleKey="expenses" pageTitle={`#${tx.id} · ${categoryLabel(t, tx.categoryNameSnapshot)}`} backHref="/expenses/transactions">
+    <AppShell access={access} moduleKey="expenses" pageTitle={`#${tx.id} · ${categoryLabel(t, tx.categoryNameSnapshot, locale, arByName)}`} backHref="/expenses/transactions">
 
       <div className="grid gap-6 lg:grid-cols-2">
         {editable ? (
           <ExpenseForm
-            categories={categories.map((c) => ({ id: c.id, name: c.name }))}
+            categories={categories.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr }))}
             txId={tx.id}
             initial={{ categoryId: tx.categoryId ?? undefined, amount: String(tx.amount), note: tx.note ?? "" }}
           />

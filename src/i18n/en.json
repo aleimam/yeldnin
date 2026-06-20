@@ -373,6 +373,7 @@
   "exp.action": "Action",
   "exp.add": "Add",
   "exp.name": "Name",
+  "exp.nameAr": "Name (Arabic)",
   "exp.enabled": "Enabled",
 
   "dashboard.welcome": "Welcome in Yeldn",

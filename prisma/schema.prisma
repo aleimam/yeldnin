@@ -1010,6 +1010,7 @@ model SlaConfig {
 model ExpenseCategory {
   id        Int       @id @default(autoincrement())
   name      String
+  nameAr    String? // Arabic name (admin-entered; shown in the Arabic UI, falls back to `name`)
   type      String // "EXPENSE" | "TRANSFER"
   enabled   Boolean   @default(true)
   sortOrder Int       @default(0)

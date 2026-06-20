@@ -1,11 +1,12 @@
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
-import { getExpenseReports } from "@/lib/expenses/expenses-service";
+import { getT, getLocale } from "@/i18n/server";
+import { getExpenseReports, categoryArMap } from "@/lib/expenses/expenses-service";
+import { categoryLabel } from "@/lib/expenses/category-label";
 
 export default async function ExpenseReportsPage() {
   const access = await requireModule("expenses", "VIEW");
-  const [t, r] = await Promise.all([getT(), getExpenseReports()]);
+  const [t, locale, r, arMap] = await Promise.all([getT(), getLocale(), getExpenseReports(), categoryArMap()]);
   const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
 
   return (
@@ -17,7 +18,7 @@ export default async function ExpenseReportsPage() {
             <tbody className="divide-y divide-line">
               {r.byCategory.map((c) => (
                 <tr key={`${c.name}-${c.type}`}>
-                  <td className="py-1.5">{c.name}</td>
+                  <td className="py-1.5">{categoryLabel(t, c.name, locale, arMap)}</td>
                   <td className="py-1.5 text-end text-muted">{egp(c.total)}</td>
                 </tr>
               ))}

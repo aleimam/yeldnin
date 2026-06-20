@@ -1,30 +1,32 @@
 import Link from "next/link";
 import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { listCategories, listTransactions } from "@/lib/expenses/expenses-service";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { ExpenseForm } from "../../ExpenseForm";
 
 export default async function NewTransactionPage() {
   const access = await requireCapability("expenses", "createTxn");
-  const [t, categories, recent] = await Promise.all([
+  const [t, locale, categories, recent] = await Promise.all([
     getT(),
+    getLocale(),
     listCategories(),
     listTransactions({ take: 8 }),
   ]);
+  const arByName = Object.fromEntries(categories.filter((c) => c.nameAr).map((c) => [c.name, c.nameAr as string]));
 
   return (
     <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.new")} backHref="/expenses/transactions">
       <div className="grid gap-6 lg:grid-cols-2">
-        <ExpenseForm categories={categories.map((c) => ({ id: c.id, name: c.name }))} />
+        <ExpenseForm categories={categories.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr }))} />
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("exp.recent")}</h2>
           <ul className="divide-y divide-line">
             {recent.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2 text-sm">
                 <Link href={`/expenses/transactions/${r.id}`} className="text-brand hover:underline">
-                  {categoryLabel(t, r.categoryNameSnapshot)}
+                  {categoryLabel(t, r.categoryNameSnapshot, locale, arByName)}
                 </Link>
                 <span className="text-muted">{Math.round(r.amount).toLocaleString()} EGP</span>
               </li>
