@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import { canManageEmployee } from "@/lib/hr/hr-service";
-import { generateDraft, recompute, addTargetLine, addAdhocLine, removeLine, lockPayslip, type AdhocInput } from "@/lib/hr/payroll-service";
+import { generateDraft, recompute, addTargetLine, addAdhocLine, removeLine, lockPayslip, payslipEmployeeId, type AdhocInput } from "@/lib/hr/payroll-service";
 import { generateAllDrafts } from "@/lib/hr/hr-analytics-service";
 
 export type PayrollResult = { ok: true } | { ok: false; error: string };
@@ -13,6 +13,19 @@ export type BatchResult = { ok: true; count: number } | { ok: false; error: stri
 async function guard(employeeId: number) {
   const access = await requireUser();
   if (!(await canManageEmployee(access, employeeId))) redirect("/");
+  return access;
+}
+
+/**
+ * Authorize an action that targets a payslip by id. We resolve the slip's REAL
+ * owner and authorize against that — never the client-supplied employeeId — so a
+ * manager of employee A cannot pass A's id while pointing payslipId at B's slip
+ * (IDOR). The supplied id must also match the real owner.
+ */
+async function guardPayslip(employeeId: number, payslipId: number) {
+  const access = await requireUser();
+  const owner = await payslipEmployeeId(payslipId);
+  if (owner == null || owner !== employeeId || !(await canManageEmployee(access, owner))) redirect("/");
   return access;
 }
 function refresh(employeeId: number) {
@@ -34,7 +47,7 @@ export async function generatePayslipAction(employeeId: number, year: number, mo
 }
 
 export async function recomputePayslipAction(employeeId: number, payslipId: number): Promise<PayrollResult> {
-  await guard(employeeId);
+  await guardPayslip(employeeId, payslipId);
   try {
     await recompute(payslipId);
     refresh(employeeId);
@@ -45,7 +58,7 @@ export async function recomputePayslipAction(employeeId: number, payslipId: numb
 }
 
 export async function addTargetAction(employeeId: number, payslipId: number, componentId: number): Promise<PayrollResult> {
-  await guard(employeeId);
+  await guardPayslip(employeeId, payslipId);
   try {
     await addTargetLine(payslipId, componentId);
     refresh(employeeId);
@@ -56,7 +69,7 @@ export async function addTargetAction(employeeId: number, payslipId: number, com
 }
 
 export async function addAdhocAction(employeeId: number, payslipId: number, input: AdhocInput): Promise<PayrollResult> {
-  await guard(employeeId);
+  await guardPayslip(employeeId, payslipId);
   if (!input.label?.trim()) return { ok: false, error: "A label is required." };
   if (input.mode === "FIXED" && !(Number(input.amount) > 0)) return { ok: false, error: "Enter an amount." };
   if (input.mode === "DAYS" && !(Number(input.days) > 0)) return { ok: false, error: "Enter a number of days." };
@@ -70,7 +83,7 @@ export async function addAdhocAction(employeeId: number, payslipId: number, inpu
 }
 
 export async function removeLineAction(employeeId: number, payslipId: number, lineId: number): Promise<PayrollResult> {
-  await guard(employeeId);
+  await guardPayslip(employeeId, payslipId);
   try {
     await removeLine(payslipId, lineId);
     refresh(employeeId);
@@ -96,7 +109,7 @@ export async function generateAllDraftsAction(year: number, month: number): Prom
 }
 
 export async function lockPayslipAction(employeeId: number, payslipId: number): Promise<PayrollResult> {
-  const access = await guard(employeeId);
+  const access = await guardPayslip(employeeId, payslipId);
   try {
     await lockPayslip(payslipId, access.user.id);
     await writeAudit(access.user.id, "human_resources", "payslip.lock", "payslip", payslipId);

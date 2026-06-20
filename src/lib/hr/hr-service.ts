@@ -2,7 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { clean } from "@/lib/text";
-import { createUser } from "@/lib/users/users-service";
+import { hashPassword } from "@/lib/auth/password";
+import { createUserTx } from "@/lib/users/users-service";
 import { wouldCreateCycle } from "./hr-logic";
 
 async function addEvent(employeeId: number, type: string, message: string, byUserId: number | null, photoAssetIds: string[] = []) {
@@ -36,25 +37,40 @@ export interface NewEmployeeInput {
 
 /** Create a user + its employee (strict 1:1), with optional initial HR fields. */
 export async function createEmployeeWithUser(input: NewEmployeeInput, byUserId: number): Promise<{ userId: number; employeeId: number }> {
-  const user = await createUser({
-    name: input.name,
-    nameAr: clean(input.nameAr) ?? undefined,
-    fullName: clean(input.fullName) ?? undefined,
-    username: clean(input.username) ?? undefined,
-    email: input.email,
-    tier: input.tier || "MEMBER",
-    primaryPhone: clean(input.primaryPhone) ?? undefined,
-    password: input.password,
-  });
-  const employeeId = await ensureEmployee(user.id, byUserId);
-  if (input.lineManagerId != null || input.hiringDate) {
-    await prisma.employee.update({
-      where: { id: employeeId },
-      data: { lineManagerId: input.lineManagerId ?? null, hiringDate: input.hiringDate ? new Date(input.hiringDate) : null },
+  // The user and the employee must be created together. A half-done create — user
+  // inserted, employee insert then fails — would orphan the user, break the strict
+  // 1:1, and block any retry because the email is now taken. Hash the password and
+  // reserve the employee UID up-front (bcrypt + the Counter write stay outside the
+  // write transaction, so we never hold SQLite's single writer during them), then
+  // do both inserts and their events in one atomic transaction.
+  const passwordHash = await hashPassword(input.password);
+  const uid = await nextUid("EMP");
+  return prisma.$transaction(async (tx) => {
+    const user = await createUserTx(tx, {
+      name: input.name,
+      nameAr: clean(input.nameAr) ?? undefined,
+      fullName: clean(input.fullName) ?? undefined,
+      username: clean(input.username) ?? undefined,
+      email: input.email,
+      tier: input.tier || "MEMBER",
+      primaryPhone: clean(input.primaryPhone) ?? undefined,
+      passwordHash,
     });
-    if (input.lineManagerId != null) await addEvent(employeeId, "MANAGER_CHANGED", "Line manager assigned.", byUserId);
-  }
-  return { userId: user.id, employeeId };
+    const emp = await tx.employee.create({
+      data: {
+        uid,
+        userId: user.id,
+        createdById: byUserId,
+        lineManagerId: input.lineManagerId ?? null,
+        hiringDate: input.hiringDate ? new Date(input.hiringDate) : null,
+      },
+    });
+    await tx.employeeEvent.create({ data: { employeeId: emp.id, type: "CREATED", message: "Employee record created.", byUserId } });
+    if (input.lineManagerId != null) {
+      await tx.employeeEvent.create({ data: { employeeId: emp.id, type: "MANAGER_CHANGED", message: "Line manager assigned.", byUserId } });
+    }
+    return { userId: user.id, employeeId: emp.id };
+  });
 }
 
 export interface EmployeeProfileInput {

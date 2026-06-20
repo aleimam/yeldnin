@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { REQUEST_TYPES, requiresCustomer, allowsPhotos, expectedDeposit } from "@/lib/requests/request-logic";
 import type { Scope } from "@/lib/products/products-logic";
@@ -41,6 +42,12 @@ export function RequestForm({
   const [deposit, setDeposit] = useState("");
   const [lines, setLines] = useState<Line[]>([blankLine()]);
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+
+  // Warn before navigating away once any real data has been entered.
+  const dirty =
+    !!customerId || !!notes.trim() || !!deposit || !!newCust.name || !!newCust.contactNumber || photos.length > 0 ||
+    lines.some((l) => l.productId || l.sellingPrice || l.purchasePrice || l.notes || l.purchaseCurrency || l.count !== "1");
+  useUnsavedGuard(dirty, t("common.unsaved"));
 
   const isSpecial = requiresCustomer(type);
   const expected = expectedDeposit(

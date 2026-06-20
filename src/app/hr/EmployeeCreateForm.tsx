@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { createEmployeeAction } from "./actions";
 
 type Field = "name" | "nameAr" | "email" | "username" | "password" | "tier" | "primaryPhone" | "lineManagerId" | "hiringDate";
@@ -13,6 +14,8 @@ export function EmployeeCreateForm({ managers }: { managers: { id: number; label
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const set = (k: Field) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const dirty = !!(f.name || f.nameAr || f.email || f.username || f.password || f.primaryPhone || f.lineManagerId || f.hiringDate);
+  useUnsavedGuard(dirty, t("common.unsaved"));
 
   const submit = () => {
     setErr(null);

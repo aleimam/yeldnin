@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useT } from "@/i18n/client";
+import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import type { Scope } from "@/lib/products/products-logic";
 import { HandlingFeeInput } from "@/components/HandlingFeeInput";
 import { FX_BASE } from "@/lib/fx/fx-logic";
@@ -46,6 +47,12 @@ export function PurchaseForm({
   const [handlingFeeCurrency, setHandlingFeeCurrency] = useState(FX_BASE);
   const [qty, setQty] = useState<Record<number, string>>({});
   const [priceTouched, setPriceTouched] = useState(false);
+
+  // Warn before navigating away once any real data has been entered.
+  const dirty =
+    !!supplierId || !!destinationId || !!notes.trim() || !!handlingFee || priceTouched ||
+    Object.values(qty).some((v) => Number(v) > 0);
+  useUnsavedGuard(dirty, t("common.unsaved"));
 
   const scopePool = pool.filter((p) => p.scope === scope);
   // A purchase can only go to a destination in its own country; suppliers are

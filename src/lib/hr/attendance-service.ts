@@ -93,12 +93,48 @@ export async function createLeaveRequest(employeeId: number, type: LeaveType, st
   return prisma.leaveRequest.create({ data: { uid, employeeId, type, startDate: start, endDate: end, days, reason: clean(reason), createdById } });
 }
 
-export async function decideLeave(id: number, approve: boolean, note: string | null, deciderId: number) {
-  const lr = await prisma.leaveRequest.findUnique({ where: { id }, select: { status: true } });
-  if (!lr || lr.status !== "PENDING") return;
-  await prisma.leaveRequest.update({
-    where: { id },
-    data: { status: approve ? "APPROVED" : "DECLINED", decidedById: deciderId, decidedAt: new Date(), decidedNote: clean(note) },
+/**
+ * Approve or decline a pending leave request. Approving enforces the employee's
+ * remaining balance for that leave type — the check and the status flip run in one
+ * transaction so two stacked requests can't both be approved past the allowance.
+ * Returns an i18n error key when it can't proceed.
+ */
+export async function decideLeave(id: number, approve: boolean, note: string | null, deciderId: number): Promise<{ ok: boolean; error?: string }> {
+  const lr = await prisma.leaveRequest.findUnique({ where: { id }, select: { status: true, type: true, days: true, employeeId: true, startDate: true } });
+  if (!lr || lr.status !== "PENDING") return { ok: false, error: "leave.notPending" };
+
+  if (!approve) {
+    await prisma.leaveRequest.update({
+      where: { id },
+      data: { status: "DECLINED", decidedById: deciderId, decidedAt: new Date(), decidedNote: clean(note) },
+    });
+    return { ok: true };
+  }
+
+  const year = lr.startDate.getUTCFullYear();
+  return prisma.$transaction(async (tx) => {
+    const [emp, cfg] = await Promise.all([
+      tx.employee.findUnique({ where: { id: lr.employeeId }, select: { annualAllowance: true, urgentAllowance: true } }),
+      tx.hrConfig.findFirst(),
+    ]);
+    const approved = await tx.leaveRequest.findMany({
+      where: { employeeId: lr.employeeId, status: "APPROVED", type: lr.type, startDate: { gte: yearStart(year), lte: yearEnd(year) } },
+      select: { days: true },
+    });
+    let used = approved.reduce((s, r) => s + r.days, 0);
+    if (lr.type === "URGENT") {
+      used += await tx.absence.count({ where: { employeeId: lr.employeeId, coveredByUrgent: true, date: { gte: yearStart(year), lte: yearEnd(year) } } });
+    }
+    const allowance =
+      lr.type === "ANNUAL"
+        ? effectiveAllowance(emp?.annualAllowance, cfg?.annualDefault ?? 0)
+        : effectiveAllowance(emp?.urgentAllowance, cfg?.urgentDefault ?? 0);
+    if (lr.days > allowance - used) return { ok: false, error: "leave.insufficient" };
+    await tx.leaveRequest.update({
+      where: { id },
+      data: { status: "APPROVED", decidedById: deciderId, decidedAt: new Date(), decidedNote: clean(note) },
+    });
+    return { ok: true };
   });
 }
 

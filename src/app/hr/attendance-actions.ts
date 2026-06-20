@@ -56,15 +56,17 @@ export async function applyLeaveAction(type: string, startDate: string, endDate:
   }
 }
 
-export async function decideLeaveAction(id: number, approve: boolean, note: string | null): Promise<void> {
+export async function decideLeaveAction(id: number, approve: boolean, note: string | null): Promise<LeaveResult> {
   const access = await requireUser();
   const lr = await getLeaveRequest(id);
-  if (!lr) return;
+  if (!lr) return { ok: false, error: "leave.notPending" };
   if (!(await canManageEmployee(access, lr.employeeId))) redirect("/");
-  await decideLeave(id, approve, note, access.user.id);
+  const res = await decideLeave(id, approve, note, access.user.id);
+  if (!res.ok) return { ok: false, error: res.error ?? "leave.notPending" };
   await writeAudit(access.user.id, "human_resources", approve ? "leave.approve" : "leave.decline", "leave", id);
   revalidatePath("/hr/attendance");
   revalidatePath("/hr/my-leave");
+  return { ok: true };
 }
 
 export async function markAbsenceAction(employeeId: number, date: string, note: string | null): Promise<void> {

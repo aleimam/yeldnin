@@ -83,6 +83,9 @@ function BulkRaiseSection({ components, teams }: { components: Component[]; team
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => { setF((s) => ({ ...s, [k]: e.target.value })); setMsg(null); };
   const apply = () => {
     setMsg(null);
+    const compName = components.find((c) => String(c.id) === f.componentId)?.name ?? "";
+    const scopeName = f.teamId ? teams.find((tm) => String(tm.id) === f.teamId)?.name ?? "" : t("salary.allEmployees");
+    if (!window.confirm(t("salary.bulkConfirm", { component: compName, scope: scopeName }))) return;
     start(async () => {
       const r = await bulkRaiseAction(Number(f.componentId), f.teamId ? Number(f.teamId) : null, f.type, Number(f.delta), f.effectiveDate, null);
       if (!r.ok) { setMsg({ ok: false, text: t(r.error) }); return; }

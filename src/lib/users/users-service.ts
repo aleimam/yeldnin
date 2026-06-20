@@ -1,8 +1,12 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { clean } from "@/lib/text";
 import { hashPassword } from "@/lib/auth/password";
 import { isLevel, type Level, type Tier } from "@/lib/auth/access-logic";
+
+/** A Prisma client bound to an open transaction (interactive `$transaction`). */
+export type Tx = Prisma.TransactionClient;
 
 const TIERS: Tier[] = ["SUPER_ADMIN", "ADMIN", "MEMBER"];
 export function isTier(v: string): v is Tier {
@@ -80,17 +84,30 @@ async function assertUidValid(uid: string | null, exceptId?: number) {
   if (clash) throw new Error("That employee number is already taken.");
 }
 
-export async function createUser(input: UserProfileInput & { password: string }) {
+/**
+ * Create a user *inside a caller-supplied transaction*. The password must be
+ * pre-hashed (bcrypt is async CPU work — keep it out of the write transaction).
+ * Validation reads run on the same `tx` so uniqueness is checked against the
+ * transaction's own view. Exposed so callers that must create a user and its
+ * dependents atomically (e.g. an employee) can share one transaction.
+ */
+export async function createUserTx(tx: Tx, input: UserProfileInput & { passwordHash: string }) {
   const email = input.email.trim().toLowerCase();
-  if (await prisma.user.findUnique({ where: { email } })) {
+  if (await tx.user.findFirst({ where: { email } })) {
     throw new Error("A user with that email already exists.");
   }
   const username = clean(input.username);
-  await assertUsernameFree(username);
+  if (username && (await tx.user.findFirst({ where: { username }, select: { id: true } }))) {
+    throw new Error("That username is already taken.");
+  }
   const uid = clean(input.uid);
-  await assertUidValid(uid);
-  const passwordHash = await hashPassword(input.password);
-  return prisma.user.create({
+  if (uid) {
+    if (!uid.startsWith("YE1101")) throw new Error("Employee number must start with YE1101.");
+    if (await tx.user.findFirst({ where: { uid }, select: { id: true } })) {
+      throw new Error("That employee number is already taken.");
+    }
+  }
+  return tx.user.create({
     data: {
       uid,
       name: input.name.trim(),
@@ -100,13 +117,18 @@ export async function createUser(input: UserProfileInput & { password: string })
       username,
       email,
       tier: isTier(input.tier) ? input.tier : "MEMBER",
-      passwordHash,
+      passwordHash: input.passwordHash,
       primaryPhone: clean(input.primaryPhone),
       secondaryPhone: clean(input.secondaryPhone),
       yeldnPhone: clean(input.yeldnPhone),
       avatarUrl: input.avatarUrl || null,
     },
   });
+}
+
+export async function createUser(input: UserProfileInput & { password: string }) {
+  const passwordHash = await hashPassword(input.password);
+  return prisma.$transaction((tx) => createUserTx(tx, { ...input, passwordHash }));
 }
 
 export async function updateUserProfile(id: number, input: UserProfileInput & { active: boolean }) {

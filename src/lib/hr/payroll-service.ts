@@ -112,14 +112,19 @@ async function recomputeInner(payslipId: number) {
   const all = [...auto.lines, ...manual];
   const { resolved, totals, dob, dot } = computeAmounts(all, auto.basic, auto.workingDays);
 
-  await prisma.payslipLine.deleteMany({ where: { payslipId } });
-  await prisma.payslipLine.createMany({
-    data: resolved.map((l) => ({ payslipId, kind: l.kind, source: l.source, componentId: l.componentId, label: l.label, valuation: l.valuation, qty: l.qty, rate: l.rate, amount: l.amount, detail: l.detail })),
-  });
-  await prisma.payslip.update({
-    where: { id: payslipId },
-    data: { basic: auto.basic, earningsTotal: totals.earningsTotal, bonusTotal: totals.bonusTotal, penaltyTotal: totals.penaltyTotal, gross: totals.gross, net: totals.net, workingDays: auto.workingDays, dayOfBasic: dob, dayOfTotal: dot, absentOverLimit: auto.absentOverLimit },
-  });
+  // Atomic: clearing the old lines, writing the new ones, and refreshing the
+  // header must all land together — a mid-fail must never leave a payslip with
+  // zero lines or totals that disagree with its lines.
+  await prisma.$transaction([
+    prisma.payslipLine.deleteMany({ where: { payslipId } }),
+    prisma.payslipLine.createMany({
+      data: resolved.map((l) => ({ payslipId, kind: l.kind, source: l.source, componentId: l.componentId, label: l.label, valuation: l.valuation, qty: l.qty, rate: l.rate, amount: l.amount, detail: l.detail })),
+    }),
+    prisma.payslip.update({
+      where: { id: payslipId },
+      data: { basic: auto.basic, earningsTotal: totals.earningsTotal, bonusTotal: totals.bonusTotal, penaltyTotal: totals.penaltyTotal, gross: totals.gross, net: totals.net, workingDays: auto.workingDays, dayOfBasic: dob, dayOfTotal: dot, absentOverLimit: auto.absentOverLimit },
+    }),
+  ]);
   return prisma.payslip.findUnique({ where: { id: payslipId }, include: { lines: true } });
 }
 
@@ -200,6 +205,12 @@ export async function lockPayslip(payslipId: number, userId: number) {
 }
 
 // ── Reads ────────────────────────────────────────────────────────────────────
+/** The employee a payslip belongs to — the authoritative owner for authz checks. */
+export async function payslipEmployeeId(payslipId: number): Promise<number | null> {
+  const slip = await prisma.payslip.findUnique({ where: { id: payslipId }, select: { employeeId: true } });
+  return slip?.employeeId ?? null;
+}
+
 export function listPayslips(employeeId: number) {
   return prisma.payslip.findMany({ where: { employeeId }, orderBy: [{ year: "desc" }, { month: "desc" }] });
 }

@@ -1,7 +1,8 @@
 "use client";
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
+import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { CS_LEVELS, CS_CHANNELS, valueFor, weightedTotal, normalizedPct, localized, type ValueMap } from "@/lib/cs/cs-logic";
 import { createCsEvaluationAction, updateCsEvaluationAction } from "../actions";
@@ -63,6 +64,14 @@ export function EvalForm({
   const [notes, setNotes] = useState<Record<number, string>>(initial?.notes ?? {});
   const [photos, setPhotos] = useState<UploadedPhoto[]>(initial?.photos ?? []);
   const [error, setError] = useState("");
+
+  // Warn before navigating away with unsaved edits. The baseline is captured on
+  // first render, so create-mode defaults (today's date, the sole call type) and
+  // edit-mode initial values don't count as changes — only real edits do.
+  const snapshot = JSON.stringify({ subjectId, callTypeId, callDate, channel, contact, answers, notes, photos });
+  const baseline = useRef(snapshot);
+  useUnsavedGuard(snapshot !== baseline.current, t("common.unsaved"));
+
   // Type is only meaningful when a scope has more than one — otherwise hide picker & chip.
   const multiType = typeCount > 1;
 
