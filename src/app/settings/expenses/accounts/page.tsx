@@ -4,6 +4,7 @@ import { getT } from "@/i18n/server";
 import { listAccounts } from "@/lib/expenses/expenses-service";
 import { saveAccountsAction, deleteAccountAction } from "../actions";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ActionForm } from "@/components/ActionForm";
 
 export default async function AccountsSettingsPage() {
   const access = await requireCapability("expenses", "manageReference");
@@ -11,7 +12,7 @@ export default async function AccountsSettingsPage() {
 
   return (
     <AppShell access={access} moduleKey="settings" pageTitle={t("exp.accounts")} backHref="/settings">
-      <form action={saveAccountsAction} className="card max-w-2xl space-y-2 p-6">
+      <ActionForm action={saveAccountsAction} className="card max-w-2xl space-y-2 p-6">
         <input type="hidden" name="ids" value={accounts.map((a) => a.id).join(",")} />
 
         <div className="hidden grid-cols-[1fr_80px_80px] gap-3 px-1 text-xs font-semibold text-muted sm:grid">
@@ -31,11 +32,7 @@ export default async function AccountsSettingsPage() {
         <div className="grid grid-cols-2 items-center gap-3 border-t border-line pt-3 sm:grid-cols-[1fr_80px_80px]">
           <input name="new_name" placeholder={`+ ${t("exp.name")}`} className="input" />
         </div>
-
-        <div className="pt-3">
-          <button type="submit" className="btn-primary">{t("common.saveAll")}</button>
-        </div>
-      </form>
+      </ActionForm>
     </AppShell>
   );
 }

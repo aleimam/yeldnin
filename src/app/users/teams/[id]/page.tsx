@@ -10,6 +10,7 @@ import {
   removeMemberAction,
   deleteTeamAction,
 } from "../actions";
+import { ActionForm } from "@/components/ActionForm";
 
 export default async function TeamDetailPage({
   params,
@@ -29,14 +30,13 @@ export default async function TeamDetailPage({
     <AppShell access={access} moduleKey="user_access" pageTitle={team.name} backHref="/users/teams">
       <div className="max-w-2xl space-y-6">
         {/* Rename */}
-        <form action={renameTeamAction} className="card flex items-end gap-3 p-6">
+        <ActionForm action={renameTeamAction} className="card space-y-3 p-6" saveLabel={t("common.save")}>
           <input type="hidden" name="id" value={team.id} />
-          <div className="flex-1">
+          <div>
             <label className="label">{t("teams.name")}</label>
             <input name="name" className="input" defaultValue={team.name} required />
           </div>
-          <button className="btn-primary">{t("common.save")}</button>
-        </form>
+        </ActionForm>
 
         {/* Members */}
         <div className="card p-6">

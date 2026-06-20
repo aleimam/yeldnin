@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listSuppliers } from "@/lib/suppliers/suppliers-service";
 import { saveSuppliersAction } from "./actions";
+import { ActionForm } from "@/components/ActionForm";
 
 export default async function LogisticsSettingsPage() {
   const access = await requireCapability("settings", "manageModules");
@@ -12,7 +13,7 @@ export default async function LogisticsSettingsPage() {
 
   return (
     <AppShell access={access} moduleKey="settings" pageTitle={t("suppliers.title")} backHref="/settings">
-      <form action={saveSuppliersAction} className="card space-y-3 p-6">
+      <ActionForm action={saveSuppliersAction} className="card space-y-3 p-6">
         <input type="hidden" name="ids" value={suppliers.map((s) => s.id).join(",")} />
 
         <div className={`hidden gap-3 px-1 text-xs font-semibold text-muted sm:grid ${cols}`}>
@@ -58,11 +59,7 @@ export default async function LogisticsSettingsPage() {
             <option value="FAST">{t("sla.fast")}</option>
           </select>
         </div>
-
-        <div className="pt-3">
-          <button type="submit" className="btn-primary">{t("common.saveAll")}</button>
-        </div>
-      </form>
+      </ActionForm>
     </AppShell>
   );
 }

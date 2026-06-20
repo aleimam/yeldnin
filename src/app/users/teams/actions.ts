@@ -10,6 +10,7 @@ import {
   removeMember,
   deleteTeam,
 } from "@/lib/teams/teams-service";
+import { saved, saveError, type SaveState } from "@/lib/forms/action-state";
 
 export async function createTeamAction(fd: FormData): Promise<void> {
   const access = await requireCapability("user_access", "manageTeams");
@@ -20,14 +21,19 @@ export async function createTeamAction(fd: FormData): Promise<void> {
   redirect(`/users/teams/${team.id}`);
 }
 
-export async function renameTeamAction(fd: FormData): Promise<void> {
+export async function renameTeamAction(prev: SaveState, fd: FormData): Promise<SaveState> {
   const access = await requireCapability("user_access", "manageTeams");
   const id = Number(fd.get("id"));
   const name = String(fd.get("name") ?? "").trim();
-  if (!id || !name) return;
-  await renameTeam(id, name);
-  await writeAudit(access.user.id, "user_access", "team.rename", "team", id, { name });
-  revalidatePath(`/users/teams/${id}`);
+  if (!id || !name) return saveError(prev);
+  try {
+    await renameTeam(id, name);
+    await writeAudit(access.user.id, "user_access", "team.rename", "team", id, { name });
+    revalidatePath(`/users/teams/${id}`);
+    return saved(prev);
+  } catch {
+    return saveError(prev);
+  }
 }
 
 export async function addMemberAction(fd: FormData): Promise<void> {

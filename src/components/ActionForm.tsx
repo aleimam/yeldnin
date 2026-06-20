@@ -19,18 +19,21 @@ export function ActionForm({
   children,
   className,
   saveLabel,
+  footerClassName,
 }: {
   action: (prev: SaveState, fd: FormData) => Promise<SaveState>;
   children: React.ReactNode;
   className?: string;
   saveLabel?: string;
+  /** Extra classes for the button+message footer (e.g. `sm:col-span-2` inside a grid form). */
+  footerClassName?: string;
 }) {
   const t = useT();
   const [state, formAction, pending] = useActionState(action, null);
   return (
     <form key={state?.n ?? 0} action={formAction} className={className}>
       {children}
-      <div className="flex items-center gap-3 pt-3">
+      <div className={`flex items-center gap-3 pt-3 ${footerClassName ?? ""}`}>
         <button type="submit" disabled={pending} className="btn-primary">
           {pending ? "…" : saveLabel ?? t("common.saveAll")}
         </button>

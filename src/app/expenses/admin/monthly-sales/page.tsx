@@ -4,6 +4,7 @@ import { getT } from "@/i18n/server";
 import { prisma } from "@/lib/db";
 import { checkSalesBreakdown } from "@/lib/expenses/expenses-logic";
 import { saveMonthlySalesAction } from "../actions";
+import { ActionForm } from "@/components/ActionForm";
 
 const FIELDS: [key: string, labelKey: string][] = [
   ["totalSales", "exp.totalSales"],
@@ -22,15 +23,14 @@ export default async function MonthlySalesPage() {
 
   return (
     <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.monthlySales")}>
-      <form action={saveMonthlySalesAction} className="card mb-6 grid max-w-2xl gap-4 p-6 sm:grid-cols-2">
+      <ActionForm action={saveMonthlySalesAction} className="card mb-6 grid max-w-2xl gap-4 p-6 sm:grid-cols-2" saveLabel={t("exp.save")} footerClassName="sm:col-span-2">
         <div><label className="label">{t("exp.year")}</label><input name="year" type="number" defaultValue={now.getFullYear()} className="input" /></div>
         <div><label className="label">{t("exp.month")}</label><input name="month" type="number" min="1" max="12" defaultValue={now.getMonth() + 1} className="input" /></div>
         {FIELDS.map(([k, lk]) => (
           <div key={k}><label className="label">{t(lk)}</label><input name={k} type="number" step="any" defaultValue="0" className="input" /></div>
         ))}
         <div className="sm:col-span-2"><label className="label">{t("exp.note")}</label><input name="note" className="input" /></div>
-        <button className="btn-primary sm:col-span-2">{t("exp.save")}</button>
-      </form>
+      </ActionForm>
 
       <div className="card overflow-x-auto">
         <table className="w-full">

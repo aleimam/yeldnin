@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listAccounts } from "@/lib/expenses/expenses-service";
 import { saveBankCollectionAction } from "../actions";
+import { ActionForm } from "@/components/ActionForm";
 
 export default async function BankCollectionsPage() {
   const access = await requireCapability("expenses", "manageAdmin");
@@ -11,7 +12,7 @@ export default async function BankCollectionsPage() {
 
   return (
     <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.bankCollections")}>
-      <form action={saveBankCollectionAction} className="card max-w-xl space-y-4 p-6">
+      <ActionForm action={saveBankCollectionAction} className="card max-w-xl space-y-4 p-6" saveLabel={t("exp.save")}>
         <div className="flex gap-3">
           <div><label className="label">{t("exp.year")}</label><input name="year" type="number" defaultValue={now.getFullYear()} className="input w-28" /></div>
           <div><label className="label">{t("exp.month")}</label><input name="month" type="number" min="1" max="12" defaultValue={now.getMonth() + 1} className="input w-24" /></div>
@@ -25,8 +26,7 @@ export default async function BankCollectionsPage() {
           ))}
         </div>
         <div><label className="label">{t("exp.note")}</label><input name="note" className="input" /></div>
-        <button className="btn-primary">{t("exp.save")}</button>
-      </form>
+      </ActionForm>
     </AppShell>
   );
 }

@@ -4,13 +4,14 @@ import { requireCapability } from "@/lib/auth/access";
 import { saveSupplierBatch } from "@/lib/suppliers/suppliers-service";
 import { writeAudit } from "@/lib/audit";
 import { SLA_CLASSES } from "@/lib/sla/sla-logic";
+import { saved, saveError, type SaveState } from "@/lib/forms/action-state";
 
 const on = (fd: FormData, k: string) => fd.get(k) === "on";
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const slaCls = (v: string): string | null => ((SLA_CLASSES as readonly string[]).includes(v) ? v : null);
 
 /** Save All for suppliers: parse rows, hand the batch to the service. */
-export async function saveSuppliersAction(fd: FormData): Promise<void> {
+export async function saveSuppliersAction(prev: SaveState, fd: FormData): Promise<SaveState> {
   const access = await requireCapability("settings", "manageModules");
   const ids = str(fd, "ids").split(",").filter(Boolean).map(Number);
 
@@ -38,10 +39,15 @@ export async function saveSuppliersAction(fd: FormData): Promise<void> {
       }
     : null;
 
-  await saveSupplierBatch(rows, add);
-  await writeAudit(access.user.id, "settings", "settings.suppliers.save", "supplier", "batch", {
-    rows: rows.length,
-    added: add ? 1 : 0,
-  });
-  revalidatePath("/settings/logistics");
+  try {
+    await saveSupplierBatch(rows, add);
+    await writeAudit(access.user.id, "settings", "settings.suppliers.save", "supplier", "batch", {
+      rows: rows.length,
+      added: add ? 1 : 0,
+    });
+    revalidatePath("/settings/logistics");
+    return saved(prev);
+  } catch {
+    return saveError(prev);
+  }
 }

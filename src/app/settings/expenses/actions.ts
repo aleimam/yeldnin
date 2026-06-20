@@ -32,7 +32,7 @@ export async function saveCategoriesAction(prev: SaveState, fd: FormData): Promi
 }
 
 /** Save All for expense accounts. */
-export async function saveAccountsAction(fd: FormData): Promise<void> {
+export async function saveAccountsAction(prev: SaveState, fd: FormData): Promise<SaveState> {
   const access = await requireCapability("expenses", "manageReference");
   const rows = idList(fd).map((id) => ({
     id,
@@ -41,9 +41,14 @@ export async function saveAccountsAction(fd: FormData): Promise<void> {
     enabled: on(fd, `enabled_${id}`),
   }));
   const newName = str(fd, "new_name");
-  await saveAccountBatch(rows, newName ? { name: newName } : null);
-  await writeAudit(access.user.id, "expenses", "expense.accounts.save", "expenseAccount", "batch", { rows: rows.length });
-  revalidatePath("/settings/expenses/accounts");
+  try {
+    await saveAccountBatch(rows, newName ? { name: newName } : null);
+    await writeAudit(access.user.id, "expenses", "expense.accounts.save", "expenseAccount", "batch", { rows: rows.length });
+    revalidatePath("/settings/expenses/accounts");
+    return saved(prev);
+  } catch {
+    return saveError(prev);
+  }
 }
 
 /** Soft-delete a single expense category. */
