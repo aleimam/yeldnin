@@ -61,16 +61,23 @@ export default async function ExpensesDashboard() {
         </div>
 
         <div className="card p-5">
-          <h2 className="mb-3 font-semibold text-ink">{t("exp.trend")}</h2>
-          <div className="space-y-2">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold text-ink">{t("exp.trend")}</h2>
+            <div className="flex gap-3 text-[11px] text-muted">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-brand" />{t("exp.expense")}</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" />{t("exp.transfer")}</span>
+            </div>
+          </div>
+          <div className="space-y-3">
             {d.byMonth.map((m) => (
               <div key={m.label} className="text-xs">
                 <div className="mb-0.5 flex justify-between text-muted">
                   <span>{m.label}</span>
-                  <span>{egp(m.expenses)}</span>
+                  <span><span className="text-brand">{egp(m.expenses)}</span> · <span className="text-amber-600">{egp(m.transfers)}</span></span>
                 </div>
-                <div className="h-2 w-full rounded bg-canvas">
-                  <div className="h-2 rounded bg-brand" style={{ width: `${(m.expenses / maxBar) * 100}%` }} />
+                <div className="space-y-1">
+                  <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-brand" style={{ width: `${(m.expenses / maxBar) * 100}%` }} /></div>
+                  <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-amber-500" style={{ width: `${(m.transfers / maxBar) * 100}%` }} /></div>
                 </div>
               </div>
             ))}
