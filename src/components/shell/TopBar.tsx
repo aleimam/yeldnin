@@ -9,6 +9,8 @@ import { MODULES, childModules } from "@/lib/modules";
 import { canAccessSettings } from "@/lib/module-sections";
 import { canAccessCs } from "@/lib/cs/cs-logic";
 import { unreadCount } from "@/lib/notify/notify-message-service";
+import { totalUnread as chatUnreadCount } from "@/lib/chat/chat-service";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { AccountMenu } from "./AccountMenu";
@@ -25,7 +27,7 @@ export async function TopBar({
   user: SessionUser;
   activeModuleKey?: string;
 }) {
-  const [t, locale, access, settings, theme, mode, unread] = await Promise.all([
+  const [t, locale, access, settings, theme, mode, unread, chatUnread] = await Promise.all([
     getT(),
     getLocale(),
     getAccess(),
@@ -33,6 +35,7 @@ export async function TopBar({
     getEffectiveTheme(),
     getColorMode(),
     unreadCount(user.id),
+    chatUnreadCount(user.id),
   ]);
   const dn = displayName(user, locale);
   const showSettings = canAccessSettings(access.can, access.isAdmin);
@@ -97,6 +100,7 @@ export async function TopBar({
             <span className="text-sm font-medium text-ink">{dn}</span>
             <span className="role-badge">{t(`tier.${user.tier}`)}</span>
           </div>
+          <ChatWidget meId={user.id} initialUnread={chatUnread} />
           <Link href="/notifications" aria-label={t("common.notifications")} className="relative text-muted hover:text-ink">
             🔔
             {unread > 0 && (

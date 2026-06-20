@@ -57,6 +57,9 @@ model User {
   pricingCalculations PricingCalculation[]
   expenseTransactions ExpenseTransaction[] @relation("ExpenseCreatedBy")
   employee            Employee?
+  chatConversationsA  ChatConversation[]   @relation("ChatUserA")
+  chatConversationsB  ChatConversation[]   @relation("ChatUserB")
+  chatMessages        ChatMessage[]        @relation("ChatSender")
 }
 
 model PasswordResetToken {
@@ -1578,4 +1581,67 @@ model Counter {
   value  Int    @default(0)
 
   @@unique([prefix, period])
+}
+
+// ─── Chat (1:1 direct messages) ───────────────────────────────────────────────
+// See CHAT.md for the locked design. Universal feature (every user); SSE transport
+// over an in-process bus (single PM2 process). Inquiry models come in Phase C.
+
+// One conversation per unordered user pair. userAId is always the LOWER id and
+// userBId the HIGHER (canonical, enforced in code) so a pair maps to exactly one
+// row. lastMessageAt drives list ordering.
+model ChatConversation {
+  id            Int      @id @default(autoincrement())
+  userAId       Int // canonical: always the lower user id
+  userBId       Int // canonical: always the higher user id
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  userA    User          @relation("ChatUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB    User          @relation("ChatUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId])
+  @@index([userBId])
+}
+
+// A single message. For 1:1, deliveredAt/readAt describe the RECIPIENT's state, so
+// the sender renders ticks straight off this row (✓ sent · ✓✓ gray delivered ·
+// ✓✓ blue read). unsentAt = retracted-for-everyone tombstone; editedAt = edited
+// within the 15-min window.
+model ChatMessage {
+  id             Int              @id @default(autoincrement())
+  conversationId Int
+  conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       Int
+  sender         User             @relation("ChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+  body           String           @default("") // text (may be empty for a photo-only message)
+  replyToId      Int? // message this one quotes/replies to
+  replyTo        ChatMessage?     @relation("ChatReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        ChatMessage[]    @relation("ChatReply")
+  deliveredAt    DateTime? // recipient's client acked receipt (double gray)
+  readAt         DateTime? // recipient opened the conversation (double blue)
+  editedAt       DateTime? // last edit (within 15 min of createdAt)
+  unsentAt       DateTime? // retracted for everyone (tombstone)
+  createdAt      DateTime         @default(now())
+
+  attachments ChatAttachment[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+// A photo attached to a message. Stored via /api/upload (asset id); fetched through
+// the participant-gated /api/asset/[id]. width/height let the client reserve space.
+model ChatAttachment {
+  id        Int         @id @default(autoincrement())
+  messageId Int
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  assetId   String
+  width     Int?
+  height    Int?
+  createdAt DateTime    @default(now())
+
+  @@index([messageId])
 }
