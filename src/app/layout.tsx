@@ -8,6 +8,7 @@ import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { EnterSubmit } from "@/components/EnterSubmit";
+import { NavProgress } from "@/components/NavProgress";
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getPlatformSettings();
@@ -53,6 +54,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH }} />
         <ServiceWorkerRegister />
         <EnterSubmit />
+        <NavProgress />
         <I18nProvider locale={locale}>{children}</I18nProvider>
       </body>
     </html>

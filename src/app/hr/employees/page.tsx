@@ -40,7 +40,7 @@ export default async function EmployeesPage() {
                   <td className="td" data-label={t("hr.statusCol")}>{e.user?.active === false ? <span className="text-muted">{t("products.inactive")}</span> : "✓"}</td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>—</td></tr>}
+              {rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("hr.noEmployees")}</td></tr>}
             </tbody>
           </table>
         </div>
