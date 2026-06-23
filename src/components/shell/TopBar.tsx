@@ -11,6 +11,7 @@ import { canAccessCs } from "@/lib/cs/cs-logic";
 import { unreadCount } from "@/lib/notify/notify-message-service";
 import { totalUnread as chatUnreadCount } from "@/lib/chat/chat-service";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { BrandMark } from "@/components/BrandMark";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { ModuleSwitcher } from "./ModuleSwitcher";
 import { AccountMenu } from "./AccountMenu";
@@ -69,7 +70,7 @@ export async function TopBar({
               <img src={darkLogo!} alt={settings.appName} className="hidden h-7 w-auto dark:block" />
             </>
           ) : (
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-brand text-brand-fg">✦</span>
+            <BrandMark className="h-7 w-7" />
           )}
           <span className="text-lg font-bold text-ink">{settings.appName}</span>
           {(settings.versionShowMobile || settings.versionShowDesktop) && (

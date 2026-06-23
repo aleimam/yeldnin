@@ -3,6 +3,7 @@ import { getT } from "@/i18n/server";
 import { getAccess } from "@/lib/auth/access";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 import { assetUrl } from "@/lib/assets/assets-service";
+import { BrandMark } from "@/components/BrandMark";
 import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage({
@@ -30,7 +31,7 @@ export default async function LoginPage({
               <img src={darkLogo!} alt={settings.appName} className="hidden h-9 w-auto dark:block" />
             </>
           ) : (
-            <span className="grid h-9 w-9 place-items-center rounded-md bg-brand text-lg text-brand-fg">✦</span>
+            <BrandMark className="h-9 w-9" />
           )}
           <span className="text-2xl font-bold text-ink">{t("app.name")}</span>
         </div>
