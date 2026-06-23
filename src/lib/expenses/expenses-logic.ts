@@ -6,14 +6,37 @@ export const EDIT_WINDOW_DAYS = 7;
 // Traffic-light thresholds for reconciliation difference (absolute value, EGP).
 export const RECON_THRESHOLDS = { GREEN_MAX: 5000, YELLOW_MAX: 25000 };
 
-export type ExpenseCategoryType = "EXPENSE" | "TRANSFER";
+export type ExpenseCategoryType = "EXPENSE" | "TRANSFER" | "REVENUE";
 export type ReconStatus = "GREEN" | "YELLOW" | "RED";
+
+/** The category types, in display order (Expense, Money Transfer, Revenue). */
+export const CATEGORY_TYPES: ExpenseCategoryType[] = ["EXPENSE", "TRANSFER", "REVENUE"];
 
 export function isExpenseType(t: string): boolean {
   return t === "EXPENSE";
 }
 export function isTransferType(t: string): boolean {
   return t === "TRANSFER";
+}
+export function isRevenueType(t: string): boolean {
+  return t === "REVENUE";
+}
+
+/** Normalize an arbitrary string to a known category type (defaults to EXPENSE). */
+export function normalizeCategoryType(t: string): ExpenseCategoryType {
+  return (CATEGORY_TYPES as string[]).includes(t) ? (t as ExpenseCategoryType) : "EXPENSE";
+}
+
+/** i18n key for a category type's human label. */
+export function typeLabelKey(type: string): string {
+  if (type === "TRANSFER") return "exp.transfer";
+  if (type === "REVENUE") return "exp.revenue";
+  return "exp.expense";
+}
+
+/** Net expenses = gross expenses minus revenue (revenue offsets spend). */
+export function netExpenses(expensesTotal: number, revenueTotal: number): number {
+  return expensesTotal - revenueTotal;
 }
 
 /**

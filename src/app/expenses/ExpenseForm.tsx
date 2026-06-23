@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { categoryLabel } from "@/lib/expenses/category-label";
+import { CATEGORY_TYPES, typeLabelKey } from "@/lib/expenses/expenses-logic";
 import { createTransactionAction, updateTransactionAction } from "./actions";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -13,7 +14,7 @@ export function ExpenseForm({
   txId,
   initial,
 }: {
-  categories: { id: number; name: string; nameAr?: string | null }[];
+  categories: { id: number; name: string; nameAr?: string | null; type: string }[];
   txId?: number;
   initial?: { categoryId?: number; amount?: string; note?: string; accruingDate?: string };
 }) {
@@ -67,9 +68,17 @@ export function ExpenseForm({
       <div>
         <label className="label">{t("exp.category")}</label>
         <select className="input" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{categoryLabel(t, c.name, locale, arByName)}</option>
-          ))}
+          {CATEGORY_TYPES.map((ty) => {
+            const inType = categories.filter((c) => c.type === ty);
+            if (inType.length === 0) return null;
+            return (
+              <optgroup key={ty} label={t(typeLabelKey(ty))}>
+                {inType.map((c) => (
+                  <option key={c.id} value={c.id}>{categoryLabel(t, c.name, locale, arByName)}</option>
+                ))}
+              </optgroup>
+            );
+          })}
         </select>
       </div>
       <div>

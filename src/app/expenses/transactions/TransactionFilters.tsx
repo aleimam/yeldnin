@@ -46,6 +46,7 @@ export function TransactionFilters({
         <option value="">{t("exp.allTypes")}</option>
         <option value="EXPENSE">{t("exp.expense")}</option>
         <option value="TRANSFER">{t("exp.transfer")}</option>
+        <option value="REVENUE">{t("exp.revenue")}</option>
       </select>
       <select className="input" value={current.flag} onChange={(e) => push({ flag: e.target.value })}>
         <option value="">{t("exp.allFlags")}</option>

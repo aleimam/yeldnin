@@ -30,6 +30,7 @@ export default async function CategoriesSettingsPage() {
             <select name={`type_${c.id}`} defaultValue={c.type} className="input">
               <option value="EXPENSE">{t("exp.expense")}</option>
               <option value="TRANSFER">{t("exp.transfer")}</option>
+              <option value="REVENUE">{t("exp.revenue")}</option>
             </select>
             <label className="flex justify-center"><input type="checkbox" name={`enabled_${c.id}`} defaultChecked={c.enabled} /></label>
             <div className="flex justify-center"><DeleteButton onDelete={deleteCategoryAction.bind(null, c.id)} /></div>
@@ -43,6 +44,7 @@ export default async function CategoriesSettingsPage() {
           <select name="new_type" className="input">
             <option value="EXPENSE">{t("exp.expense")}</option>
             <option value="TRANSFER">{t("exp.transfer")}</option>
+            <option value="REVENUE">{t("exp.revenue")}</option>
           </select>
         </div>
       </ActionForm>

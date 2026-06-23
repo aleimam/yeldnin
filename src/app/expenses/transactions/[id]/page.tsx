@@ -8,7 +8,7 @@ import { assetUrl } from "@/lib/assets/assets-service";
 import { displayName } from "@/lib/users/users-logic";
 import { getTransaction, userNameMap, canFlagExpense } from "@/lib/expenses/expenses-service";
 import { categoryLabel } from "@/lib/expenses/category-label";
-import { canEditExpense } from "@/lib/expenses/expenses-logic";
+import { canEditExpense, typeLabelKey } from "@/lib/expenses/expenses-logic";
 import { formatBizDate } from "@/lib/format/dates";
 import { FlagControls } from "../../FlagControls";
 import { deleteTransactionAction, deleteAttachmentAction } from "../../actions";
@@ -74,7 +74,7 @@ export default async function TransactionDetailPage({ params }: { params: Promis
         <div className="card p-6">
           <h2 className="mb-3 font-semibold text-ink">{t("exp.details")}</h2>
           <Row label={t("exp.category")}>{categoryLabel(t, tx.categoryNameSnapshot, locale)}</Row>
-          <Row label={t("exp.type")}>{tx.categoryTypeSnapshot === "TRANSFER" ? t("exp.transfer") : t("exp.expense")}</Row>
+          <Row label={t("exp.type")}>{t(typeLabelKey(tx.categoryTypeSnapshot))}</Row>
           <Row label={t("exp.amount")}>{Math.round(tx.amount).toLocaleString()} EGP</Row>
           <Row label={t("exp.accruingDate")}>{formatBizDate(tx.accruingDate ?? tx.createdAt)}</Row>
           <Row label={t("exp.registered")}>{registeredAt(tx.createdAt)}</Row>

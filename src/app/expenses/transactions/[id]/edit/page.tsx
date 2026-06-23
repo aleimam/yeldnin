@@ -28,7 +28,7 @@ export default async function EditTransactionPage({ params }: { params: Promise<
     <AppShell access={access} moduleKey="expenses" pageTitle={`${t("common.edit")} · #${tx.id}`} backHref={`/expenses/transactions/${tx.id}`}>
       <div className="max-w-2xl">
         <ExpenseForm
-          categories={categories.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr }))}
+          categories={categories.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr, type: c.type }))}
           txId={tx.id}
           initial={{ categoryId: tx.categoryId ?? undefined, amount: String(tx.amount), note: tx.note ?? "", accruingDate: accruing }}
         />

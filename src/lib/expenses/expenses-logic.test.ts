@@ -6,6 +6,9 @@ import {
   reconciliationStatus,
   checkSalesBreakdown,
   sumByType,
+  netExpenses,
+  typeLabelKey,
+  normalizeCategoryType,
 } from "./expenses-logic";
 
 describe("canEditExpense", () => {
@@ -54,13 +57,35 @@ describe("checkSalesBreakdown / sumByType", () => {
     expect(r.matches).toBe(true);
     expect(r.difference).toBeCloseTo(0);
   });
-  it("sumByType filters by category type", () => {
+  it("sumByType filters by category type (incl. revenue)", () => {
     const items = [
       { amount: 100, categoryTypeSnapshot: "EXPENSE" },
       { amount: 50, categoryTypeSnapshot: "TRANSFER" },
       { amount: 25, categoryTypeSnapshot: "EXPENSE" },
+      { amount: 30, categoryTypeSnapshot: "REVENUE" },
     ];
     expect(sumByType(items, "EXPENSE")).toBe(125);
     expect(sumByType(items, "TRANSFER")).toBe(50);
+    expect(sumByType(items, "REVENUE")).toBe(30);
+  });
+});
+
+describe("revenue helpers", () => {
+  it("netExpenses subtracts revenue from gross expenses", () => {
+    expect(netExpenses(10000, 3000)).toBe(7000);
+    expect(netExpenses(5000, 0)).toBe(5000);
+    expect(netExpenses(1000, 1500)).toBe(-500); // revenue can exceed spend
+  });
+  it("typeLabelKey maps each type to its i18n key", () => {
+    expect(typeLabelKey("EXPENSE")).toBe("exp.expense");
+    expect(typeLabelKey("TRANSFER")).toBe("exp.transfer");
+    expect(typeLabelKey("REVENUE")).toBe("exp.revenue");
+    expect(typeLabelKey("whatever")).toBe("exp.expense"); // unknown → expense
+  });
+  it("normalizeCategoryType keeps known types and defaults the rest to EXPENSE", () => {
+    expect(normalizeCategoryType("REVENUE")).toBe("REVENUE");
+    expect(normalizeCategoryType("TRANSFER")).toBe("TRANSFER");
+    expect(normalizeCategoryType("EXPENSE")).toBe("EXPENSE");
+    expect(normalizeCategoryType("garbage")).toBe("EXPENSE");
   });
 });

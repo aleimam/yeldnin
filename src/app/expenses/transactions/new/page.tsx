@@ -19,7 +19,7 @@ export default async function NewTransactionPage() {
   return (
     <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.new")} backHref="/expenses/transactions">
       <div className="grid gap-6 lg:grid-cols-2">
-        <ExpenseForm categories={categories.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr }))} />
+        <ExpenseForm categories={categories.map((c) => ({ id: c.id, name: c.name, nameAr: c.nameAr, type: c.type }))} />
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("exp.recent")}</h2>
           <ul className="divide-y divide-line">

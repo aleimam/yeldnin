@@ -15,7 +15,7 @@ export default async function ExpensesDashboard() {
   const access = await requireModule("expenses", "VIEW");
   const [t, locale, d, arMap] = await Promise.all([getT(), getLocale(), getExpensesDashboard(), categoryArMap()]);
   const egp = (n: number) => `${Math.round(n).toLocaleString()} EGP`;
-  const maxBar = Math.max(1, ...d.byMonth.map((m) => Math.max(m.expenses, m.transfers)));
+  const maxBar = Math.max(1, ...d.byMonth.map((m) => Math.max(m.expenses, m.transfers, m.revenue)));
 
   const canCreate = access.can("expenses", "createTxn");
 
@@ -29,6 +29,14 @@ export default async function ExpensesDashboard() {
         <div className="card p-5">
           <div className="text-sm text-muted">{t("exp.monthExpenses")}</div>
           <div className="mt-1 text-2xl font-bold text-ink">{egp(d.monthExpensesTotal)}</div>
+        </div>
+        <div className="card p-5">
+          <div className="text-sm text-muted">{t("exp.monthRevenue")}</div>
+          <div className="mt-1 text-2xl font-bold text-emerald-600">{egp(d.monthRevenueTotal)}</div>
+        </div>
+        <div className="card p-5">
+          <div className="text-sm text-muted">{t("exp.monthNet")}</div>
+          <div className="mt-1 text-2xl font-bold text-ink">{egp(d.monthNetExpenses)}</div>
         </div>
         <div className="card p-5">
           <div className="text-sm text-muted">{t("exp.monthTransfers")}</div>
@@ -66,6 +74,7 @@ export default async function ExpensesDashboard() {
             <div className="flex gap-3 text-[11px] text-muted">
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-brand" />{t("exp.expense")}</span>
               <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" />{t("exp.transfer")}</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />{t("exp.revenue")}</span>
             </div>
           </div>
           <div className="space-y-3">
@@ -73,11 +82,12 @@ export default async function ExpensesDashboard() {
               <div key={m.label} className="text-xs">
                 <div className="mb-0.5 flex justify-between text-muted">
                   <span>{m.label}</span>
-                  <span><span className="text-brand">{egp(m.expenses)}</span> · <span className="text-amber-600">{egp(m.transfers)}</span></span>
+                  <span><span className="text-brand">{egp(m.expenses)}</span> · <span className="text-amber-600">{egp(m.transfers)}</span> · <span className="text-emerald-600">{egp(m.revenue)}</span></span>
                 </div>
                 <div className="space-y-1">
                   <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-brand" style={{ width: `${(m.expenses / maxBar) * 100}%` }} /></div>
                   <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-amber-500" style={{ width: `${(m.transfers / maxBar) * 100}%` }} /></div>
+                  <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-emerald-500" style={{ width: `${(m.revenue / maxBar) * 100}%` }} /></div>
                 </div>
               </div>
             ))}

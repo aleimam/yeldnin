@@ -5,11 +5,12 @@ import { getT, getLocale } from "@/i18n/server";
 import { listTransactions, listCategories, categoryArMap, type TxSort, type TxFlagFilter } from "@/lib/expenses/expenses-service";
 import { displayName } from "@/lib/users/users-logic";
 import { categoryLabel } from "@/lib/expenses/category-label";
+import { typeLabelKey } from "@/lib/expenses/expenses-logic";
 import { formatBizDate } from "@/lib/format/dates";
 import { TransactionFilters } from "./TransactionFilters";
 
 const FLAG_DOT: Record<string, string> = { RED: "bg-red-500", YELLOW: "bg-amber-500" };
-const TYPES = new Set(["EXPENSE", "TRANSFER"]);
+const TYPES = new Set(["EXPENSE", "TRANSFER", "REVENUE"]);
 const FLAGS = new Set(["RED", "YELLOW", "NONE", "ANY"]);
 const SORTS = new Set(["accruing_desc", "accruing_asc", "registered_desc", "registered_asc", "amount_desc", "amount_asc"]);
 
@@ -20,7 +21,7 @@ export default async function TransactionsPage({
 }) {
   const access = await requireModule("expenses", "VIEW");
   const sp = await searchParams;
-  const type = sp.type && TYPES.has(sp.type) ? (sp.type as "EXPENSE" | "TRANSFER") : undefined;
+  const type = sp.type && TYPES.has(sp.type) ? (sp.type as "EXPENSE" | "TRANSFER" | "REVENUE") : undefined;
   const flag = sp.flag && FLAGS.has(sp.flag) ? (sp.flag as TxFlagFilter) : undefined;
   const categoryId = sp.category && Number(sp.category) > 0 ? Number(sp.category) : undefined;
   const sort = sp.sort && SORTS.has(sp.sort) ? (sp.sort as TxSort) : undefined;
@@ -77,7 +78,7 @@ export default async function TransactionsPage({
                   {r.attachments.length > 0 && <span className="ms-2 text-xs text-muted">📎{r.attachments.length}</span>}
                 </td>
                 <td className="td" data-label={t("exp.type")}>
-                  {r.categoryTypeSnapshot === "TRANSFER" ? t("exp.transfer") : t("exp.expense")}
+                  {t(typeLabelKey(r.categoryTypeSnapshot))}
                 </td>
                 <td className="td text-muted" data-label={t("exp.createdBy")}>{displayName(r.createdBy, locale)}</td>
                 <td className="td text-end font-medium" data-label={t("exp.amount")}>{Math.round(r.amount).toLocaleString()}</td>

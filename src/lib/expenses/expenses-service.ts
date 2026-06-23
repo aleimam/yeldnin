@@ -9,6 +9,8 @@ import {
   canDeleteExpense,
   computeReconciliation,
   reconciliationStatus,
+  normalizeCategoryType,
+  netExpenses,
   type ReconciliationResult,
 } from "./expenses-logic";
 
@@ -203,7 +205,7 @@ function txOrderBy(sort: TxSort | undefined) {
 }
 
 export async function listTransactions(opts: {
-  type?: "EXPENSE" | "TRANSFER";
+  type?: "EXPENSE" | "TRANSFER" | "REVENUE";
   categoryId?: number;
   flag?: TxFlagFilter;
   search?: string;
@@ -256,10 +258,12 @@ export function listAccounts(includeDisabled = false) {
 export interface DashboardData {
   monthExpensesTotal: number;
   monthTransfersTotal: number;
+  monthRevenueTotal: number;
+  monthNetExpenses: number; // monthExpensesTotal − monthRevenueTotal
   topCategories: { name: string; total: number }[];
   recentExpenses: { id: number; amount: number; categoryNameSnapshot: string; createdAt: Date; createdBy: string }[];
   recentDeliveries: { id: number; amount: number; categoryNameSnapshot: string; createdAt: Date; createdBy: string }[];
-  byMonth: { label: string; expenses: number; transfers: number }[];
+  byMonth: { label: string; expenses: number; transfers: number; revenue: number }[];
   latestReconciliation: { year: number; month: number; result: ReconciliationResult } | null;
 }
 
@@ -269,10 +273,11 @@ export async function getExpensesDashboard(): Promise<DashboardData> {
   const m = now.getMonth() + 1;
   const { gte, lt } = monthRange(y, m);
 
-  const [locale, monthExp, monthTr, topCats, recentExp, recentDel] = await Promise.all([
+  const [locale, monthExp, monthTr, monthRev, topCats, recentExp, recentDel] = await Promise.all([
     getLocale(),
     prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte, lt } } }),
     prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "TRANSFER", createdAt: { gte, lt } } }),
+    prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "REVENUE", createdAt: { gte, lt } } }),
     prisma.expenseTransaction.groupBy({
       by: ["categoryNameSnapshot"],
       where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte, lt } },
@@ -290,11 +295,12 @@ export async function getExpensesDashboard(): Promise<DashboardData> {
     const yy = d.getFullYear();
     const mm = d.getMonth() + 1;
     const range = monthRange(yy, mm);
-    const [e, t] = await Promise.all([
+    const [e, t, rev] = await Promise.all([
       prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "EXPENSE", createdAt: { gte: range.gte, lt: range.lt } } }),
       prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "TRANSFER", createdAt: { gte: range.gte, lt: range.lt } } }),
+      prisma.expenseTransaction.aggregate({ _sum: { amount: true }, where: { categoryTypeSnapshot: "REVENUE", createdAt: { gte: range.gte, lt: range.lt } } }),
     ]);
-    byMonth.push({ label: `${yy}-${String(mm).padStart(2, "0")}`, expenses: e._sum.amount ?? 0, transfers: t._sum.amount ?? 0 });
+    byMonth.push({ label: `${yy}-${String(mm).padStart(2, "0")}`, expenses: e._sum.amount ?? 0, transfers: t._sum.amount ?? 0, revenue: rev._sum.amount ?? 0 });
   }
 
   const latestSales = await prisma.monthlySalesReport.findFirst({ orderBy: [{ year: "desc" }, { month: "desc" }] });
@@ -303,9 +309,13 @@ export async function getExpensesDashboard(): Promise<DashboardData> {
     latestReconciliation = { year: latestSales.year, month: latestSales.month, result: await calculateMonthlyReconciliation(latestSales.year, latestSales.month) };
   }
 
+  const monthExpensesTotal = monthExp._sum.amount ?? 0;
+  const monthRevenueTotal = monthRev._sum.amount ?? 0;
   return {
-    monthExpensesTotal: monthExp._sum.amount ?? 0,
+    monthExpensesTotal,
     monthTransfersTotal: monthTr._sum.amount ?? 0,
+    monthRevenueTotal,
+    monthNetExpenses: netExpenses(monthExpensesTotal, monthRevenueTotal),
     topCategories: topCats.map((c) => ({ name: c.categoryNameSnapshot, total: c._sum.amount ?? 0 })),
     recentExpenses: recentExp.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: displayName(r.createdBy, locale) })),
     recentDeliveries: recentDel.map((r) => ({ id: r.id, amount: r.amount, categoryNameSnapshot: r.categoryNameSnapshot, createdAt: r.createdAt, createdBy: displayName(r.createdBy, locale) })),
@@ -327,35 +337,41 @@ export async function getExpenseReports() {
     .map((u) => ({ user: names.get(u.createdById) ?? `#${u.createdById}`, total: u._sum.amount ?? 0, count: u._count }))
     .sort((a, b) => b.total - a.total);
 
-  const monthMap = new Map<string, { expenses: number; transfers: number }>();
+  const monthMap = new Map<string, { expenses: number; transfers: number; revenue: number }>();
   for (const r of byMonthRows) {
     const key = `${r.createdAt.getFullYear()}-${String(r.createdAt.getMonth() + 1).padStart(2, "0")}`;
-    const mm = monthMap.get(key) ?? { expenses: 0, transfers: 0 };
+    const mm = monthMap.get(key) ?? { expenses: 0, transfers: 0, revenue: 0 };
     if (r.categoryTypeSnapshot === "TRANSFER") mm.transfers += r.amount;
+    else if (r.categoryTypeSnapshot === "REVENUE") mm.revenue += r.amount;
     else mm.expenses += r.amount;
     monthMap.set(key, mm);
   }
   const byMonth = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([label, v]) => ({ label, ...v }));
 
   const cats = byCategory.map((c) => ({ name: c.categoryNameSnapshot, type: c.categoryTypeSnapshot, total: c._sum.amount ?? 0, count: c._count }));
-  const expenseCats = cats.filter((c) => c.type !== "TRANSFER");
+  const expenseCats = cats.filter((c) => c.type === "EXPENSE");
   const transferCats = cats.filter((c) => c.type === "TRANSFER");
+  const revenueCats = cats.filter((c) => c.type === "REVENUE");
   const sum = (xs: { total: number }[]) => xs.reduce((s, x) => s + x.total, 0);
   const cnt = (xs: { count: number }[]) => xs.reduce((s, x) => s + x.count, 0);
   const totalExpenses = sum(expenseCats);
   const totalTransfers = sum(transferCats);
+  const totalRevenue = sum(revenueCats);
   const expenseCount = cnt(expenseCats);
   const transferCount = cnt(transferCats);
+  const revenueCount = cnt(revenueCats);
 
   return {
     byCategory: cats,
     byUser,
     byMonth,
-    typeSplit: { expenses: totalExpenses, transfers: totalTransfers },
+    typeSplit: { expenses: totalExpenses, transfers: totalTransfers, revenue: totalRevenue },
     summary: {
       totalExpenses,
       totalTransfers,
-      txCount: expenseCount + transferCount,
+      totalRevenue,
+      netExpenses: netExpenses(totalExpenses, totalRevenue),
+      txCount: expenseCount + transferCount + revenueCount,
       expenseCount,
       avgExpense: expenseCount ? totalExpenses / expenseCount : 0,
       topCategory: expenseCats[0] ? { name: expenseCats[0].name, total: expenseCats[0].total } : null,
@@ -419,7 +435,7 @@ export { reconciliationStatus };
 
 // ---------------- Settings "Save All" batches ----------------
 
-const normType = (t: string) => (t === "TRANSFER" ? "TRANSFER" : "EXPENSE");
+const normType = normalizeCategoryType;
 
 export interface CategoryRow {
   id: number;

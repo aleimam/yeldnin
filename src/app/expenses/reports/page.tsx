@@ -17,15 +17,17 @@ export default async function ExpenseReportsPage() {
   const typeSlices = [
     { label: t("exp.expense"), value: r.typeSplit.expenses, color: "var(--brand)", hint: egp(r.typeSplit.expenses) },
     { label: t("exp.transfer"), value: r.typeSplit.transfers, color: "#f59e0b", hint: egp(r.typeSplit.transfers) },
+    { label: t("exp.revenue"), value: r.typeSplit.revenue, color: "#10b981", hint: egp(r.typeSplit.revenue) },
   ];
-  const expenseCats = r.byCategory.filter((c) => c.type !== "TRANSFER");
+  const typeTotal = r.typeSplit.expenses + r.typeSplit.transfers + r.typeSplit.revenue;
+  const expenseCats = r.byCategory.filter((c) => c.type === "EXPENSE");
   const topCats = expenseCats.slice(0, 8);
   const otherTotal = expenseCats.slice(8).reduce((a, c) => a + c.total, 0);
   const catSlices = [
     ...topCats.map((c, i) => ({ label: categoryLabel(t, c.name, locale, arMap), value: c.total, color: PALETTE[i % PALETTE.length], hint: egp(c.total) })),
     ...(otherTotal > 0 ? [{ label: t("exp.other"), value: otherTotal, color: "#94a3b8", hint: egp(otherTotal) }] : []),
   ];
-  const maxMonth = Math.max(1, ...r.byMonth.map((m) => Math.max(m.expenses, m.transfers)));
+  const maxMonth = Math.max(1, ...r.byMonth.map((m) => Math.max(m.expenses, m.transfers, m.revenue)));
 
   const Metric = ({ label, value }: { label: string; value: string }) => (
     <div className="card p-4">
@@ -37,8 +39,10 @@ export default async function ExpenseReportsPage() {
   return (
     <AppShell access={access} moduleKey="expenses" pageTitle={t("exp.reports")}>
       {/* Summary */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <Metric label={t("exp.totalExpenses")} value={egp(s.totalExpenses)} />
+        <Metric label={t("exp.totalRevenue")} value={egp(s.totalRevenue)} />
+        <Metric label={t("exp.netExpenses")} value={egp(s.netExpenses)} />
         <Metric label={t("exp.totalTransfers")} value={egp(s.totalTransfers)} />
         <Metric label={t("exp.txCount")} value={s.txCount.toLocaleString()} />
         <Metric label={t("exp.avgExpense")} value={egp(s.avgExpense)} />
@@ -50,7 +54,7 @@ export default async function ExpenseReportsPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("exp.byTypeChart")}</h2>
-          {r.typeSplit.expenses + r.typeSplit.transfers > 0 ? <PieChart slices={typeSlices} /> : <p className="text-sm text-muted">{t("exp.noData")}</p>}
+          {typeTotal > 0 ? <PieChart slices={typeSlices} /> : <p className="text-sm text-muted">{t("exp.noData")}</p>}
         </div>
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("exp.byCategoryChart")}</h2>
@@ -65,6 +69,7 @@ export default async function ExpenseReportsPage() {
           <div className="flex gap-3 text-[11px] text-muted">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-brand" />{t("exp.expense")}</span>
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-amber-500" />{t("exp.transfer")}</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />{t("exp.revenue")}</span>
           </div>
         </div>
         <div className="space-y-3">
@@ -72,11 +77,12 @@ export default async function ExpenseReportsPage() {
             <div key={m.label} className="text-xs">
               <div className="mb-0.5 flex justify-between text-muted">
                 <span>{m.label}</span>
-                <span><span className="text-brand">{egp(m.expenses)}</span> · <span className="text-amber-600">{egp(m.transfers)}</span></span>
+                <span><span className="text-brand">{egp(m.expenses)}</span> · <span className="text-amber-600">{egp(m.transfers)}</span> · <span className="text-emerald-600">{egp(m.revenue)}</span></span>
               </div>
               <div className="space-y-1">
                 <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-brand" style={{ width: `${(m.expenses / maxMonth) * 100}%` }} /></div>
                 <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-amber-500" style={{ width: `${(m.transfers / maxMonth) * 100}%` }} /></div>
+                <div className="h-2 w-full rounded bg-canvas"><div className="h-2 rounded bg-emerald-500" style={{ width: `${(m.revenue / maxMonth) * 100}%` }} /></div>
               </div>
             </div>
           ))}
