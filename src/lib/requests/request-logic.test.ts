@@ -6,6 +6,10 @@ import {
   primaryRequestModule,
   validateRequest,
   expectedDeposit,
+  isRequestStatus,
+  usesApprovalGate,
+  hasSpawnedItems,
+  requestLinesEditable,
 } from "./request-logic";
 import type { AccessLike } from "@/lib/products/products-logic";
 
@@ -61,5 +65,31 @@ describe("expectedDeposit", () => {
   });
   it("treats a missing selling price as zero", () => {
     expect(expectedDeposit(50, [{ count: 3, sellingPrice: null }])).toBe(0);
+  });
+});
+
+describe("approval gate", () => {
+  it("recognises valid statuses", () => {
+    expect(isRequestStatus("PENDING")).toBe(true);
+    expect(isRequestStatus("APPROVED")).toBe(true);
+    expect(isRequestStatus("REJECTED")).toBe(true);
+    expect(isRequestStatus("NEW")).toBe(false);
+    expect(isRequestStatus(null)).toBe(false);
+  });
+  it("gates EGV but not XOONX", () => {
+    expect(usesApprovalGate("EGV")).toBe(true);
+    expect(usesApprovalGate("XOONX")).toBe(false);
+    expect(usesApprovalGate("PERSONAL")).toBe(false);
+  });
+  it("only APPROVED requests have spawned items", () => {
+    expect(hasSpawnedItems("APPROVED")).toBe(true);
+    expect(hasSpawnedItems("PENDING")).toBe(false);
+    expect(hasSpawnedItems("REJECTED")).toBe(false);
+  });
+  it("lines editable only while items are all still REQUESTED (or none)", () => {
+    expect(requestLinesEditable([])).toBe(true); // pending/rejected → no items
+    expect(requestLinesEditable(["REQUESTED", "REQUESTED"])).toBe(true);
+    expect(requestLinesEditable(["REQUESTED", "PURCHASED"])).toBe(false);
+    expect(requestLinesEditable(["SHIPPED"])).toBe(false);
   });
 });

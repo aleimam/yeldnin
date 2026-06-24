@@ -25,6 +25,7 @@ const MODULES = [
   { key: "settings", route: "/settings", section: "admin", sortOrder: 12 },
   { key: "user_access", route: "/users", section: "admin", sortOrder: 13 },
   { key: "audit_log", route: "/audit", section: "admin", sortOrder: 14 },
+  { key: "error_log", route: "/error-log", section: "admin", sortOrder: 15 },
 ];
 
 const TEAMS = [

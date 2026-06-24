@@ -6,7 +6,7 @@ import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { REQUEST_TYPES, requiresCustomer, allowsPhotos, expectedDeposit } from "@/lib/requests/request-logic";
 import type { Scope } from "@/lib/products/products-logic";
-import { createRequestAction } from "./actions";
+import { createRequestAction, updateRequestAction } from "./actions";
 
 interface Line {
   productId: string;
@@ -18,30 +18,44 @@ interface Line {
 }
 const blankLine = (): Line => ({ productId: "", count: "1", sellingPrice: "", purchasePrice: "", purchaseCurrency: "", notes: "" });
 
+export interface RequestFormInitial {
+  type: string;
+  scope: string;
+  customerId: string;
+  notes: string;
+  deposit: string;
+  lines: Line[];
+  photos: UploadedPhoto[];
+}
+
 export function RequestForm({
   allowedScopes,
   products,
   customers,
   depositPct,
+  editId,
+  initial,
 }: {
   allowedScopes: Scope[];
   products: { id: number; name: string; scope: string; sellingPrice: number | null; purchasePrice: number | null }[];
   customers: { id: number; name: string; scope: string }[];
   depositPct: number;
+  editId?: number;
+  initial?: RequestFormInitial;
 }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [type, setType] = useState("RESTOCK");
-  const [scope, setScope] = useState<string>(allowedScopes[0] ?? "EGV");
-  const [customerId, setCustomerId] = useState("");
+  const [type, setType] = useState(initial?.type ?? "RESTOCK");
+  const [scope, setScope] = useState<string>(initial?.scope ?? allowedScopes[0] ?? "EGV");
+  const [customerId, setCustomerId] = useState(initial?.customerId ?? "");
   const [newMode, setNewMode] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", contactNumber: "" });
-  const [notes, setNotes] = useState("");
-  const [deposit, setDeposit] = useState("");
-  const [lines, setLines] = useState<Line[]>([blankLine()]);
-  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [deposit, setDeposit] = useState(initial?.deposit ?? "");
+  const [lines, setLines] = useState<Line[]>(initial?.lines?.length ? initial.lines : [blankLine()]);
+  const [photos, setPhotos] = useState<UploadedPhoto[]>(initial?.photos ?? []);
 
   // Warn before navigating away once any real data has been entered.
   const dirty =
@@ -97,7 +111,7 @@ export function RequestForm({
       photoIds: isSpecial && allowsPhotos(type) ? photos.map((p) => p.id) : [],
     };
     start(async () => {
-      const res = await createRequestAction(payload);
+      const res = editId ? await updateRequestAction(editId, payload) : await createRequestAction(payload);
       if (res.ok) router.push(`/requests/${res.id}`);
       else setError(res.error);
     });
@@ -116,7 +130,7 @@ export function RequestForm({
         </div>
         <div>
           <label className="label">{t("requests.scope")}</label>
-          <select className="input" value={scope} onChange={(e) => setScope(e.target.value)}>
+          <select className="input" value={scope} onChange={(e) => setScope(e.target.value)} disabled={!!editId}>
             {allowedScopes.map((s) => <option key={s} value={s}>{t(`scope.${s}`)}</option>)}
           </select>
         </div>
@@ -195,7 +209,7 @@ export function RequestForm({
         <div><label className="label">{t("requests.photos")}</label><PhotoUpload photos={photos} onChange={setPhotos} /></div>
       )}
 
-      <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : t("requests.create")}</button>
+      <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : editId ? t("req.save") : t("requests.create")}</button>
     </div>
   );
 }

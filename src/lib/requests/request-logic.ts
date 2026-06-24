@@ -9,6 +9,35 @@ export function isRequestType(v: unknown): v is RequestType {
   return typeof v === "string" && (REQUEST_TYPES as readonly string[]).includes(v);
 }
 
+// ── Approval gate (#13/#14) ─────────────────────────────────────────────────
+// EGV requests must be approved by a MANAGE-level approver before their items
+// are spawned into the purchasing pool. XOONX has no gate.
+export const REQUEST_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+export function isRequestStatus(v: unknown): v is RequestStatus {
+  return typeof v === "string" && (REQUEST_STATUSES as readonly string[]).includes(v);
+}
+
+/** EGV goes through the approval gate; XOONX is created already-approved. */
+export function usesApprovalGate(scope: string): boolean {
+  return scope === "EGV";
+}
+
+/** A request's items exist only once it's APPROVED. */
+export function hasSpawnedItems(status: string): boolean {
+  return status === "APPROVED";
+}
+
+/**
+ * The request's lines can still be edited only while none of its spawned items
+ * have moved past the initial REQUESTED state — i.e. nothing has been purchased
+ * or shipped yet. A request with no items (PENDING / REJECTED) is always
+ * editable. `itemStatuses` = current status of each spawned item.
+ */
+export function requestLinesEditable(itemStatuses: string[]): boolean {
+  return itemStatuses.every((s) => s === "REQUESTED");
+}
+
 export function requiresCustomer(type: string): boolean {
   return type === "SPECIAL_ORDER";
 }

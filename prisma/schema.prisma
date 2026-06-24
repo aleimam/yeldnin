@@ -779,11 +779,15 @@ model Request {
   uid         String?   @unique // REQ<YY><MM><seq3>
   type        String
   scope       String
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED — EGV approval gate; XOONX is created APPROVED
   customerId  Int?
   customer    Customer? @relation(fields: [customerId], references: [id])
   notes       String?
   deposit     Float?    // special order: agreed deposit (EGP), per request
   deliveredAt DateTime? // XOONX: set when the order is delivered → revenue recognised that month
+  approvedById Int?      // who approved (EGV gate)
+  approvedAt   DateTime?
+  rejectedNote String?   // optional reason captured on reject
   archivedAt  DateTime?
   createdById Int?
   createdAt   DateTime  @default(now())
@@ -795,6 +799,7 @@ model Request {
 
   @@index([scope])
   @@index([type])
+  @@index([status])
 }
 
 model RequestLine {
@@ -1759,4 +1764,24 @@ model InquiryDisposition {
   updatedAt DateTime  @updatedAt
 
   inquiries Inquiry[]
+}
+
+// ─── Error log (admin-only module) ───────────────────────────────────────────
+// Cross-app error/diagnostic log. Captures everything initially; rows are pruned
+// after 30 days (see error-log-service). No notifications.
+model ErrorLog {
+  id        Int      @id @default(autoincrement())
+  level     String   @default("error") // error | warn | info
+  source    String? // origin: action | route | client | cron | <module key>
+  message   String
+  stack     String? // stack trace / details
+  url       String? // request path or page that failed
+  method    String? // HTTP method or server-action name
+  userId    Int? // actor, when known
+  meta      String? // JSON blob of extra context
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([level])
+  @@index([source])
 }

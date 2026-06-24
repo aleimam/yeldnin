@@ -54,6 +54,8 @@ export const CAPABILITIES: Capability[] = [
 
   // ── Sales (order requests) ───────────────────────────────────────────────
   { key: "operate", module: "order_requests", labelKey: "cap.order_requests.operate", defaultLevel: "OPERATE" },
+  // Approve/reject EGV requests before their items enter the purchasing pool.
+  { key: "approve", module: "order_requests", labelKey: "cap.order_requests.approve", defaultLevel: "MANAGE" },
 
   // ── XOONX ────────────────────────────────────────────────────────────────
   { key: "operate", module: "xoonx", labelKey: "cap.xoonx.operate", defaultLevel: "OPERATE" },

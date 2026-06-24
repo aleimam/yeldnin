@@ -6,14 +6,16 @@ import { AppShell } from "@/components/shell/AppShell";
 import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
-import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
+import { requestScopes, primaryRequestModule, requestLinesEditable } from "@/lib/requests/request-logic";
 import { getRequest, getRequestItems } from "@/lib/requests/request-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { DeliverButton } from "../DeliverButton";
+import { RequestStatusBadge } from "../RequestStatusBadge";
+import { RequestApprovalControls } from "../RequestApprovalControls";
 import { slaForRequestItems } from "@/lib/sla/sla-service";
 import { SlaBadge } from "@/components/SlaBadge";
-import { canSeeSellingPrice } from "@/lib/products/products-logic";
+import { canSeeSellingPrice, type Scope } from "@/lib/products/products-logic";
 
 export default async function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -26,6 +28,9 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const canDeliver = req.scope === "XOONX" && access.can("xoonx", "operate");
   const canSeeSelling = canSeeSellingPrice(access);
   const isSpecial = req.type === "SPECIAL_ORDER";
+  const canApprove = req.status === "PENDING" && req.scope === "EGV" && access.can("order_requests", "approve");
+  const inScopeOperate = requestScopes(access, "OPERATE").includes(req.scope as Scope);
+  const canEdit = inScopeOperate && requestLinesEditable(items.map((i) => i.status));
   const slaMap = await slaForRequestItems(items, req.deliveredAt);
 
   return (
@@ -33,13 +38,25 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
       <div className="max-w-3xl space-y-6">
         <InquiryLauncher unitKind="REQUEST" unitId={req.id} />
         <div className="card p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <RequestStatusBadge status={req.status} label={t(`reqstatus.${req.status}`)} />
+            {canEdit && <Link href={`/requests/${req.id}/edit`} className="btn-secondary btn-sm">{t("req.edit")}</Link>}
+          </div>
           <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
             <div><span className="text-muted">{t("requests.type")}: </span><span className="text-ink">{t(`reqtype.${req.type}`)}</span></div>
             <div><span className="text-muted">{t("requests.scope")}: </span><span className="text-ink">{t(`scope.${req.scope}`)}</span></div>
             {req.customer && <div><span className="text-muted">{t("requests.customer")}: </span><span className="text-ink">{req.customer.name}</span></div>}
             {isSpecial && req.deposit != null && <div><span className="text-muted">{t("requests.deposit")}: </span><span className="text-ink">{req.deposit.toLocaleString()} EGP</span></div>}
           </div>
+          {req.status === "REJECTED" && req.rejectedNote && (
+            <p className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-600">{t("req.rejectedNote")}: {req.rejectedNote}</p>
+          )}
           {req.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{req.notes}</p>}
+          {canApprove && (
+            <div className="mt-4 border-t border-line/60 pt-3">
+              <RequestApprovalControls id={req.id} />
+            </div>
+          )}
           {req.photos.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {req.photos.map((p) => (
@@ -74,6 +91,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.items")} ({items.length})</h2>
+          {req.status === "PENDING" && <p className="mb-3 text-sm text-muted">{t("req.pendingItemsNote")}</p>}
           <table className="w-full text-sm" data-cards>
             <thead>
               <tr className="border-b border-line">

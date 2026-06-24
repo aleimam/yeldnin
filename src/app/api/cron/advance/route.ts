@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAccess } from "@/lib/auth/access";
 import { advanceDueItems } from "@/lib/items/items-service";
 import { runSlaAlerts } from "@/lib/sla/sla-service";
+import { pruneOldErrorLogs } from "@/lib/errors/error-log-service";
 
 /** Constant-time string compare (avoids leaking the secret via response timing). */
 function safeEqual(a: string, b: string): boolean {
@@ -30,7 +31,8 @@ async function handle(req: Request) {
   if (!authed) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const advanced = await advanceDueItems();
   const slaAlerts = await runSlaAlerts();
-  return NextResponse.json({ advanced, slaAlerts });
+  const errorLogsPruned = await pruneOldErrorLogs().catch(() => 0); // 30-day retention
+  return NextResponse.json({ advanced, slaAlerts, errorLogsPruned });
 }
 
 export const GET = handle;

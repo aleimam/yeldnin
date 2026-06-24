@@ -16,6 +16,7 @@ import { ItemCounts } from "@/components/ItemCounts";
 import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
 import { Paginator } from "@/components/Paginator";
 import { RequestsFilters } from "./RequestsFilters";
+import { RequestStatusBadge } from "./RequestStatusBadge";
 
 export default async function RequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
@@ -31,7 +32,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
   const [t, { rows, total }, summary, slaInputs] = await Promise.all([
     getT(),
-    listRequestsPaged({ scopes, search: sp.q, type: sp.type, skip, take }),
+    listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, skip, take }),
     itemStatusSummary(scopes),
     listRequestSlaInputs({ scopes }),
   ]);
@@ -75,7 +76,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         </div>
       )}
 
-      <RequestsFilters basePath="/requests" current={{ q: sp.q ?? "", type: sp.type ?? "", m: ctx ?? "" }} />
+      <RequestsFilters basePath="/requests" current={{ q: sp.q ?? "", type: sp.type ?? "", status: sp.status ?? "", m: ctx ?? "" }} />
 
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
@@ -83,6 +84,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
             <tr>
               <th className="th">{t("requests.uid")}</th>
               <th className="th">{t("requests.type")}</th>
+              <th className="th">{t("req.status")}</th>
               <th className="th">{t("requests.scope")}</th>
               <th className="th">{t("requests.customer")}</th>
               <th className="th">{t("requests.items")}</th>
@@ -98,6 +100,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
                     <Link href={`/requests/${r.id}`} className="text-brand hover:underline">{r.uid ?? r.id}</Link>
                   </td>
                   <td className="td" data-label={t("requests.type")}>{t(`reqtype.${r.type}`)}</td>
+                  <td className="td" data-label={t("req.status")}><RequestStatusBadge status={r.status} label={t(`reqstatus.${r.status}`)} /></td>
                   <td className="td text-muted" data-label={t("requests.scope")}>{t(`scope.${r.scope}`)}</td>
                   <td className="td text-muted" data-label={t("requests.customer")}>{r.customer?.name ?? "—"}</td>
                   <td className="td" data-label={t("requests.items")}><ItemCounts counts={counts.get(r.id) ?? emptyCategoryCounts()} labels={labels} /></td>
@@ -105,7 +108,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
                 </tr>
               );
             })}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={6}>{t("requests.empty")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={7}>{t("requests.empty")}</td></tr>}
           </tbody>
         </table>
       </div>
