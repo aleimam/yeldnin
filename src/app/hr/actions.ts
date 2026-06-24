@@ -8,13 +8,16 @@ import { validateNewEmployee } from "@/lib/hr/hr-logic";
 import {
   createEmployeeWithUser,
   updateEmployee,
+  updateEmployeeIdentity,
   setLineManager,
   addNote,
   addEmployeePhoto,
   canManageEmployee,
   type EmployeeProfileInput,
+  type EmployeeIdentityInput,
   type NewEmployeeInput,
 } from "@/lib/hr/hr-service";
+import { saveDepartmentBatch, savePositionBatch, type DeptRow, type PosRow } from "@/lib/hr/positions-service";
 
 /** Creating staff = HR operate (or admin). */
 async function requireHrCreate() {
@@ -58,6 +61,46 @@ export async function updateEmployeeAction(id: number, input: EmployeeProfileInp
   await updateEmployee(id, input, access.user.id);
   await writeAudit(access.user.id, "human_resources", "employee.update", "employee", id);
   revalidatePath(`/hr/employees/${id}`);
+}
+
+/** Edit the identity fields (User) + position from the employee profile. */
+export async function updateEmployeeIdentityAction(id: number, input: EmployeeIdentityInput): Promise<HrResult> {
+  const access = await requireManage(id);
+  if (!input.name?.trim()) return { ok: false, error: "Name is required." };
+  if (!input.email?.trim()) return { ok: false, error: "Email is required." };
+  try {
+    await updateEmployeeIdentity(id, input, access.user.id);
+    await writeAudit(access.user.id, "human_resources", "employee.identity.update", "employee", id);
+    revalidatePath(`/hr/employees/${id}`);
+    revalidatePath(`/users`);
+    return { ok: true, id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not save." };
+  }
+}
+
+export async function saveDepartmentsAction(rows: DeptRow[], add: { name: string; nameAr: string | null } | null): Promise<{ ok: boolean; error?: string }> {
+  const access = await requireHrManage();
+  try {
+    await saveDepartmentBatch(rows, add);
+    await writeAudit(access.user.id, "human_resources", "department.save", "department", "batch", { rows: rows.length });
+    revalidatePath("/hr/positions");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not save." };
+  }
+}
+
+export async function savePositionsAction(rows: PosRow[], add: Omit<PosRow, "id" | "remove"> | null): Promise<{ ok: boolean; error?: string }> {
+  const access = await requireHrManage();
+  try {
+    await savePositionBatch(rows, add);
+    await writeAudit(access.user.id, "human_resources", "position.save", "position", "batch", { rows: rows.length });
+    revalidatePath("/hr/positions");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not save." };
+  }
 }
 
 export async function setLineManagerAction(id: number, managerId: number | null): Promise<{ ok: boolean; error?: string }> {

@@ -4,7 +4,7 @@ import { nextUid } from "@/lib/uid";
 import { clean } from "@/lib/text";
 import { hashPassword } from "@/lib/auth/password";
 import { createUserTx } from "@/lib/users/users-service";
-import { wouldCreateCycle } from "./hr-logic";
+import { wouldCreateCycle, isValidEmployeeNumber } from "./hr-logic";
 
 async function addEvent(employeeId: number, type: string, message: string, byUserId: number | null, photoAssetIds: string[] = []) {
   await prisma.employeeEvent.create({
@@ -103,6 +103,56 @@ export async function updateEmployee(id: number, input: EmployeeProfileInput, by
   await addEvent(id, "PROFILE_EDIT", "Profile details updated.", byUserId);
 }
 
+export interface EmployeeIdentityInput {
+  name: string;
+  nameAr?: string | null;
+  fullName?: string | null;
+  fullNameAr?: string | null;
+  email: string;
+  uid?: string | null; // employee number (YE####)
+  primaryPhone?: string | null;
+  secondaryPhone?: string | null;
+  yeldnPhone?: string | null;
+  positionId?: number | null;
+}
+
+/** Update the identity fields that live on the linked User (single source of
+ *  truth — edits here reflect on the user page) plus the employee's position.
+ *  Email + employee number uniqueness enforced. Atomic. */
+export async function updateEmployeeIdentity(employeeId: number, input: EmployeeIdentityInput, byUserId: number) {
+  const emp = await prisma.employee.findUnique({ where: { id: employeeId }, select: { userId: true } });
+  if (!emp) throw new Error("Employee not found.");
+  const email = input.email.trim().toLowerCase();
+  if (await prisma.user.findFirst({ where: { email, id: { not: emp.userId } }, select: { id: true } })) {
+    throw new Error("A user with that email already exists.");
+  }
+  const uid = clean(input.uid);
+  if (uid) {
+    if (!isValidEmployeeNumber(uid)) throw new Error("Employee number must look like YE1101.");
+    if (await prisma.user.findFirst({ where: { uid, id: { not: emp.userId } }, select: { id: true } })) {
+      throw new Error("That employee number is already taken.");
+    }
+  }
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: emp.userId },
+      data: {
+        name: input.name.trim(),
+        nameAr: clean(input.nameAr),
+        fullName: clean(input.fullName),
+        fullNameAr: clean(input.fullNameAr),
+        email,
+        uid,
+        primaryPhone: clean(input.primaryPhone),
+        secondaryPhone: clean(input.secondaryPhone),
+        yeldnPhone: clean(input.yeldnPhone),
+      },
+    }),
+    prisma.employee.update({ where: { id: employeeId }, data: { positionId: input.positionId ?? null, updatedById: byUserId } }),
+  ]);
+  await addEvent(employeeId, "PROFILE_EDIT", "Identity & position updated.", byUserId);
+}
+
 /** Set/clear an employee's line manager (cycle-guarded). */
 export async function setLineManager(employeeId: number, managerId: number | null, byUserId: number): Promise<{ ok: boolean; error?: string }> {
   if (managerId != null) {
@@ -131,7 +181,8 @@ export function listEmployees() {
     where: { archivedAt: null },
     orderBy: { id: "asc" },
     include: {
-      user: { select: { name: true, nameAr: true, email: true, active: true } },
+      user: { select: { uid: true, name: true, nameAr: true, email: true, active: true } },
+      position: { select: { title: true, titleAr: true } },
       lineManager: { select: { user: { select: { name: true } } } },
       _count: { select: { reports: true } },
     },
@@ -143,6 +194,7 @@ export function getEmployee(id: number) {
     where: { id, archivedAt: null },
     include: {
       user: { select: { id: true, uid: true, name: true, nameAr: true, fullName: true, fullNameAr: true, email: true, username: true, primaryPhone: true, secondaryPhone: true, yeldnPhone: true, tier: true, active: true } },
+      position: { include: { department: { select: { name: true, nameAr: true } } } },
       lineManager: { select: { id: true, user: { select: { name: true } } } },
       reports: { include: { user: { select: { name: true } } }, orderBy: { id: "asc" } },
       photos: { orderBy: { id: "asc" } },

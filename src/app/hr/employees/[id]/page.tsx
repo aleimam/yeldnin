@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
-import { getT } from "@/i18n/server";
+import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { formatBizDate } from "@/lib/format/dates";
 import { getEmployee, managerOptions, canManageEmployee } from "@/lib/hr/hr-service";
+import { listPositions } from "@/lib/hr/positions-service";
 import { leaveBalance, listAbsences, dutyDayTypes, listDuties } from "@/lib/hr/attendance-service";
 import { listStructure, eligibleComponents, listChanges } from "@/lib/hr/salary-service";
 import { payrollForEmployee } from "@/lib/hr/payroll-service";
@@ -23,8 +24,10 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   const isSelf = emp.user?.id === access.user.id;
   const canManage = await canManageEmployee(access, emp.id);
   if (!isSelf && !canManage && !access.canModule("human_resources", "VIEW")) redirect("/");
-  const t = await getT();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   const managers = canManage ? await managerOptions(emp.id) : [];
+  const positions = canManage ? await listPositions() : [];
+  const posName = (p: { title: string; titleAr: string | null }) => (locale === "ar" && p.titleAr ? p.titleAr : p.title);
   const hrYear = new Date().getUTCFullYear();
   const balance = canManage ? await leaveBalance(emp.id, hrYear) : null;
   const absences = canManage ? await listAbsences(emp.id, hrYear) : [];
@@ -54,6 +57,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
             {detail(t("hr.email"), emp.user?.email)}
             {detail(t("hr.phone"), emp.user?.primaryPhone)}
             {detail(t("hr.tier"), emp.user?.tier ? t(`tier.${emp.user.tier}`) : null)}
+            {detail(t("hr.position"), emp.position ? posName(emp.position) : null)}
             {detail(t("hr.hiringDate"), emp.hiringDate ? formatBizDate(emp.hiringDate) : null)}
             {emp.user?.active === false && <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t("products.inactive")}</span>}
           </div>
@@ -109,7 +113,12 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           hiringDate: emp.hiringDate ? emp.hiringDate.toISOString().slice(0, 10) : "",
           notes: emp.notes ?? "",
           lineManagerId: emp.lineManagerId ? String(emp.lineManagerId) : "",
-        }} />}
+        }} identity={{
+          name: emp.user?.name ?? "", nameAr: emp.user?.nameAr ?? "", fullName: emp.user?.fullName ?? "", fullNameAr: emp.user?.fullNameAr ?? "",
+          email: emp.user?.email ?? "", uid: emp.user?.uid ?? "",
+          primaryPhone: emp.user?.primaryPhone ?? "", secondaryPhone: emp.user?.secondaryPhone ?? "", yeldnPhone: emp.user?.yeldnPhone ?? "",
+          positionId: emp.positionId ? String(emp.positionId) : "",
+        }} positions={positions.map((p) => ({ id: p.id, label: `${posName(p)}${p.department ? ` — ${locale === "ar" && p.department.nameAr ? p.department.nameAr : p.department.name}` : ""}` }))} />}
 
         {canManage && balance && (
           <AttendancePanel
