@@ -2,14 +2,26 @@ import Link from "next/link";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
-import { listUsers } from "@/lib/users/users-service";
+import { cookies } from "next/headers";
+import { listUsersPaged, listTeams } from "@/lib/users/users-service";
 import { displayName } from "@/lib/users/users-logic";
 import { assetUrl } from "@/lib/assets/assets-service";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { UsersFilters } from "./UsersFilters";
 
-export default async function UsersPage() {
+export default async function UsersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireModule("user_access", "VIEW");
   const canManage = access.can("user_access", "manageUsers");
-  const [t, locale, users] = await Promise.all([getT(), getLocale(), listUsers()]);
+  const sp = await searchParams;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, locale, { rows: users, total }, teams] = await Promise.all([
+    getT(),
+    getLocale(),
+    listUsersPaged({ search: sp.q, tier: sp.tier, teamKey: sp.team, active: sp.active, sort: sp.sort, skip, take }),
+    listTeams(),
+  ]);
 
   return (
     <AppShell
@@ -17,6 +29,7 @@ export default async function UsersPage() {
       moduleKey="user_access"
       actions={canManage ? <Link href="/users/new" className="btn-primary">+ {t("users.newUser")}</Link> : null}
     >
+      <UsersFilters basePath="/users" current={{ q: sp.q ?? "", tier: sp.tier ?? "", team: sp.team ?? "", active: sp.active ?? "", sort: sp.sort ?? "" }} teams={teams.map((tm) => ({ key: tm.key, name: tm.name }))} />
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -58,6 +71,7 @@ export default async function UsersPage() {
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/users" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

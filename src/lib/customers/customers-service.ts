@@ -14,16 +14,18 @@ export interface CustomerInput {
 const channel = (c: string) => (isContactChannel(c) ? c : "WHATSAPP");
 const scopeOf = (s: string) => (s === "XOONX" ? "XOONX" : "EGV");
 
-export function listCustomers(opts: { search?: string; scopes?: string[] } = {}) {
-  return prisma.customer.findMany({
-    where: {
-      archivedAt: null,
-      ...(opts.scopes ? { scope: { in: opts.scopes } } : {}),
-      ...(opts.search ? { name: { contains: opts.search } } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
+export async function listCustomers(opts: { search?: string; scopes?: string[]; sort?: string; skip?: number; take?: number } = {}) {
+  const where = {
+    archivedAt: null,
+    ...(opts.scopes ? { scope: { in: opts.scopes } } : {}),
+    ...(opts.search ? { OR: [{ name: { contains: opts.search } }, { contactNumber: { contains: opts.search } }] } : {}),
+  };
+  const orderBy = opts.sort === "name" ? ({ name: "asc" } as const) : ({ createdAt: "desc" } as const);
+  const [rows, total] = await prisma.$transaction([
+    prisma.customer.findMany({ where, orderBy, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.customer.count({ where }),
+  ]);
+  return { rows, total };
 }
 export function getCustomer(id: number) {
   return prisma.customer.findFirst({ where: { id, archivedAt: null } });

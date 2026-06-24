@@ -25,6 +25,32 @@ export function listUsers() {
   });
 }
 
+/** Paginated + filtered users list (for the Users page). */
+export async function listUsersPaged(opts: { search?: string; tier?: string; teamKey?: string; active?: string; sort?: string; skip?: number; take?: number }) {
+  const where = {
+    archivedAt: null,
+    ...(opts.tier ? { tier: opts.tier } : {}),
+    ...(opts.active === "1" ? { active: true } : opts.active === "0" ? { active: false } : {}),
+    ...(opts.teamKey ? { teamMembers: { some: { team: { key: opts.teamKey } } } } : {}),
+    ...(opts.search
+      ? {
+          OR: [
+            { name: { contains: opts.search } },
+            { nameAr: { contains: opts.search } },
+            { email: { contains: opts.search } },
+            { uid: { contains: opts.search } },
+          ],
+        }
+      : {}),
+  };
+  const orderBy = opts.sort === "newest" ? ({ createdAt: "desc" } as const) : ({ name: "asc" } as const);
+  const [rows, total] = await prisma.$transaction([
+    prisma.user.findMany({ where, orderBy, include: { teamMembers: { include: { team: true } } }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.user.count({ where }),
+  ]);
+  return { rows, total };
+}
+
 export function getUserDetail(id: number) {
   return prisma.user.findFirst({
     where: { id, archivedAt: null },
