@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { formatBizDate } from "@/lib/format/dates";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { createExpenseAction, updateExpenseAction, deleteExpenseAction } from "./actions";
 
 interface Row {
@@ -160,7 +161,7 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
                 {canManage && !closed && (
                   <td className="td whitespace-nowrap text-end">
                     <button onClick={() => edit(r)} disabled={pending} className="text-sm text-brand hover:underline">{t("common.edit")}</button>
-                    <button onClick={() => remove(r.id)} disabled={pending} className="ms-3 text-sm text-red-600 hover:underline">{t("common.delete")}</button>
+                    <button onClick={() => remove(r.id)} disabled={pending} className="ms-3 text-red-600 hover:text-red-700 disabled:opacity-50" title={t("common.delete")} aria-label={t("common.delete")}><TrashIcon className="h-4 w-4" /></button>
                   </td>
                 )}
               </tr>

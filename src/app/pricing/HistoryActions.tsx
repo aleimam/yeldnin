@@ -2,6 +2,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { hardDeleteCalculationAction, purgeHistoryAction } from "./actions";
 
 /** Permanent single-row delete (managers only). Double-confirm. */
@@ -17,9 +18,11 @@ export function HardDeleteButton({ id }: { id: number }) {
         if (!confirm(t("pricer.deletePermanentConfirm2"))) return;
         start(() => hardDeleteCalculationAction(id));
       }}
-      className="text-sm text-red-600 hover:underline disabled:opacity-50"
+      className="text-red-600 hover:text-red-700 disabled:opacity-50"
+      title={t("pricer.deletePermanent")}
+      aria-label={t("pricer.deletePermanent")}
     >
-      {t("pricer.deletePermanent")}
+      {pending ? <span className="text-xs">…</span> : <TrashIcon className="h-4 w-4" />}
     </button>
   );
 }

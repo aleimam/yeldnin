@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { saveBonusTiersAction } from "../actions";
 
 type Row = { fromPct: number; bonusPct: number };
@@ -37,7 +38,7 @@ export function BonusTiersEditor({ initial }: { initial: Row[] }) {
             <tr key={i}>
               <td className="td"><input type="number" className="input w-24 text-end" value={r.fromPct} onChange={(e) => set(i, "fromPct", e.target.value)} /> %</td>
               <td className="td"><input type="number" className="input w-24 text-end" value={r.bonusPct} onChange={(e) => set(i, "bonusPct", e.target.value)} /> %</td>
-              <td className="td text-end"><button type="button" onClick={() => removeRow(i)} className="text-sm text-red-600 hover:underline">{t("common.delete")}</button></td>
+              <td className="td text-end"><button type="button" onClick={() => removeRow(i)} className="text-red-600 hover:text-red-700" title={t("common.delete")} aria-label={t("common.delete")}><TrashIcon className="h-4 w-4" /></button></td>
             </tr>
           ))}
         </tbody>

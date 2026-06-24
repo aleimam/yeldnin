@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { getPageById } from "@/lib/content/content-pages-service";
 import { PageEditor } from "../PageEditor";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { updatePageAction, deletePageAction } from "../actions";
 
 export default async function EditPagePage({
@@ -29,7 +30,7 @@ export default async function EditPagePage({
       <PageEditor page={page} action={updatePageAction} error={sp.error} />
       <form action={deletePageAction} className="mt-4 max-w-4xl border-t border-line pt-4">
         <input type="hidden" name="id" value={page.id} />
-        <button className="text-sm text-red-600 hover:underline">{t("pages.delete")}</button>
+        <button className="text-red-600 hover:text-red-700" title={t("pages.delete")} aria-label={t("pages.delete")}><TrashIcon className="h-5 w-5" /></button>
       </form>
     </AppShell>
   );

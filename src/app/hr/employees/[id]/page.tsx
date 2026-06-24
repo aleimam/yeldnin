@@ -39,7 +39,13 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
     value ? <div><span className="text-muted">{label}: </span><span className="text-ink">{value}</span></div> : null;
 
   return (
-    <AppShell access={access} moduleKey="human_resources" pageTitle={emp.user?.name ?? `#${emp.id}`} backHref="/hr/employees">
+    <AppShell
+      access={access}
+      moduleKey="human_resources"
+      pageTitle={emp.user?.name ?? `#${emp.id}`}
+      backHref="/hr/employees"
+      actions={access.can("user_access", "manageUsers") ? <Link href={`/users/${emp.userId}`} className="btn-secondary btn-sm">{t("hr.userAccount")}</Link> : null}
+    >
       <div className="max-w-3xl space-y-6">
         {/* Identity */}
         <div className="card p-5">

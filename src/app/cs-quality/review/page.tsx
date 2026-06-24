@@ -5,16 +5,32 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
 import { canManageCs } from "@/lib/cs/cs-logic";
-import { listEvaluations } from "@/lib/cs/cs-report-service";
+import { listEvaluations, evalFilterOptions } from "@/lib/cs/cs-report-service";
 import { ReviewActions } from "../ReviewActions";
+import { EvalFilters } from "../EvalFilters";
 
-export default async function CsReviewPage() {
+export default async function CsReviewPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
   if (!canManageCs(access)) redirect("/cs-quality");
-  const [t, rows] = await Promise.all([getT(), listEvaluations({ status: "PENDING", showEvaluator: true })]);
+  const sp = await searchParams;
+  const month = sp.month || undefined;
+  const evaluatorUserId = sp.evaluator && Number(sp.evaluator) > 0 ? Number(sp.evaluator) : undefined;
+  const subjectUserId = sp.reviewee && Number(sp.reviewee) > 0 ? Number(sp.reviewee) : undefined;
+  const [t, rows, options] = await Promise.all([
+    getT(),
+    listEvaluations({ status: "PENDING", showEvaluator: true, month, evaluatorUserId, subjectUserId }),
+    evalFilterOptions(),
+  ]);
 
   return (
     <AppShell access={access} moduleKey="cs_quality" pageTitle={t("cs.reviewQueue")} backHref="/cs-quality">
+      <EvalFilters
+        basePath="/cs-quality/review"
+        current={{ month: sp.month ?? "", evaluator: sp.evaluator ?? "", reviewee: sp.reviewee ?? "" }}
+        evaluators={options.evaluators}
+        reviewees={options.reviewees}
+      />
+      <p className="mb-3 text-sm text-muted">{t("cs.evalCount", { n: rows.length })}</p>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm" data-cards>
           <thead className="border-b border-line bg-canvas">

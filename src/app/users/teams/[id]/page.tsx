@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { getTeamDetail, listAllUsers } from "@/lib/teams/teams-service";
 import { displayName } from "@/lib/users/users-logic";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import {
   renameTeamAction,
   addMemberAction,
@@ -63,7 +64,7 @@ export default async function TeamDetailPage({
                 <form action={removeMemberAction}>
                   <input type="hidden" name="teamId" value={team.id} />
                   <input type="hidden" name="userId" value={m.userId} />
-                  <button className="text-sm text-red-600 hover:underline">{t("teams.remove")}</button>
+                  <button className="text-red-600 hover:text-red-700" title={t("teams.remove")} aria-label={t("teams.remove")}><TrashIcon className="h-4 w-4" /></button>
                 </form>
               </li>
             ))}
@@ -74,7 +75,7 @@ export default async function TeamDetailPage({
         {/* Delete */}
         <form action={deleteTeamAction}>
           <input type="hidden" name="id" value={team.id} />
-          <button className="btn-danger">{t("teams.delete")}</button>
+          <button className="text-red-600 hover:text-red-700" title={t("teams.delete")} aria-label={t("teams.delete")}><TrashIcon className="h-5 w-5" /></button>
         </form>
       </div>
     </AppShell>

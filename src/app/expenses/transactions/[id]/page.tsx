@@ -10,6 +10,7 @@ import { getTransaction, userNameMap, canFlagExpense } from "@/lib/expenses/expe
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { canEditExpense, typeLabelKey } from "@/lib/expenses/expenses-logic";
 import { formatBizDate } from "@/lib/format/dates";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { FlagControls } from "../../FlagControls";
 import { deleteTransactionAction, deleteAttachmentAction } from "../../actions";
 
@@ -120,7 +121,7 @@ export default async function TransactionDetailPage({ params }: { params: Promis
           {canDelete && (
             <form action={deleteTransactionAction}>
               <input type="hidden" name="id" value={tx.id} />
-              <button className="btn-danger">{t("common.delete")}</button>
+              <button className="text-red-600 hover:text-red-700" title={t("common.delete")} aria-label={t("common.delete")}><TrashIcon className="h-5 w-5" /></button>
             </form>
           )}
         </div>

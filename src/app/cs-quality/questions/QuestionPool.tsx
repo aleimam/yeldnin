@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
 import { clampWeight, localized } from "@/lib/cs/cs-logic";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { createCsQuestionAction, updateCsQuestionAction, archiveCsQuestionAction } from "../actions";
 
 type TypeOpt = { id: number; name: string; nameAr: string | null; scope: string };
@@ -140,7 +141,7 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
                 <td className="td text-end" data-label={t("cs.weight")}>{q.weight}</td>
                 <td className="td text-end whitespace-nowrap">
                   <button onClick={() => edit(q)} className="text-brand hover:underline">{t("common.edit")}</button>
-                  <button onClick={() => archive(q.id)} className="ms-3 text-red-600 hover:underline">{t("common.delete")}</button>
+                  <button onClick={() => archive(q.id)} className="ms-3 text-red-600 hover:text-red-700" title={t("common.delete")} aria-label={t("common.delete")}><TrashIcon className="h-4 w-4" /></button>
                 </td>
               </tr>
             ))}

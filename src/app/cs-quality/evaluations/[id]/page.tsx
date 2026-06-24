@@ -97,7 +97,6 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
                 <tr key={a.id}>
                   <td className="td" data-label={t("cs.criteria")}>
                     <span className="font-medium text-ink">{localized(a.title, a.titleAr, locale) || localized(a.criteria, a.criteriaAr, locale)}</span>
-                    {staffView && a.title && a.criteria && <span className="block text-xs text-muted">{localized(a.criteria, a.criteriaAr, locale)}</span>}
                     {staffView && a.typeName && <span className="block text-[10px] uppercase text-muted">{localized(a.typeName, a.typeNameAr, locale)}</span>}
                   </td>
                   <td className="td" data-label={staffView ? t("cs.answer") : t("cs.score")}><span className={`font-medium ${lvlTone(a.level)}`}>{t(`cs.level.${a.level}`)}</span>{staffView && <span className="text-xs text-muted"> ({a.value})</span>}</td>

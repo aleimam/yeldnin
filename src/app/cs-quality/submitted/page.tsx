@@ -5,15 +5,30 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
 import { canEvaluateCalls } from "@/lib/cs/cs-logic";
-import { listEvaluations } from "@/lib/cs/cs-report-service";
+import { listEvaluations, evalFilterOptions } from "@/lib/cs/cs-report-service";
+import { EvalFilters } from "../EvalFilters";
 
-export default async function CsSubmittedPage() {
+export default async function CsSubmittedPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
   if (!canEvaluateCalls(access)) redirect("/cs-quality");
-  const [t, rows] = await Promise.all([getT(), listEvaluations({ evaluatorUserId: access.user.id, showEvaluator: false })]);
+  const sp = await searchParams;
+  const month = sp.month || undefined;
+  const subjectUserId = sp.reviewee && Number(sp.reviewee) > 0 ? Number(sp.reviewee) : undefined;
+  const [t, rows, options] = await Promise.all([
+    getT(),
+    listEvaluations({ evaluatorUserId: access.user.id, showEvaluator: false, month, subjectUserId }),
+    evalFilterOptions(),
+  ]);
 
   return (
     <AppShell access={access} moduleKey="cs_quality" pageTitle={t("cs.submitted")} backHref="/cs-quality">
+      <EvalFilters
+        basePath="/cs-quality/submitted"
+        current={{ month: sp.month ?? "", evaluator: "", reviewee: sp.reviewee ?? "" }}
+        evaluators={[]}
+        reviewees={options.reviewees}
+      />
+      <p className="mb-3 text-sm text-muted">{t("cs.evalCount", { n: rows.length })}</p>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm" data-cards>
           <thead className="border-b border-line bg-canvas">

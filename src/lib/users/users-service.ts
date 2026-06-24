@@ -30,6 +30,7 @@ export function getUserDetail(id: number) {
     include: {
       teamMembers: { include: { team: true } },
       modulePerms: true,
+      employee: { select: { id: true } },
     },
   });
 }

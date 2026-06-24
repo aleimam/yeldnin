@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import {
   createCategoryAction,
   renameCategoryAction,
@@ -52,9 +53,11 @@ function CategoryRow({ cat, onResult }: { cat: Cat; onResult: (r: Result) => voi
       <button
         onClick={() => { if (confirm(t("xadm.deleteCatConfirm"))) act(() => deleteCategoryAction(cat.id)); }}
         disabled={pending}
-        className="ms-auto text-sm text-red-600 hover:underline"
+        className="ms-auto text-red-600 hover:text-red-700 disabled:opacity-50"
+        title={t("common.delete")}
+        aria-label={t("common.delete")}
       >
-        {t("common.delete")}
+        <TrashIcon className="h-4 w-4" />
       </button>
     </div>
   );

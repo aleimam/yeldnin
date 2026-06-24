@@ -13,6 +13,27 @@ const monthKey = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 
 const evalMonth = (e: { scope: string; callDate: Date | null; createdAt: Date }) =>
   monthKey(e.scope === "CALL" ? e.callDate ?? e.createdAt : e.createdAt);
 
+/** "YYYY-MM" → UTC [start, nextStart) range, or null if malformed. */
+function monthRangeUTC(month: string): { gte: Date; lt: Date } | null {
+  const m = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  if (mo < 1 || mo > 12) return null;
+  return { gte: new Date(Date.UTC(y, mo - 1, 1)), lt: new Date(Date.UTC(y, mo, 1)) };
+}
+
+/** Distinct reviewees (subjects) and evaluators across non-archived evals, for
+ *  filter dropdowns. Localized, sorted by display name. */
+export async function evalFilterOptions(): Promise<{ evaluators: { id: number; name: string }[]; reviewees: { id: number; name: string }[] }> {
+  const evals = await prisma.csEvaluation.findMany({ where: { archivedAt: null }, select: { subjectUserId: true, evaluatorUserId: true } });
+  const subjIds = [...new Set(evals.map((e) => e.subjectUserId))];
+  const evalIds = [...new Set(evals.map((e) => e.evaluatorUserId))];
+  const names = await nameMap([...subjIds, ...evalIds]);
+  const mk = (ids: number[]) => ids.map((id) => ({ id, name: names.get(id) ?? `#${id}` })).sort((a, b) => a.name.localeCompare(b.name));
+  return { evaluators: mk(evalIds), reviewees: mk(subjIds) };
+}
+
 /** Current CALL type English name → Arabic name, for localizing snapshot/
  *  analytics labels (which key off the English name). Empty when none set. */
 export async function callTypeArNames(): Promise<Map<string, string>> {
@@ -50,13 +71,21 @@ export interface EvalListRow {
 }
 
 /** Evaluations list (excludes archived). `showEvaluator` reveals the evaluator (hidden from reps). */
-export async function listEvaluations(opts: { status?: string; subjectUserId?: number; evaluatorUserId?: number; showEvaluator: boolean; take?: number }): Promise<EvalListRow[]> {
+export async function listEvaluations(opts: { status?: string; subjectUserId?: number; evaluatorUserId?: number; month?: string; showEvaluator: boolean; take?: number }): Promise<EvalListRow[]> {
+  const range = opts.month ? monthRangeUTC(opts.month) : null;
   const evals = await prisma.csEvaluation.findMany({
     where: {
       archivedAt: null,
       ...(opts.status ? { status: opts.status } : {}),
       ...(opts.subjectUserId ? { subjectUserId: opts.subjectUserId } : {}),
       ...(opts.evaluatorUserId ? { evaluatorUserId: opts.evaluatorUserId } : {}),
+      // Month: calls bucket by call date, performance by submission date.
+      ...(range
+        ? { OR: [
+            { scope: "CALL", callDate: { gte: range.gte, lt: range.lt } },
+            { scope: { not: "CALL" }, createdAt: { gte: range.gte, lt: range.lt } },
+          ] }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     take: opts.take ?? 300,

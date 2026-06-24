@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 import { saveCsTypesAction } from "../actions";
 
 type Row = { id: number; name: string; nameAr: string; weight: number; remove?: boolean };
@@ -79,8 +80,8 @@ export function TypesEditor({ scope, title, initial }: { scope: string; title: s
                 aria-label={t("cs.weight")}
               />
             )}
-            <button type="button" onClick={() => toggleRemove(r.id)} className="text-sm text-red-600 hover:underline">
-              {r.remove ? t("cs.undo") : t("common.delete")}
+            <button type="button" onClick={() => toggleRemove(r.id)} className="text-sm text-red-600 hover:text-red-700" title={r.remove ? t("cs.undo") : t("common.delete")} aria-label={r.remove ? t("cs.undo") : t("common.delete")}>
+              {r.remove ? t("cs.undo") : <TrashIcon className="h-4 w-4" />}
             </button>
           </div>
         ))}

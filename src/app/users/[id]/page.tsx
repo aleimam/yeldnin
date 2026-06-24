@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
@@ -31,7 +32,13 @@ export default async function EditUserPage({
   for (const p of user.modulePerms) initialLevels[p.moduleKey] = p.level as Level;
 
   return (
-    <AppShell access={access} moduleKey="user_access" pageTitle={displayName(user, locale)} backHref="/users">
+    <AppShell
+      access={access}
+      moduleKey="user_access"
+      pageTitle={displayName(user, locale)}
+      backHref="/users"
+      actions={user.employee ? <Link href={`/hr/employees/${user.employee.id}`} className="btn-secondary btn-sm">{t("hr.employeeProfile")}</Link> : null}
+    >
       <div className="max-w-2xl space-y-6">
         <ProfileForm
           user={{
