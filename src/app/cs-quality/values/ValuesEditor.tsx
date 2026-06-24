@@ -26,6 +26,10 @@ export function ValuesEditor({ initial }: { initial: CsConfigShape }) {
     setSaved(false);
     setCfg((p) => ({ ...p, split: { ...p.split, [k]: v } }));
   };
+  const setVetoAllowance = (v: number) => {
+    setSaved(false);
+    setCfg((p) => ({ ...p, vetoAllowance: v }));
+  };
 
   function save() {
     setSaved(false);
@@ -65,6 +69,15 @@ export function ValuesEditor({ initial }: { initial: CsConfigShape }) {
           <label className="flex items-center gap-2 text-ink">{t("cs.scope.CALL")}<input type="number" className="input w-24 text-end" value={cfg.split.calls} onChange={(e) => setSplit("calls", Number(e.target.value) || 0)} />%</label>
           <label className="flex items-center gap-2 text-ink">{t("cs.scope.PERFORMANCE")}<input type="number" className="input w-24 text-end" value={cfg.split.performance} onChange={(e) => setSplit("performance", Number(e.target.value) || 0)} />%</label>
         </div>
+      </div>
+
+      <div className="border-t border-line pt-4">
+        <p className="label mb-1">{t("cs.veto.allowanceTitle")}</p>
+        <p className="mb-2 text-xs text-muted">{t("cs.veto.allowanceHint")}</p>
+        <label className="flex items-center gap-2 text-sm text-ink">
+          {t("cs.veto.perMonth")}
+          <input type="number" min={0} max={99} className="input w-24 text-end" value={cfg.vetoAllowance} onChange={(e) => setVetoAllowance(Number(e.target.value) || 0)} />
+        </label>
       </div>
 
       <div className="flex items-center gap-3">

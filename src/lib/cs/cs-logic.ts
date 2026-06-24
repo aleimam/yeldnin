@@ -35,16 +35,27 @@ export interface CsSplit {
 }
 export const DEFAULT_SPLIT: CsSplit = { calls: 50, performance: 50 };
 
+/** Default monthly veto allowance per sales rep (admin-configurable). */
+export const DEFAULT_VETO_ALLOWANCE = 5;
+
 export interface CsConfigShape {
   call: ValueMap;
   performance: ValueMap;
   split: CsSplit;
+  vetoAllowance: number; // monthly vetoes per rep
 }
 export const DEFAULT_CS_CONFIG: CsConfigShape = {
   call: { ...DEFAULT_VALUES },
   performance: { ...DEFAULT_VALUES },
   split: { ...DEFAULT_SPLIT },
+  vetoAllowance: DEFAULT_VETO_ALLOWANCE,
 };
+
+/** Clamp a configured monthly veto allowance to a sane non-negative integer. */
+export function clampVetoAllowance(n: unknown): number {
+  const v = typeof n === "number" && Number.isFinite(n) ? Math.round(n) : DEFAULT_VETO_ALLOWANCE;
+  return Math.max(0, Math.min(99, v));
+}
 
 function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
@@ -65,9 +76,14 @@ function mergeSplit(raw: Partial<CsSplit> | undefined): CsSplit {
 
 /** Merge a stored (possibly partial) config over the defaults. Tolerant of junk. */
 export function resolveCsConfig(
-  raw?: { call?: Partial<ValueMap>; performance?: Partial<ValueMap>; split?: Partial<CsSplit> } | null,
+  raw?: { call?: Partial<ValueMap>; performance?: Partial<ValueMap>; split?: Partial<CsSplit>; vetoAllowance?: number } | null,
 ): CsConfigShape {
-  return { call: mergeMap(raw?.call), performance: mergeMap(raw?.performance), split: mergeSplit(raw?.split) };
+  return {
+    call: mergeMap(raw?.call),
+    performance: mergeMap(raw?.performance),
+    split: mergeSplit(raw?.split),
+    vetoAllowance: clampVetoAllowance(raw?.vetoAllowance),
+  };
 }
 
 export function isCsLevel(v: unknown): v is CsLevel {

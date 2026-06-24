@@ -10,6 +10,7 @@ import type { BonusTier } from "@/lib/cs/cs-logic";
 import { createCsQuestion, updateCsQuestion, archiveCsQuestion, type CsQuestionInput } from "@/lib/cs/cs-question-service";
 import { createEvaluation, updateEvaluation, getEvaluationGuard } from "@/lib/cs/cs-eval-service";
 import { approveEvaluation, rejectEvaluation, softDeleteEvaluation } from "@/lib/cs/cs-report-service";
+import { castVeto, resolveVeto } from "@/lib/cs/cs-veto-service";
 import { canEvaluateCalls, canManageCs, canEditEvaluation, isCsLevel, isCsChannel, type CsConfigShape } from "@/lib/cs/cs-logic";
 
 export type QResult = { ok: true; id?: number } | { ok: false; error: string };
@@ -183,4 +184,28 @@ export async function rejectCsEvaluationAction(id: number, note: string): Promis
   await rejectEvaluation(id, note || null, access.user.id);
   revalidatePath("/cs-quality/review");
   revalidatePath(`/cs-quality/evaluations/${id}`);
+}
+
+// ── Veto ───────────────────────────────────────────────────────────────────
+
+/** A rep vetoes an approved evaluation of themselves (with a required note). */
+export async function castVetoAction(evaluationId: number, note: string): Promise<{ ok: boolean; error?: string }> {
+  const access = await requireUser();
+  try {
+    await castVeto(evaluationId, access.user.id, note);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Couldn't submit the veto." };
+  }
+  revalidatePath("/cs-quality/mine");
+  revalidatePath(`/cs-quality/evaluations/${evaluationId}`);
+  return { ok: true };
+}
+
+/** Admin resolves a pending veto: uphold (delete the eval) or reject (keep it). */
+export async function resolveVetoAction(vetoId: number, uphold: boolean, note: string | null): Promise<{ ok: boolean }> {
+  const access = await requireCapability("cs_quality", "manage");
+  await resolveVeto(vetoId, uphold, access.user.id, note);
+  revalidatePath("/cs-quality/vetoes");
+  revalidatePath("/cs-quality/review");
+  return { ok: true };
 }

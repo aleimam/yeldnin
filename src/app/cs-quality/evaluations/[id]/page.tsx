@@ -8,7 +8,10 @@ import { formatBizDate } from "@/lib/format/dates";
 import Link from "next/link";
 import { canManageCs, canEditEvaluation, localized } from "@/lib/cs/cs-logic";
 import { getEvaluationDetail } from "@/lib/cs/cs-report-service";
+import { myVetoQuota, vetoStatusByEval } from "@/lib/cs/cs-veto-service";
 import { ReviewActions } from "../../ReviewActions";
+import { VetoButton } from "../../VetoButton";
+import { VetoStatusBadge } from "../../VetoStatusBadge";
 import { DeleteEvalButton } from "./DeleteEvalButton";
 
 const STATUS_TONE: Record<string, string> = {
@@ -35,6 +38,12 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
   const canEdit = canEditEvaluation({ isAdmin: admin, isEvaluator, createdAt: ev.createdAt });
   const canDelete = canEdit; // same rule: admins anytime; creator within the 14-day window
   const backHref = admin ? "/cs-quality/review" : isSubject ? "/cs-quality/mine" : "/cs-quality/submitted";
+  // The subject may veto an approved evaluation of themselves (monthly quota).
+  const canSeeVeto = isSubject && ev.status === "APPROVED";
+  const [quota, vetoMap] = canSeeVeto
+    ? await Promise.all([myVetoQuota(me), vetoStatusByEval([ev.id])])
+    : [null, new Map<number, string>()];
+  const vetoStatus = vetoMap.get(ev.id) ?? null;
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   // Eval-level type chip: borrow the Arabic type name snapshotted on any answer.
   const evTypeName = ev.typeName ? localized(ev.typeName, ev.answers.find((a) => a.typeNameAr)?.typeNameAr, locale) : null;
@@ -77,6 +86,21 @@ export default async function CsEvaluationDetail({ params }: { params: Promise<{
               {admin && ev.status === "PENDING" && <ReviewActions id={ev.id} />}
               {canEdit && <Link href={`/cs-quality/evaluations/${ev.id}/edit`} className="btn-secondary px-3 py-1.5 text-sm">{ev.status === "REJECTED" ? t("cs.editResubmit") : t("common.edit")}</Link>}
               {canDelete && <DeleteEvalButton id={ev.id} backHref={backHref} />}
+            </div>
+          )}
+          {canSeeVeto && (
+            <div className="mt-4 border-t border-line pt-3">
+              {vetoStatus ? (
+                <span className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-muted">{t("cs.veto.yourVeto")}:</span>
+                  <VetoStatusBadge status={vetoStatus} label={t(`cs.veto.status.${vetoStatus}`)} />
+                </span>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3">
+                  <VetoButton evaluationId={ev.id} remaining={quota?.remaining ?? 0} />
+                  <span className="text-xs text-muted">{t("cs.veto.remaining", { n: quota?.remaining ?? 0, total: quota?.allowance ?? 0 })}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

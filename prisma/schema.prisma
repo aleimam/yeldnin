@@ -394,8 +394,27 @@ model CsEvaluation {
 
   answers CsEvaluationAnswer[]
   photos  CsEvaluationPhoto[]
+  vetoes  CsVeto[]
 
   @@index([subjectUserId])
+  @@index([status])
+}
+
+// A rep's dispute of an APPROVED evaluation of themselves. PENDING until an admin
+// REJECTs (keeps the eval) or UPHELDs (soft-deletes the eval). One veto per eval.
+model CsVeto {
+  id             Int          @id @default(autoincrement())
+  evaluationId   Int          @unique
+  evaluation     CsEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  byUserId       Int // the subject (rep) who cast it
+  note           String // required dispute reason
+  status         String       @default("PENDING") // PENDING | REJECTED | UPHELD
+  resolvedById   Int?
+  resolvedAt     DateTime?
+  resolutionNote String?
+  createdAt      DateTime     @default(now())
+
+  @@index([byUserId, createdAt])
   @@index([status])
 }
 
