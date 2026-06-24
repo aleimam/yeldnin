@@ -315,6 +315,36 @@ async function main() {
   }
   if (usersNoEmp.length) console.log(`  Backfilled ${usersNoEmp.length} employee record(s).`);
 
+  // HR: assign a YE#### employee number (User.uid) to every employee's user that
+  // lacks one. Admins draw from the 1001 band, staff from 1101, in employee-id
+  // order. Idempotent — skips users that already have a valid number.
+  const empUsers = await prisma.user.findMany({
+    where: { employee: { isNot: null } },
+    select: { id: true, uid: true, tier: true },
+    orderBy: { id: "asc" },
+  });
+  const usedNums = new Set(
+    (await prisma.user.findMany({ where: { uid: { not: null } }, select: { uid: true } })).map((u) => u.uid as string),
+  );
+  const numValue = (u: string | null) => {
+    const m = /^YE(\d{3,})$/.exec((u ?? "").trim());
+    return m ? Number(m[1]) : null;
+  };
+  let numbered = 0;
+  for (const u of empUsers) {
+    if (u.uid && /^YE\d{3,}$/.test(u.uid)) continue;
+    const admin = u.tier === "ADMIN" || u.tier === "SUPER_ADMIN";
+    const nums = [...usedNums].map(numValue).filter((n): n is number => n != null);
+    const band = admin ? nums.filter((n) => n >= 1001 && n < 1101) : nums.filter((n) => n >= 1101);
+    let next = band.length ? Math.max(...band) + 1 : admin ? 1001 : 1101;
+    while (usedNums.has(`YE${next}`)) next++;
+    const num = `YE${next}`;
+    await prisma.user.update({ where: { id: u.id }, data: { uid: num } });
+    usedNums.add(num);
+    numbered++;
+  }
+  if (numbered) console.log(`  Assigned ${numbered} employee number(s).`);
+
   // HR day types (system catalog; idempotent — never overwrites admin edits).
   const DAY_TYPES = [
     { code: "ANNUAL", name: "Annual leave", nameAr: "إجازة اعتيادية", dayClass: "LEAVE", sortOrder: 1 },

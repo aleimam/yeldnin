@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { clean } from "@/lib/text";
 import { countWorkingDays, expandHolidayKeys, parseWeeklyOff, effectiveAllowance, type LeaveType } from "./attendance-logic";
+import { proratedAllowance } from "./hr-logic";
 
 const yearStart = (y: number) => new Date(Date.UTC(y, 0, 1));
 const yearEnd = (y: number) => new Date(Date.UTC(y, 11, 31, 23, 59, 59));
@@ -43,7 +44,7 @@ export interface LeaveBalance {
 }
 export async function leaveBalance(employeeId: number, year: number): Promise<{ annual: LeaveBalance; urgent: LeaveBalance }> {
   const [emp, cfg] = await Promise.all([
-    prisma.employee.findUnique({ where: { id: employeeId }, select: { annualAllowance: true, urgentAllowance: true } }),
+    prisma.employee.findUnique({ where: { id: employeeId }, select: { annualAllowance: true, urgentAllowance: true, hiringDate: true } }),
     getHrConfig(),
   ]);
   const approved = await prisma.leaveRequest.findMany({
@@ -55,8 +56,9 @@ export async function leaveBalance(employeeId: number, year: number): Promise<{ 
   let usedUrgent = 0;
   for (const r of approved) r.type === "ANNUAL" ? (usedAnnual += r.days) : (usedUrgent += r.days);
   usedUrgent += urgentAbsences;
-  const annualAllow = effectiveAllowance(emp?.annualAllowance, cfg.annualDefault);
-  const urgentAllow = effectiveAllowance(emp?.urgentAllowance, cfg.urgentDefault);
+  // Mid-year hires get a pro-rated yearly allowance (full once they've served a whole year).
+  const annualAllow = proratedAllowance(effectiveAllowance(emp?.annualAllowance, cfg.annualDefault), emp?.hiringDate ?? null, year);
+  const urgentAllow = proratedAllowance(effectiveAllowance(emp?.urgentAllowance, cfg.urgentDefault), emp?.hiringDate ?? null, year);
   return {
     annual: { allowance: annualAllow, used: usedAnnual, remaining: annualAllow - usedAnnual },
     urgent: { allowance: urgentAllow, used: usedUrgent, remaining: urgentAllow - usedUrgent },

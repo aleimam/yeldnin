@@ -78,6 +78,7 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
             <option value="MEMBER">{t("tier.MEMBER")}</option>
             <option value="ADMIN">{t("tier.ADMIN")}</option>
             <option value="SUPER_ADMIN">{t("tier.SUPER_ADMIN")}</option>
+            <option value="THIRD_PARTY">{t("tier.THIRD_PARTY")}</option>
           </select>
         </Field>
         <Field label={t("users.primaryPhone")}><input className="input" value={f.primaryPhone} onChange={(e) => set("primaryPhone", e.target.value)} /></Field>

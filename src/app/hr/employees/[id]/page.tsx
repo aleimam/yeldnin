@@ -50,7 +50,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
         {/* Identity */}
         <div className="card p-5">
           <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
-            {detail(t("hr.uid"), emp.uid)}
+            {detail(t("hr.uid"), emp.user?.uid)}
             {detail(t("hr.email"), emp.user?.email)}
             {detail(t("hr.phone"), emp.user?.primaryPhone)}
             {detail(t("hr.tier"), emp.user?.tier ? t(`tier.${emp.user.tier}`) : null)}

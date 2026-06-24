@@ -842,6 +842,7 @@
   "tier.SUPER_ADMIN": "Super Admin",
   "tier.ADMIN": "Admin",
   "tier.MEMBER": "Member",
+  "tier.THIRD_PARTY": "Third party",
   "teams.title": "Teams",
   "teams.name": "Team name",
   "teams.members": "Members",

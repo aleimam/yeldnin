@@ -1,7 +1,9 @@
 // Pure permission logic — no DB, no I/O. Unit-tested in access-logic.test.ts.
 
 export type Level = "NONE" | "VIEW" | "OPERATE" | "MANAGE";
-export type Tier = "SUPER_ADMIN" | "ADMIN" | "MEMBER";
+// THIRD_PARTY: an external account (supplier/partner). Logs in, no employee
+// record, no module access by default (treated like MEMBER for permissions).
+export type Tier = "SUPER_ADMIN" | "ADMIN" | "MEMBER" | "THIRD_PARTY";
 
 export const LEVELS: Level[] = ["NONE", "VIEW", "OPERATE", "MANAGE"];
 

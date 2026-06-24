@@ -4,11 +4,12 @@ import { prisma } from "@/lib/db";
 import { clean } from "@/lib/text";
 import { hashPassword } from "@/lib/auth/password";
 import { isLevel, type Level, type Tier } from "@/lib/auth/access-logic";
+import { nextEmployeeNumber, isValidEmployeeNumber, isAdminTier } from "@/lib/hr/hr-logic";
 
 /** A Prisma client bound to an open transaction (interactive `$transaction`). */
 export type Tx = Prisma.TransactionClient;
 
-const TIERS: Tier[] = ["SUPER_ADMIN", "ADMIN", "MEMBER"];
+const TIERS: Tier[] = ["SUPER_ADMIN", "ADMIN", "MEMBER", "THIRD_PARTY"];
 export function isTier(v: string): v is Tier {
   return (TIERS as string[]).includes(v);
 }
@@ -74,10 +75,10 @@ async function assertUsernameFree(username: string | null, exceptId?: number) {
   if (clash) throw new Error("That username is already taken.");
 }
 
-/** Employee number doubles as the user UID: unique, prefixed YE1101. */
+/** Employee number doubles as the user UID: unique, formatted YE#### (e.g. YE1101). */
 async function assertUidValid(uid: string | null, exceptId?: number) {
   if (!uid) return;
-  if (!uid.startsWith("YE1101")) throw new Error("Employee number must start with YE1101.");
+  if (!isValidEmployeeNumber(uid)) throw new Error("Employee number must look like YE1101.");
   const clash = await prisma.user.findFirst({
     where: { uid, ...(exceptId ? { id: { not: exceptId } } : {}) },
     select: { id: true },
@@ -101,12 +102,16 @@ export async function createUserTx(tx: Tx, input: UserProfileInput & { passwordH
   if (username && (await tx.user.findFirst({ where: { username }, select: { id: true } }))) {
     throw new Error("That username is already taken.");
   }
-  const uid = clean(input.uid);
+  let uid = clean(input.uid);
   if (uid) {
-    if (!uid.startsWith("YE1101")) throw new Error("Employee number must start with YE1101.");
+    if (!isValidEmployeeNumber(uid)) throw new Error("Employee number must look like YE1101.");
     if (await tx.user.findFirst({ where: { uid }, select: { id: true } })) {
       throw new Error("That employee number is already taken.");
     }
+  } else if (input.tier !== "THIRD_PARTY") {
+    // Auto-assign the next number in the tier's band (admins 1001+, staff 1101+).
+    const used = await tx.user.findMany({ where: { uid: { not: null } }, select: { uid: true } });
+    uid = nextEmployeeNumber(used.map((u) => u.uid), isAdminTier(input.tier));
   }
   return tx.user.create({
     data: {

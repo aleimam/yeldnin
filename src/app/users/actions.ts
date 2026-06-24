@@ -11,6 +11,7 @@ import {
   activeSuperAdminCount,
   getUserTier,
 } from "@/lib/users/users-service";
+import { ensureEmployee } from "@/lib/hr/hr-service";
 import { writeAudit } from "@/lib/audit";
 
 export interface FormState {
@@ -47,6 +48,9 @@ export async function createUserAction(
   }
   try {
     const user = await createUser({ ...p, avatarUrl: p.avatarId ?? null });
+    // Every internal user has an employee record (strict 1:1); third-party
+    // (external) accounts do not.
+    if (p.tier !== "THIRD_PARTY") await ensureEmployee(user.id, access.user.id);
     await writeAudit(access.user.id, "user_access", "user.create", "user", user.id, { email: p.email });
     revalidatePath("/users");
     return { ok: true, id: user.id };

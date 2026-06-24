@@ -842,6 +842,7 @@
   "tier.SUPER_ADMIN": "مدير عام",
   "tier.ADMIN": "مدير",
   "tier.MEMBER": "عضو",
+  "tier.THIRD_PARTY": "طرف خارجي",
   "teams.title": "الفرق",
   "teams.name": "اسم الفريق",
   "teams.members": "الأعضاء",
