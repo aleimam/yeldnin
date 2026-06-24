@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { DateField } from "@/components/DateField";
 import { createTripAction, updateTripAction } from "./actions";
 import { PRODUCT_TYPES } from "@/lib/products/products-logic";
 import { HandlingFeeInput } from "@/components/HandlingFeeInput";
@@ -92,8 +93,8 @@ export function TripForm({
         </div>
         <div><label className="label">{t("trip.maxWeight")}</label><input type="number" step="any" className="input" value={f.maxWeight} onChange={(e) => set("maxWeight", e.target.value)} /></div>
         <div><label className="label">{t("trip.dealPrice")}</label><input type="number" step="any" className="input" value={f.dealPricePerKg} onChange={(e) => set("dealPricePerKg", e.target.value)} /></div>
-        <div><label className="label">{t("trip.lastReceiving")}</label><input type="date" className="input" value={f.lastReceivingDate} onChange={(e) => set("lastReceivingDate", e.target.value)} /></div>
-        <div><label className="label">{t("trip.deliveryEgypt")}</label><input type="date" className="input" value={f.deliveryDateInEgypt} onChange={(e) => set("deliveryDateInEgypt", e.target.value)} /></div>
+        <div><label className="label">{t("trip.lastReceiving")}</label><DateField className="input" value={f.lastReceivingDate} onChange={(e) => set("lastReceivingDate", e.target.value)} /></div>
+        <div><label className="label">{t("trip.deliveryEgypt")}</label><DateField className="input" value={f.deliveryDateInEgypt} onChange={(e) => set("deliveryDateInEgypt", e.target.value)} /></div>
       </div>
       <div>
         <label className="label">{t("travelers.allowedTypes")}</label>

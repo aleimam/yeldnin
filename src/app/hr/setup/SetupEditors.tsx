@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { DateField } from "@/components/DateField";
 import { createComponentAction, archiveComponentAction, createDayTypeAction, updateDayTypeAction, archiveDayTypeAction, setDutyMappingAction } from "../attendance-actions";
 import { bulkRaiseAction } from "../salary-actions";
 import { VALUATIONS, CHANGE_TYPES } from "@/lib/hr/salary-logic";
@@ -104,7 +105,7 @@ function BulkRaiseSection({ components, teams }: { components: Component[]; team
         <select className="input" value={f.teamId} onChange={set("teamId")}><option value="">{t("salary.allEmployees")}</option>{teams.map((tm) => <option key={tm.id} value={tm.id}>{tm.name}</option>)}</select>
         <select className="input" value={f.type} onChange={set("type")}>{CHANGE_TYPES.filter((c) => c !== "SET").map((c) => <option key={c} value={c}>{t(`change.${c}`)}</option>)}</select>
         <input className="input" type="number" step="0.01" placeholder={f.type === "PERCENT" ? "%" : t("salary.amount")} value={f.delta} onChange={set("delta")} />
-        <input className="input" type="date" value={f.effectiveDate} onChange={set("effectiveDate")} />
+        <DateField className="input" value={f.effectiveDate} onChange={set("effectiveDate")} />
       </div>
       {msg && <p className={`text-sm ${msg.ok ? "text-green-600" : "text-red-600"}`}>{msg.text}</p>}
       <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={pending || !f.componentId || !f.delta} onClick={apply}>{t("salary.applyRaise")}</button>

@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { DateField } from "@/components/DateField";
 import { CHANGE_TYPES } from "@/lib/hr/salary-logic";
 import { formatEgp as fmt } from "@/lib/format/money";
 import { applyLineChangeAction, setLineActiveAction } from "./salary-actions";
@@ -138,7 +139,7 @@ function LineRow({ employeeId, line, readOnly }: { employeeId: number; line: Sal
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <select className="input h-8 w-28 py-0 text-xs" value={type} onChange={(e) => setType(e.target.value)}>{CHANGE_TYPES.map((c) => <option key={c} value={c}>{t(`change.${c}`)}</option>)}</select>
           <input className="input h-8 w-24 py-0 text-xs" type="number" step="0.01" placeholder={type === "PERCENT" ? "%" : t("salary.amount")} value={delta} onChange={(e) => setDelta(e.target.value)} />
-          <input className="input h-8 w-36 py-0 text-xs" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <DateField className="input h-8 w-36 py-0 text-xs" value={date} onChange={(e) => setDate(e.target.value)} />
           <button type="button" className="btn-primary px-2 py-1 text-xs" disabled={pending || delta === ""} onClick={apply}>{t("salary.apply")}</button>
           <button type="button" className="text-xs text-muted hover:underline" disabled={pending} onClick={toggle}>{line.active ? t("salary.disable") : t("salary.enable")}</button>
           {err && <span className="text-xs text-red-600">{t(err)}</span>}
@@ -180,7 +181,7 @@ function AddComponent({ employeeId, eligible }: { employeeId: number; eligible: 
           {eligible.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <input className="input h-9 w-28 py-0 text-sm" type="number" step="0.01" placeholder={t("salary.amount")} value={amount} onChange={(e) => setAmount(e.target.value)} />
-        <input className="input h-9 w-40 py-0 text-sm" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <DateField className="input h-9 w-40 py-0 text-sm" value={date} onChange={(e) => setDate(e.target.value)} />
         <button type="button" className="btn-secondary px-3 py-1.5 text-sm" disabled={pending || !componentId} onClick={add}>{t("salary.add")}</button>
       </div>
       {err && <p className="text-sm text-red-600">{t(err)}</p>}

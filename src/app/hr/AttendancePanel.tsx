@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { DateField } from "@/components/DateField";
 import { markAbsenceAction, clearAbsenceAction, setEmployeeAllowanceAction, markDutyAction, clearDutyAction } from "./attendance-actions";
 
 interface Bal {
@@ -69,7 +70,7 @@ export function AttendancePanel({
       <div className="space-y-2 border-t border-line pt-3">
         <h3 className="text-sm font-medium text-muted">{t("leave.markAbsent")}</h3>
         <div className="flex flex-wrap items-end gap-2">
-          <input className="input w-40" type="date" value={absDate} onChange={(e) => setAbsDate(e.target.value)} />
+          <DateField className="input w-40" value={absDate} onChange={(e) => setAbsDate(e.target.value)} />
           <input className="input w-48" placeholder={t("leave.note")} value={absNote} onChange={(e) => setAbsNote(e.target.value)} />
           <button type="button" className="btn-secondary px-3 py-1.5 text-sm" disabled={pending || !absDate} onClick={() => refresh(async () => { await markAbsenceAction(employeeId, absDate, absNote || null); setAbsDate(""); setAbsNote(""); })}>{t("leave.markAbsent")}</button>
         </div>
@@ -92,7 +93,7 @@ export function AttendancePanel({
       <div className="space-y-2 border-t border-line pt-3">
         <h3 className="text-sm font-medium text-muted">{t("duty.title")}</h3>
         <div className="flex flex-wrap items-end gap-2">
-          <input className="input w-40" type="date" value={dutyDate} onChange={(e) => setDutyDate(e.target.value)} />
+          <DateField className="input w-40" value={dutyDate} onChange={(e) => setDutyDate(e.target.value)} />
           <select className="input w-40" value={dutyType} onChange={(e) => setDutyType(e.target.value)}>
             {dutyTypes.map((dt) => <option key={dt.id} value={dt.id}>{dt.label}</option>)}
           </select>

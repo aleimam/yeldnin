@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { DateField } from "@/components/DateField";
 import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { createEmployeeAction } from "./actions";
 
@@ -61,7 +62,7 @@ export function EmployeeCreateForm({ managers }: { managers: { id: number; label
             {managers.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>
         </label>
-        <label className="block"><span className="label">{t("hr.hiringDate")}</span><input className="input" type="date" value={f.hiringDate} onChange={set("hiringDate")} /></label>
+        <label className="block"><span className="label">{t("hr.hiringDate")}</span><DateField className="input" value={f.hiringDate} onChange={set("hiringDate")} /></label>
       </div>
       {err && <p className="text-sm text-red-600">{t(err)}</p>}
       <button type="button" className="btn-primary" disabled={pending || !f.name || !f.email || !f.password} onClick={submit}>{t("hr.createEmployee")}</button>

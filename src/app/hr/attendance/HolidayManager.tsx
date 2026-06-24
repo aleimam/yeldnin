@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { DateField } from "@/components/DateField";
 import { createHolidayAction, archiveHolidayAction, setHolidayBonusAction } from "../attendance-actions";
 
 interface Holiday {
@@ -47,8 +48,8 @@ export function HolidayManager({ holidays, teams }: { holidays: Holiday[]; teams
           <option value="VACATION">{t("leave.vacation")}</option>
         </select>
         <span className="hidden sm:block" />
-        <label className="block"><span className="label">{t("leave.from")}</span><input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="block"><span className="label">{t("leave.to")}</span><input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <label className="block"><span className="label">{t("leave.from")}</span><DateField className="input" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label className="block"><span className="label">{t("leave.to")}</span><DateField className="input" value={to} onChange={(e) => setTo(e.target.value)} /></label>
       </div>
       {err && <p className="text-sm text-red-600">{err}</p>}
       <button type="button" className="btn-primary" disabled={pending || !title || !from || !to} onClick={add}>{t("leave.addHoliday")}</button>

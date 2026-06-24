@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { DateField } from "@/components/DateField";
 import { EMPLOYEE_PHOTO_KINDS } from "@/lib/hr/hr-logic";
 import { updateEmployeeAction, updateEmployeeIdentityAction, setLineManagerAction, addNoteAction, addEmployeePhotoAction } from "./actions";
 
@@ -112,12 +113,12 @@ export function EmployeeManage({
         <h3 className="text-sm font-medium text-muted">{t("hr.editDetails")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block"><span className="label">{t("hr.nationalId")}</span><input className="input" value={d.nationalIdNumber} onChange={setField("nationalIdNumber")} /></label>
-          <label className="block"><span className="label">{t("hr.idExpiry")}</span><input className="input" type="date" value={d.nationalIdExpiry} onChange={setField("nationalIdExpiry")} /></label>
+          <label className="block"><span className="label">{t("hr.idExpiry")}</span><DateField className="input" value={d.nationalIdExpiry} onChange={setField("nationalIdExpiry")} /></label>
           <label className="block"><span className="label">{t("hr.degree")}</span><input className="input" value={d.gradDegree} onChange={setField("gradDegree")} /></label>
           <label className="block"><span className="label">{t("hr.university")}</span><input className="input" value={d.gradUniversity} onChange={setField("gradUniversity")} /></label>
           <label className="block"><span className="label">{t("hr.faculty")}</span><input className="input" value={d.gradFaculty} onChange={setField("gradFaculty")} /></label>
-          <label className="block"><span className="label">{t("hr.birthDate")}</span><input className="input" type="date" value={d.birthDate} onChange={setField("birthDate")} /></label>
-          <label className="block"><span className="label">{t("hr.hiringDate")}</span><input className="input" type="date" value={d.hiringDate} onChange={setField("hiringDate")} /></label>
+          <label className="block"><span className="label">{t("hr.birthDate")}</span><DateField className="input" value={d.birthDate} onChange={setField("birthDate")} /></label>
+          <label className="block"><span className="label">{t("hr.hiringDate")}</span><DateField className="input" value={d.hiringDate} onChange={setField("hiringDate")} /></label>
         </div>
         <label className="block"><span className="label">{t("hr.notes")}</span><textarea className="input" rows={2} value={d.notes} onChange={setField("notes")} /></label>
         <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={pending} onClick={() => refresh(() => updateEmployeeAction(employeeId, {

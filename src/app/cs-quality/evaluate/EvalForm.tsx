@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
 import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { DateField } from "@/components/DateField";
 import { CS_LEVELS, CS_CHANNELS, valueFor, weightedTotal, normalizedPct, localized, type ValueMap } from "@/lib/cs/cs-logic";
 import { createCsEvaluationAction, updateCsEvaluationAction } from "../actions";
 
@@ -130,7 +131,7 @@ export function EvalForm({
         )}
         <div>
           <label className="label">{scope === "CALL" ? t("cs.callDate") : t("cs.evalDate")}</label>
-          <input type="date" max={today()} className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
+          <DateField max={today()} className="input" value={callDate} onChange={(e) => setCallDate(e.target.value)} />
         </div>
         {scope === "CALL" && (
           <>

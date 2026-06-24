@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { DateField } from "@/components/DateField";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { CATEGORY_TYPES, typeLabelKey } from "@/lib/expenses/expenses-logic";
 import { createTransactionAction, updateTransactionAction } from "./actions";
@@ -87,7 +88,7 @@ export function ExpenseForm({
       </div>
       <div>
         <label className="label">{t("exp.accruingDate")}</label>
-        <input type="date" className="input" value={accruingDate} onChange={(e) => setAccruingDate(e.target.value)} />
+        <DateField className="input" value={accruingDate} onChange={(e) => setAccruingDate(e.target.value)} />
         <p className="mt-1 text-xs text-muted">{t("exp.accruingHint")}</p>
       </div>
       <div>
