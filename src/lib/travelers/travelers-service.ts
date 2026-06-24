@@ -74,6 +74,61 @@ export async function listTravelersWithStats(now: Date = new Date()) {
   }
   return travelers.map((tv) => ({ ...tv, stats: stats.get(tv.id)! }));
 }
+
+/**
+ * Paginated + filtered travelers list with the same derived stats as
+ * `listTravelersWithStats`, computed only for the current page's travelers.
+ */
+export async function listTravelersWithStatsPaged(
+  opts: { search?: string; skip?: number; take?: number },
+  now: Date = new Date(),
+) {
+  const where = {
+    archivedAt: null,
+    ...(opts.search ? { OR: [{ name: { contains: opts.search } }, { contact: { contains: opts.search } }] } : {}),
+  };
+  const [travelers, total] = await prisma.$transaction([
+    prisma.traveler.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { photos: true } } },
+      skip: opts.skip ?? 0,
+      take: opts.take ?? 50,
+    }),
+    prisma.traveler.count({ where }),
+  ]);
+  const ids = travelers.map((t) => t.id);
+  const stats = new Map<number, TravelerStats>();
+  for (const id of ids) stats.set(id, { tripCount: 0, itemCount: 0, nextTrip: null, tripIds: [] });
+  if (ids.length) {
+    const trips = await prisma.trip.findMany({
+      where: { travelerId: { in: ids }, archivedAt: null },
+      select: { id: true, travelerId: true, lastReceivingDate: true, status: true },
+    });
+    const tripIds = trips.map((t) => t.id);
+    const items = tripIds.length
+      ? await prisma.item.findMany({
+          where: { containerType: "TRIP", containerId: { in: tripIds } },
+          select: { containerId: true },
+        })
+      : [];
+    const itemByTrip = new Map<number, number>();
+    for (const it of items) if (it.containerId != null) itemByTrip.set(it.containerId, (itemByTrip.get(it.containerId) ?? 0) + 1);
+    for (const tr of trips) {
+      const s = stats.get(tr.travelerId);
+      if (!s) continue;
+      s.tripCount++;
+      s.tripIds.push(tr.id);
+      s.itemCount += itemByTrip.get(tr.id) ?? 0;
+      if (tr.lastReceivingDate && tr.status !== "CANCELLED") {
+        const ts = tr.lastReceivingDate.getTime();
+        if (ts >= now.getTime() && (!s.nextTrip || ts < s.nextTrip.getTime())) s.nextTrip = tr.lastReceivingDate;
+      }
+    }
+  }
+  const rows = travelers.map((tv) => ({ ...tv, stats: stats.get(tv.id)! }));
+  return { rows, total };
+}
 export function getTraveler(id: number) {
   return prisma.traveler.findFirst({
     where: { id, archivedAt: null },

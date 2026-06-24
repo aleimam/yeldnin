@@ -1,12 +1,15 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
-import { listTransactions, listCategories, categoryArMap, type TxSort, type TxFlagFilter } from "@/lib/expenses/expenses-service";
+import { listTransactionsPaged, listCategories, categoryArMap, type TxSort, type TxFlagFilter } from "@/lib/expenses/expenses-service";
 import { displayName } from "@/lib/users/users-logic";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { typeLabelKey } from "@/lib/expenses/expenses-logic";
 import { formatBizDate } from "@/lib/format/dates";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
 import { TransactionFilters } from "./TransactionFilters";
 
 const FLAG_DOT: Record<string, string> = { RED: "bg-red-500", YELLOW: "bg-amber-500" };
@@ -25,11 +28,13 @@ export default async function TransactionsPage({
   const flag = sp.flag && FLAGS.has(sp.flag) ? (sp.flag as TxFlagFilter) : undefined;
   const categoryId = sp.category && Number(sp.category) > 0 ? Number(sp.category) : undefined;
   const sort = sp.sort && SORTS.has(sp.sort) ? (sp.sort as TxSort) : undefined;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
 
-  const [t, locale, rows, arMap, categories] = await Promise.all([
+  const [t, locale, { rows, total }, arMap, categories] = await Promise.all([
     getT(),
     getLocale(),
-    listTransactions({ type, flag, categoryId, search: sp.q, sort }),
+    listTransactionsPaged({ type, flag, categoryId, search: sp.q, sort, skip, take }),
     categoryArMap(),
     listCategories(),
   ]);
@@ -90,6 +95,7 @@ export default async function TransactionsPage({
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/expenses/transactions" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

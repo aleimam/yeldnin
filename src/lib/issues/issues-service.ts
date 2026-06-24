@@ -55,6 +55,33 @@ export function listIssues(opts: { status?: string } = {}) {
     take: 200,
   });
 }
+
+/** Paginated issues list (optional status filter + free-text search over uid/title/note). */
+export async function listIssuesPaged(opts: { status?: string; search?: string; skip?: number; take?: number }) {
+  const where = {
+    ...(opts.status ? { status: opts.status } : {}),
+    ...(opts.search
+      ? {
+          OR: [
+            { uid: { contains: opts.search } },
+            { title: { contains: opts.search } },
+            { note: { contains: opts.search } },
+          ],
+        }
+      : {}),
+  };
+  const [rows, total] = await prisma.$transaction([
+    prisma.issue.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { compensations: true } } },
+      skip: opts.skip ?? 0,
+      take: opts.take ?? 50,
+    }),
+    prisma.issue.count({ where }),
+  ]);
+  return { rows, total };
+}
 export function getIssue(id: number) {
   return prisma.issue.findUnique({
     where: { id },

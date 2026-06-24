@@ -300,6 +300,26 @@ export async function listAllInquiries(take = 200): Promise<InquiryListRow[]> {
   return rows.map(toListRow);
 }
 
+/** Admin: paginated inquiries (free-text search over uid/unitKind), newest first. */
+export async function listAllInquiriesPaged(
+  opts: { search?: string; skip?: number; take?: number },
+): Promise<{ rows: InquiryListRow[]; total: number }> {
+  const where = opts.search
+    ? { OR: [{ uid: { contains: opts.search } }, { unitKind: { contains: opts.search } }] }
+    : {};
+  const [rows, total] = await prisma.$transaction([
+    prisma.inquiry.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      include: LIST_INCLUDE,
+      skip: opts.skip ?? 0,
+      take: opts.take ?? 50,
+    }),
+    prisma.inquiry.count({ where }),
+  ]);
+  return { rows: rows.map(toListRow), total };
+}
+
 export interface InquiryDetailMessage {
   id: number;
   senderId: number;

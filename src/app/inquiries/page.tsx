@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
@@ -7,11 +8,14 @@ import { formatBizDate } from "@/lib/format/dates";
 import { statusLabelKey } from "@/lib/inquiry/inquiry-logic";
 import {
   listMyInquiries,
-  listAllInquiries,
+  listAllInquiriesPaged,
   inquiryAnalytics,
   listDispositions,
   type InquiryListRow,
 } from "@/lib/inquiry/inquiry-service";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { ListSearch } from "@/components/ListSearch";
 import { DispositionEditor } from "@/components/inquiry/DispositionEditor";
 
 function pillTone(status: string): string {
@@ -22,13 +26,16 @@ function pillTone(status: string): string {
       : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400";
 }
 
-export default async function InquiriesPage() {
+export default async function InquiriesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
+  const sp = await searchParams;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
   const [t, locale, mine, all, analytics, dispositions] = await Promise.all([
     getT(),
     getLocale(),
     listMyInquiries(access.user.id),
-    access.isAdmin ? listAllInquiries() : Promise.resolve(null),
+    access.isAdmin ? listAllInquiriesPaged({ search: sp.q, skip, take }) : Promise.resolve(null),
     access.isAdmin ? inquiryAnalytics() : Promise.resolve(null),
     access.isAdmin ? listDispositions() : Promise.resolve(null),
   ]);
@@ -86,9 +93,13 @@ export default async function InquiriesPage() {
       </div>
 
       {all && (
-        <div className="card mt-6 overflow-hidden">
-          <h2 className="border-b border-line px-3 py-2 text-sm font-semibold text-ink">{t("inq.allInquiries")}</h2>
-          {all.length ? all.map(row) : <p className="px-3 py-6 text-center text-sm text-muted">{t("inq.empty")}</p>}
+        <div className="mt-6">
+          <ListSearch basePath="/inquiries" value={sp.q ?? ""} placeholder={t("inq.searchPlaceholder")} />
+          <div className="card overflow-hidden">
+            <h2 className="border-b border-line px-3 py-2 text-sm font-semibold text-ink">{t("inq.allInquiries")}</h2>
+            {all.rows.length ? all.rows.map(row) : <p className="px-3 py-6 text-center text-sm text-muted">{t("inq.empty")}</p>}
+          </div>
+          <Paginator basePath="/inquiries" params={sp} page={page} perPage={perPage} total={all.total} />
         </div>
       )}
 

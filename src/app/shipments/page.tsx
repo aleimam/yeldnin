@@ -1,14 +1,22 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
-import { listShipments } from "@/lib/operations/operations-service";
+import { listShipmentsPaged } from "@/lib/operations/operations-service";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { ListSearch } from "@/components/ListSearch";
 
-export default async function ShipmentsPage() {
+export default async function ShipmentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireModule("operations", "VIEW");
-  const [t, rows] = await Promise.all([getT(), listShipments()]);
+  const sp = await searchParams;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, { rows, total }] = await Promise.all([getT(), listShipmentsPaged({ search: sp.q, skip, take })]);
   return (
     <AppShell access={access} moduleKey="operations" pageTitle={t("shipments.title")}>
+      <ListSearch basePath="/shipments" value={sp.q ?? ""} placeholder={t("shipments.searchPlaceholder")} />
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -32,6 +40,7 @@ export default async function ShipmentsPage() {
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/shipments" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

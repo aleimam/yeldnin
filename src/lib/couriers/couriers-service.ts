@@ -11,6 +11,15 @@ export interface CourierInput {
 export function listCouriers() {
   return prisma.courier.findMany({ where: { archivedAt: null }, orderBy: { createdAt: "desc" }, take: 200 });
 }
+/** Paginated + searchable couriers (name / uid / contact). */
+export async function listCouriersPaged(opts: { search?: string; skip?: number; take?: number }) {
+  const where = { archivedAt: null, ...(opts.search ? { OR: [{ name: { contains: opts.search } }, { uid: { contains: opts.search } }, { contact: { contains: opts.search } }] } : {}) };
+  const [rows, total] = await prisma.$transaction([
+    prisma.courier.findMany({ where, orderBy: { createdAt: "desc" }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.courier.count({ where }),
+  ]);
+  return { rows, total };
+}
 export function getCourier(id: number) {
   return prisma.courier.findFirst({ where: { id, archivedAt: null } });
 }

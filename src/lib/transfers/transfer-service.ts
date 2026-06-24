@@ -199,6 +199,30 @@ export function holdingItems(travelerId: number) {
 export function listTransfers() {
   return prisma.transfer.findMany({ where: { archivedAt: null }, orderBy: { createdAt: "desc" }, take: 200 });
 }
+
+/** Paginated + filtered transfers (for the Transfers page). */
+export async function listTransfersPaged(opts: { search?: string; skip?: number; take?: number }) {
+  const where = {
+    archivedAt: null,
+    ...(opts.search
+      ? {
+          OR: [
+            { uid: { contains: opts.search } },
+            { fromName: { contains: opts.search } },
+            { toName: { contains: opts.search } },
+            { country: { contains: opts.search } },
+            { tracking: { contains: opts.search } },
+            { courier: { contains: opts.search } },
+          ],
+        }
+      : {}),
+  };
+  const [rows, total] = await prisma.$transaction([
+    prisma.transfer.findMany({ where, orderBy: { createdAt: "desc" }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.transfer.count({ where }),
+  ]);
+  return { rows, total };
+}
 export function getTransfer(id: number) {
   return prisma.transfer.findFirst({ where: { id, archivedAt: null }, include: { photos: true } });
 }

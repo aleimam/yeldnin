@@ -204,7 +204,7 @@ function txOrderBy(sort: TxSort | undefined) {
   }
 }
 
-export async function listTransactions(opts: {
+export interface TxListOpts {
   type?: "EXPENSE" | "TRANSFER" | "REVENUE";
   categoryId?: number;
   flag?: TxFlagFilter;
@@ -212,29 +212,52 @@ export async function listTransactions(opts: {
   sort?: TxSort;
   take?: number;
   skip?: number;
-}) {
+}
+
+/** Shared filter for the transactions list (type / category / flag / text search). */
+function txWhere(opts: TxListOpts) {
   const search = opts.search?.trim();
   const asNum = search && Number.isFinite(Number(search)) ? Number(search) : null;
+  return {
+    ...(opts.type ? { categoryTypeSnapshot: opts.type } : {}),
+    ...(opts.categoryId ? { categoryId: opts.categoryId } : {}),
+    ...(opts.flag === "NONE" ? { flag: null } : opts.flag === "RED" || opts.flag === "YELLOW" ? { flag: opts.flag } : opts.flag === "ANY" ? { flag: { not: null } } : {}),
+    ...(search
+      ? {
+          OR: [
+            { note: { contains: search } },
+            { categoryNameSnapshot: { contains: search } },
+            ...(asNum != null ? [{ amount: asNum }] : []),
+          ],
+        }
+      : {}),
+  };
+}
+
+export async function listTransactions(opts: TxListOpts) {
   return prisma.expenseTransaction.findMany({
-    where: {
-      ...(opts.type ? { categoryTypeSnapshot: opts.type } : {}),
-      ...(opts.categoryId ? { categoryId: opts.categoryId } : {}),
-      ...(opts.flag === "NONE" ? { flag: null } : opts.flag === "RED" || opts.flag === "YELLOW" ? { flag: opts.flag } : opts.flag === "ANY" ? { flag: { not: null } } : {}),
-      ...(search
-        ? {
-            OR: [
-              { note: { contains: search } },
-              { categoryNameSnapshot: { contains: search } },
-              ...(asNum != null ? [{ amount: asNum }] : []),
-            ],
-          }
-        : {}),
-    },
+    where: txWhere(opts),
     orderBy: txOrderBy(opts.sort),
     include: { createdBy: { select: { name: true, nameAr: true } }, attachments: true },
     take: opts.take ?? 200,
     skip: opts.skip ?? 0,
   });
+}
+
+/** Paginated transactions list (same filters) + total count for the paginator. */
+export async function listTransactionsPaged(opts: TxListOpts) {
+  const where = txWhere(opts);
+  const [rows, total] = await prisma.$transaction([
+    prisma.expenseTransaction.findMany({
+      where,
+      orderBy: txOrderBy(opts.sort),
+      include: { createdBy: { select: { name: true, nameAr: true } }, attachments: true },
+      skip: opts.skip ?? 0,
+      take: opts.take ?? 50,
+    }),
+    prisma.expenseTransaction.count({ where }),
+  ]);
+  return { rows, total };
 }
 
 // ---------------- Categories & accounts ----------------

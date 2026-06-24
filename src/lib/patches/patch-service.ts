@@ -120,6 +120,31 @@ export async function markPatchReceived(patchId: number, userId: number) {
 export function listPatches(opts: { scopes: string[] }) {
   return prisma.patch.findMany({ where: { archivedAt: null, scope: { in: opts.scopes } }, orderBy: { createdAt: "desc" }, take: 200 });
 }
+
+/** Paginated + filtered patches (for the Patches page). */
+export async function listPatchesPaged(opts: { scopes: string[]; search?: string; skip?: number; take?: number }) {
+  const where = {
+    archivedAt: null,
+    scope: { in: opts.scopes },
+    ...(opts.search
+      ? {
+          OR: [
+            { uid: { contains: opts.search } },
+            { supplierName: { contains: opts.search } },
+            { destinationName: { contains: opts.search } },
+            { country: { contains: opts.search } },
+            { tracking: { contains: opts.search } },
+            { courier: { contains: opts.search } },
+          ],
+        }
+      : {}),
+  };
+  const [rows, total] = await prisma.$transaction([
+    prisma.patch.findMany({ where, orderBy: { createdAt: "desc" }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.patch.count({ where }),
+  ]);
+  return { rows, total };
+}
 export function getPatch(id: number) {
   return prisma.patch.findFirst({ where: { id, archivedAt: null }, include: { photos: true } });
 }

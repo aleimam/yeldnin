@@ -1,13 +1,20 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
-import { listCouriers } from "@/lib/couriers/couriers-service";
+import { listCouriersPaged } from "@/lib/couriers/couriers-service";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { ListSearch } from "@/components/ListSearch";
 
-export default async function CouriersPage() {
+export default async function CouriersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireModule("couriers", "VIEW");
   const canManage = access.canModule("couriers", "OPERATE");
-  const [t, rows] = await Promise.all([getT(), listCouriers()]);
+  const sp = await searchParams;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, { rows, total }] = await Promise.all([getT(), listCouriersPaged({ search: sp.q, skip, take })]);
   return (
     <AppShell
       access={access}
@@ -15,6 +22,7 @@ export default async function CouriersPage() {
       pageTitle={t("couriers.title")}
       actions={canManage ? <Link href="/couriers/new" className="btn-primary">+ {t("couriers.new")}</Link> : null}
     >
+      <ListSearch basePath="/couriers" value={sp.q ?? ""} placeholder={t("couriers.searchPlaceholder")} />
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -39,6 +47,7 @@ export default async function CouriersPage() {
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/couriers" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

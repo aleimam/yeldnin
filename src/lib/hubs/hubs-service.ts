@@ -17,6 +17,15 @@ export function listHubs() {
     take: 200,
   });
 }
+/** Paginated + searchable hubs (name / uid / country). */
+export async function listHubsPaged(opts: { search?: string; skip?: number; take?: number }) {
+  const where = { archivedAt: null, ...(opts.search ? { OR: [{ name: { contains: opts.search } }, { uid: { contains: opts.search } }, { country: { contains: opts.search } }] } : {}) };
+  const [rows, total] = await prisma.$transaction([
+    prisma.hub.findMany({ where, orderBy: { createdAt: "desc" }, include: { _count: { select: { photos: true } } }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.hub.count({ where }),
+  ]);
+  return { rows, total };
+}
 export function getHub(id: number) {
   return prisma.hub.findFirst({ where: { id, archivedAt: null }, include: { photos: true } });
 }

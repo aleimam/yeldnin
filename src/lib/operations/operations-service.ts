@@ -54,6 +54,15 @@ export async function markShipmentPhotosSent(shipmentId: number, userId: number)
 export function listShipments() {
   return prisma.shipment.findMany({ where: { archivedAt: null }, orderBy: { createdAt: "desc" }, take: 200 });
 }
+/** Paginated + searchable shipments (uid). */
+export async function listShipmentsPaged(opts: { search?: string; skip?: number; take?: number }) {
+  const where = { archivedAt: null, ...(opts.search ? { OR: [{ uid: { contains: opts.search } }] } : {}) };
+  const [rows, total] = await prisma.$transaction([
+    prisma.shipment.findMany({ where, orderBy: { createdAt: "desc" }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.shipment.count({ where }),
+  ]);
+  return { rows, total };
+}
 export function getShipment(id: number) {
   return prisma.shipment.findFirst({ where: { id, archivedAt: null } });
 }

@@ -1,18 +1,25 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
-import { listTravelersWithStats } from "@/lib/travelers/travelers-service";
+import { listTravelersWithStatsPaged } from "@/lib/travelers/travelers-service";
 import { worstSlaByCurrentContainer } from "@/lib/sla/sla-service";
 import { slaRowClass, SLA_RANK, type SlaStatus } from "@/lib/sla/sla-logic";
 import { formatBizDate } from "@/lib/format/dates";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { ListSearch } from "@/components/ListSearch";
 
-export default async function TravelersPage() {
+export default async function TravelersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireModule("logistics", "VIEW");
   if (access.hidesTripTraveler) redirect("/");
   const canManage = access.can("logistics", "operate");
-  const [t, rows] = await Promise.all([getT(), listTravelersWithStats()]);
+  const sp = await searchParams;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, { rows, total }] = await Promise.all([getT(), listTravelersWithStatsPaged({ search: sp.q, skip, take })]);
   const slaByTrip = await worstSlaByCurrentContainer("TRIP", rows.flatMap((r) => r.stats.tripIds));
   const travelerSla = (tripIds: number[]): SlaStatus | undefined => {
     let worst: SlaStatus | undefined;
@@ -29,6 +36,7 @@ export default async function TravelersPage() {
       pageTitle={t("travelers.title")}
       actions={canManage ? <Link href="/travelers/new" className="btn-primary">+ {t("travelers.new")}</Link> : null}
     >
+      <ListSearch basePath="/travelers" value={sp.q ?? ""} placeholder={t("travelers.searchPlaceholder")} />
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -65,6 +73,7 @@ export default async function TravelersPage() {
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/travelers" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }
