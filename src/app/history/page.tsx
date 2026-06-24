@@ -1,15 +1,27 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
-import { listRecentEvents } from "@/lib/history/history-service";
+import { listRecentEventsPaged } from "@/lib/history/history-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
 import { HistorySearch } from "./HistorySearch";
+import { HistoryFilters } from "./HistoryFilters";
 
-export default async function HistoryPage() {
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireModule("history", "VIEW");
-  const [t, locale, events, wf] = await Promise.all([getT(), getLocale(), listRecentEvents(), getWorkflow()]);
+  const sp = await searchParams;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, locale, { rows: events, total }, wf] = await Promise.all([
+    getT(),
+    getLocale(),
+    listRecentEventsPaged({ search: sp.q, skip, take }),
+    getWorkflow(),
+  ]);
   const loc = locale === "ar" ? "ar" : "en";
   const change = (from: string | null, to: string) =>
     from && from !== to ? `${wf.label(from as ItemStatus, loc)} → ${wf.label(to as ItemStatus, loc)}` : `→ ${wf.label(to as ItemStatus, loc)}`;
@@ -17,6 +29,7 @@ export default async function HistoryPage() {
   return (
     <AppShell access={access} moduleKey="history" pageTitle={t("history.title")}>
       <HistorySearch />
+      <HistoryFilters basePath="/history" current={{ q: sp.q ?? "" }} />
       <div className="card overflow-x-auto">
         <table className="w-full text-sm" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -46,6 +59,7 @@ export default async function HistoryPage() {
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/history" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

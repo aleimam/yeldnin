@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
-import { listRequests } from "@/lib/requests/request-service";
+import { listRequestsPaged, listRequestSlaInputs } from "@/lib/requests/request-service";
 import { itemStatusSummary, categoryCountsByRequest } from "@/lib/items/items-service";
 import { ITEM_BUCKETS, categoryLabels, emptyCategoryCounts } from "@/lib/items/items-logic";
 import { moduleContextScopes } from "@/lib/module-context";
@@ -12,8 +13,11 @@ import { worstSlaByRequest } from "@/lib/sla/sla-service";
 import { slaRowClass } from "@/lib/sla/sla-logic";
 import { SlaBadge } from "@/components/SlaBadge";
 import { ItemCounts } from "@/components/ItemCounts";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { RequestsFilters } from "./RequestsFilters";
 
-export default async function RequestsPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+export default async function RequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
   const visible = requestScopes(access, "VIEW");
   if (!visible.length) redirect("/");
@@ -23,11 +27,20 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const ctxScopes = ctx ? moduleContextScopes(ctx) : null;
   const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
   const canManage = requestScopes(access, "OPERATE").length > 0;
-  const [t, rows, summary] = await Promise.all([getT(), listRequests({ scopes }), itemStatusSummary(scopes)]);
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, { rows, total }, summary, slaInputs] = await Promise.all([
+    getT(),
+    listRequestsPaged({ scopes, search: sp.q, type: sp.type, skip, take }),
+    itemStatusSummary(scopes),
+    listRequestSlaInputs({ scopes }),
+  ]);
+  // SLA over ALL in-scope requests (summary cards stay whole-scope), then reused
+  // for the current page's row tint.
   const [slaByReq, counts] = await Promise.all([
     worstSlaByRequest(
-      rows.map((r) => r.id),
-      new Map(rows.map((r) => [r.id, r.deliveredAt])),
+      slaInputs.map((r) => r.id),
+      new Map(slaInputs.map((r) => [r.id, r.deliveredAt])),
     ),
     categoryCountsByRequest(rows.map((r) => r.id)),
   ]);
@@ -62,6 +75,8 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         </div>
       )}
 
+      <RequestsFilters basePath="/requests" current={{ q: sp.q ?? "", type: sp.type ?? "", m: ctx ?? "" }} />
+
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -94,6 +109,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/requests" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

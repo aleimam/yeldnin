@@ -1,20 +1,30 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { productScopes } from "@/lib/products/products-logic";
-import { listPurchases } from "@/lib/purchasing/purchasing-service";
+import { listPurchasesPaged } from "@/lib/purchasing/purchasing-service";
 import { categoryCountsByContainerHistory } from "@/lib/items/items-service";
 import { categoryLabels, emptyCategoryCounts } from "@/lib/items/items-logic";
 import { worstSlaByCurrentContainer } from "@/lib/sla/sla-service";
 import { slaRowClass } from "@/lib/sla/sla-logic";
 import { ItemCounts } from "@/components/ItemCounts";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { PurchasesFilters } from "./PurchasesFilters";
 
-export default async function PurchasesPage() {
+export default async function PurchasesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireModule("purchasing", "VIEW");
   const scopes = productScopes(access, "VIEW");
   const canBuy = access.can("purchasing", "operate");
-  const [t, rows] = await Promise.all([getT(), listPurchases({ scopes })]);
+  const sp = await searchParams;
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, { rows, total }] = await Promise.all([
+    getT(),
+    listPurchasesPaged({ scopes, search: sp.q, status: sp.status, skip, take }),
+  ]);
   const ids = rows.map((r) => r.id);
   const [counts, sla] = await Promise.all([
     categoryCountsByContainerHistory("PURCHASE", ids),
@@ -29,6 +39,7 @@ export default async function PurchasesPage() {
       pageTitle={t("purchasing.purchases")}
       actions={canBuy ? <Link href="/purchasing/purchases/new" className="btn-primary">+ {t("purchasing.new")}</Link> : null}
     >
+      <PurchasesFilters basePath="/purchasing/purchases" current={{ q: sp.q ?? "", status: sp.status ?? "" }} />
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -57,6 +68,7 @@ export default async function PurchasesPage() {
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/purchasing/purchases" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

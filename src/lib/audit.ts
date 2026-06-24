@@ -34,6 +34,27 @@ export function listAudit(opts: { moduleKey?: string; take?: number } = {}) {
   });
 }
 
+/** Paginated + filtered audit trail (for the Audit page). */
+export async function listAuditPaged(opts: { moduleKey?: string; search?: string; skip?: number; take?: number } = {}) {
+  const where = {
+    ...(opts.moduleKey ? { moduleKey: opts.moduleKey } : {}),
+    ...(opts.search
+      ? {
+          OR: [
+            { action: { contains: opts.search } },
+            { entityType: { contains: opts.search } },
+            { entityId: { contains: opts.search } },
+          ],
+        }
+      : {}),
+  };
+  const [rows, total] = await prisma.$transaction([
+    prisma.auditLog.findMany({ where, orderBy: { createdAt: "desc" }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.auditLog.count({ where }),
+  ]);
+  return { rows, total };
+}
+
 /** Distinct module keys that have at least one audit entry. */
 export async function auditModuleKeys(): Promise<string[]> {
   const rows = await prisma.auditLog.findMany({

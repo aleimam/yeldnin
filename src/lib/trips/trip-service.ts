@@ -116,6 +116,12 @@ export async function listTrips() {
     include: { traveler: { select: { name: true } } },
     take: 200,
   });
+  return sortNearestFirst(trips);
+}
+
+/** Nearest-first: soonest upcoming last-receiving date first; past/undated sink to
+ *  the tail (keeping the incoming createdAt-desc order among them). */
+function sortNearestFirst<T extends { lastReceivingDate: Date | null }>(trips: T[]): T[] {
   const now = Date.now();
   const key = (d: Date | null) => {
     if (!d) return Infinity;
@@ -123,6 +129,40 @@ export async function listTrips() {
     return ts >= now ? ts : Infinity; // past receiving dates sink to the end
   };
   return trips.sort((a, b) => key(a.lastReceivingDate) - key(b.lastReceivingDate));
+}
+
+/** Paginated + filtered trips. The nearest-first ordering is computed in JS, so we
+ *  fetch the filtered set, sort, then slice the page; heavy per-row aggregates are
+ *  then computed only for the visible page. */
+export async function listTripsPaged(opts: {
+  search?: string;
+  status?: string;
+  sort?: string;
+  skip?: number;
+  take?: number;
+}) {
+  const where = {
+    archivedAt: null,
+    ...(opts.status ? { status: opts.status } : {}),
+    ...(opts.search
+      ? {
+          OR: [
+            { uid: { contains: opts.search } },
+            { country: { contains: opts.search } },
+            { traveler: { name: { contains: opts.search } } },
+          ],
+        }
+      : {}),
+  };
+  const trips = await prisma.trip.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: { traveler: { select: { name: true } } },
+  });
+  const ordered = opts.sort === "newest" ? trips : sortNearestFirst(trips);
+  const skip = opts.skip ?? 0;
+  const take = opts.take ?? 50;
+  return { rows: ordered.slice(skip, skip + take), total: ordered.length };
 }
 export function listTripsByTraveler(travelerId: number) {
   return prisma.trip.findMany({

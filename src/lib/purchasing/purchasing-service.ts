@@ -170,6 +170,36 @@ export function listPurchases(opts: { scopes: string[] }) {
     take: 200,
   });
 }
+
+/** Paginated + filtered purchases (for the Purchases page). */
+export async function listPurchasesPaged(opts: {
+  scopes: string[];
+  search?: string;
+  status?: string;
+  skip?: number;
+  take?: number;
+}) {
+  const where = {
+    archivedAt: null,
+    scope: { in: opts.scopes },
+    ...(opts.status ? { status: opts.status } : {}),
+    ...(opts.search
+      ? {
+          OR: [
+            { uid: { contains: opts.search } },
+            { supplierName: { contains: opts.search } },
+            { destinationName: { contains: opts.search } },
+            { country: { contains: opts.search } },
+          ],
+        }
+      : {}),
+  };
+  const [rows, total] = await prisma.$transaction([
+    prisma.purchase.findMany({ where, orderBy: { createdAt: "desc" }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
+    prisma.purchase.count({ where }),
+  ]);
+  return { rows, total };
+}
 export function getPurchase(id: number) {
   return prisma.purchase.findFirst({ where: { id, archivedAt: null } });
 }

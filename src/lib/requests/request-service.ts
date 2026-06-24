@@ -96,6 +96,44 @@ export function listRequests(opts: { scopes: string[] }) {
   });
 }
 
+/** Paginated + filtered requests (for the Requests page). */
+export async function listRequestsPaged(opts: {
+  scopes: string[];
+  search?: string;
+  type?: string;
+  skip?: number;
+  take?: number;
+}) {
+  const where = {
+    archivedAt: null,
+    scope: { in: opts.scopes },
+    ...(opts.type ? { type: opts.type } : {}),
+    ...(opts.search
+      ? { OR: [{ uid: { contains: opts.search } }, { customer: { name: { contains: opts.search } } }] }
+      : {}),
+  };
+  const [rows, total] = await prisma.$transaction([
+    prisma.request.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { customer: { select: { name: true } }, _count: { select: { lines: true } } },
+      skip: opts.skip ?? 0,
+      take: opts.take ?? 50,
+    }),
+    prisma.request.count({ where }),
+  ]);
+  return { rows, total };
+}
+
+/** Lightweight (id + deliveredAt) for all in-scope requests — feeds the SLA
+ *  risk/delayed summary so it stays whole-scope while the table is paginated. */
+export function listRequestSlaInputs(opts: { scopes: string[] }) {
+  return prisma.request.findMany({
+    where: { archivedAt: null, scope: { in: opts.scopes } },
+    select: { id: true, deliveredAt: true },
+  });
+}
+
 export function getRequest(id: number) {
   return prisma.request.findFirst({
     where: { id, archivedAt: null },
