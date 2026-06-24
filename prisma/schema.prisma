@@ -1263,6 +1263,8 @@ model Employee {
   lineManagerId     Int?
   lineManager       Employee?  @relation("EmployeeManager", fields: [lineManagerId], references: [id])
   reports           Employee[] @relation("EmployeeManager")
+  positionId        Int?
+  position          Position?  @relation(fields: [positionId], references: [id])
   notes             String?
   archivedAt        DateTime?
   createdById       Int?
@@ -1276,6 +1278,7 @@ model Employee {
   payslips    Payslip[]
 
   @@index([lineManagerId])
+  @@index([positionId])
 }
 
 model EmployeePhoto {
@@ -1315,6 +1318,42 @@ model EmployeeEventPhoto {
   createdAt DateTime      @default(now())
 
   @@index([eventId])
+}
+
+// ─── HR — Departments & Positions (admin-managed org structure) ───────────────
+// A Department groups Positions; a Position (job title) is structured: title,
+// grade/level, description — bilingual. Each Employee holds at most one Position.
+model Department {
+  id          Int        @id @default(autoincrement())
+  name        String
+  nameAr      String?
+  sortOrder   Int        @default(0)
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  positions Position[]
+}
+
+model Position {
+  id            Int         @id @default(autoincrement())
+  departmentId  Int?
+  department    Department? @relation(fields: [departmentId], references: [id])
+  title         String
+  titleAr       String?
+  grade         String? // grade / level (e.g. Junior, Senior, L3)
+  description   String?
+  descriptionAr String?
+  sortOrder     Int         @default(0)
+  archivedAt    DateTime?
+  createdById   Int?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  employees Employee[]
+
+  @@index([departmentId])
 }
 
 // ─── HR Phase 2 — Attendance & Leaves ─────────────────────────────────────────
