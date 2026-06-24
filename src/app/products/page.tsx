@@ -4,10 +4,15 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { productScopes, primaryProductModule } from "@/lib/products/products-logic";
+import { cookies } from "next/headers";
 import { listProducts, productPipelineStats } from "@/lib/products/products-service";
 import { moduleContextScopes } from "@/lib/module-context";
+import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
+import { Paginator } from "@/components/Paginator";
+import { ProductsFilters } from "./ProductsFilters";
+import type { Scope } from "@/lib/products/products-logic";
 
-export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
   const visible = productScopes(access, "VIEW");
   if (!visible.length) redirect("/");
@@ -15,9 +20,15 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   const ctx = typeof sp.m === "string" && access.canModule(sp.m, "VIEW") ? sp.m : null;
   const moduleKey = ctx ?? primaryProductModule(access);
   const ctxScopes = ctx ? moduleContextScopes(ctx) : null;
-  const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
+  const baseScopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
+  const scopes = sp.scope && (baseScopes as string[]).includes(sp.scope) ? [sp.scope as Scope] : baseScopes;
   const canManage = productScopes(access, "OPERATE").length > 0;
-  const [t, rows] = await Promise.all([getT(), listProducts({ scopes })]);
+  const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
+  const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const [t, { rows, total }] = await Promise.all([
+    getT(),
+    listProducts({ scopes, search: sp.q, type: sp.type, active: sp.active, sort: sp.sort, skip, take }),
+  ]);
   const stats = await productPipelineStats(rows.map((r) => r.id));
 
   return (
@@ -34,6 +45,12 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         ) : null
       }
     >
+      <ProductsFilters
+        basePath="/products"
+        current={{ q: sp.q ?? "", scope: sp.scope ?? "", type: sp.type ?? "", active: sp.active ?? "", sort: sp.sort ?? "" }}
+        scopes={baseScopes}
+        m={ctx ?? undefined}
+      />
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
@@ -76,6 +93,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
           </tbody>
         </table>
       </div>
+      <Paginator basePath="/products" params={sp} page={page} perPage={perPage} total={total} />
     </AppShell>
   );
 }

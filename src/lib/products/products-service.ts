@@ -23,17 +23,41 @@ export interface ProductInput {
   isMaleSupport: boolean;
 }
 
-export function listProducts(opts: { scopes: Scope[]; search?: string }) {
-  return prisma.product.findMany({
-    where: {
-      archivedAt: null,
-      scope: { in: opts.scopes },
-      ...(opts.search ? { name: { contains: opts.search } } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: { defaultSupplier: { select: { name: true } }, _count: { select: { photos: true } } },
-    take: 200,
-  });
+export interface ProductListOpts {
+  scopes: Scope[];
+  search?: string;
+  type?: string; // ProductType filter
+  active?: string; // "1" → active only, "0" → inactive only, else all
+  sort?: string; // "name" | "sku" | default (newest)
+  skip?: number;
+  take?: number;
+}
+
+export async function listProducts(opts: ProductListOpts) {
+  const where = {
+    archivedAt: null,
+    scope: { in: opts.scopes },
+    ...(opts.type ? { type: opts.type } : {}),
+    ...(opts.active === "1" ? { active: true } : opts.active === "0" ? { active: false } : {}),
+    ...(opts.search ? { OR: [{ name: { contains: opts.search } }, { sku: { contains: opts.search } }] } : {}),
+  };
+  const orderBy =
+    opts.sort === "name"
+      ? ({ name: "asc" } as const)
+      : opts.sort === "sku"
+        ? ({ sku: "asc" } as const)
+        : ({ createdAt: "desc" } as const);
+  const [rows, total] = await prisma.$transaction([
+    prisma.product.findMany({
+      where,
+      orderBy,
+      include: { defaultSupplier: { select: { name: true } }, _count: { select: { photos: true } } },
+      skip: opts.skip ?? 0,
+      take: opts.take ?? 50,
+    }),
+    prisma.product.count({ where }),
+  ]);
+  return { rows, total };
 }
 
 export interface ProductPipelineStats {
