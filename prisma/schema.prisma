@@ -235,6 +235,12 @@ model PlatformSettings {
   versionShowDesktop Boolean @default(true)  // show the version badge on desktop?
   copyrightEn String? // footer copyright note (English)
   copyrightAr String? // footer copyright note (Arabic)
+  // Documents module: global letterhead PDF + page margins (mm) for generated PDFs.
+  docLetterheadAssetId String? // uploaded letterhead PDF (asset key); null = plain page
+  docMarginTopMm    Int @default(45) // keep content below the letterhead header band
+  docMarginBottomMm Int @default(30) // keep content above the letterhead footer band
+  docMarginLeftMm   Int @default(22)
+  docMarginRightMm  Int @default(22)
   updatedAt   DateTime @updatedAt
 }
 

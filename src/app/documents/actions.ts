@@ -3,6 +3,9 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/access";
 import { writeAudit } from "@/lib/audit";
 import { isDocKind, isDocStatus, canEditContent, canManageDocument } from "@/lib/documents/documents-logic";
+import { sanitizeMarginMm } from "@/lib/documents/pdf-logic";
+import { getPlatformSettings, updateDocSettings } from "@/lib/settings/settings-service";
+import { getAssetMeta, deleteAsset } from "@/lib/assets/assets-service";
 import {
   createDocument,
   updateDocumentContent,
@@ -129,6 +132,51 @@ export async function restoreVersionAction(id: number, versionId: number): Promi
   revalidatePath(`/documents/${id}`);
   revalidatePath("/documents");
   return { ok: true, id };
+}
+
+/** Configure the global letterhead + generated-PDF margins (admins only). The new
+ *  letterhead (if any) is uploaded client-side via /api/upload; we receive its id. */
+export async function saveLetterheadSettingsAction(p: {
+  newLetterheadAssetId?: string | null; // a freshly uploaded asset, or undefined = keep current
+  removeLetterhead?: boolean;
+  marginTopMm: unknown;
+  marginBottomMm: unknown;
+  marginLeftMm: unknown;
+  marginRightMm: unknown;
+}): Promise<Res> {
+  const access = await requireUser();
+  if (!access.isAdmin) return { ok: false, error: "Admins only." };
+
+  const current = await getPlatformSettings();
+  const data: Parameters<typeof updateDocSettings>[0] = {
+    docMarginTopMm: sanitizeMarginMm(p.marginTopMm, 45),
+    docMarginBottomMm: sanitizeMarginMm(p.marginBottomMm, 30),
+    docMarginLeftMm: sanitizeMarginMm(p.marginLeftMm, 22),
+    docMarginRightMm: sanitizeMarginMm(p.marginRightMm, 22),
+  };
+
+  let assetToDelete: string | null = null;
+  if (p.removeLetterhead) {
+    data.docLetterheadAssetId = null;
+    assetToDelete = current.docLetterheadAssetId;
+  } else if (p.newLetterheadAssetId) {
+    const meta = await getAssetMeta(p.newLetterheadAssetId);
+    if (!meta || meta.mimeType !== "application/pdf") {
+      await deleteAsset(p.newLetterheadAssetId).catch(() => {});
+      return { ok: false, error: "The letterhead must be a PDF file." };
+    }
+    data.docLetterheadAssetId = p.newLetterheadAssetId;
+    assetToDelete = current.docLetterheadAssetId; // replace → drop the old file
+  }
+
+  await updateDocSettings(data);
+  if (assetToDelete) await deleteAsset(assetToDelete).catch(() => {});
+  await writeAudit(access.user.id, "documents", "letterhead.save", "platformSettings", 1, {
+    letterhead: data.docLetterheadAssetId ?? (p.removeLetterhead ? null : "unchanged"),
+  });
+  revalidatePath("/documents/letterhead");
+  revalidatePath("/documents");
+  return { ok: true };
 }
 
 /** Manage the category list (admins only). */

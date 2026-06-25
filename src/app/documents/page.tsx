@@ -29,6 +29,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   const actions = (
     <div className="flex items-center gap-2">
+      {access.isAdmin && <Link href="/documents/letterhead" className="btn-secondary btn-sm">{t("docs.letterhead.nav")}</Link>}
       {access.isAdmin && <Link href="/documents/categories" className="btn-secondary btn-sm">{t("docs.categories")}</Link>}
       <Link href="/documents/new" className="btn-primary btn-sm">+ {t("docs.new")}</Link>
     </div>

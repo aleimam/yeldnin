@@ -33,6 +33,8 @@
     "bcryptjs": "^2.4.3",
     "exceljs": "^4.4.0",
     "next": "15.5.19",
+    "node-html-parser": "^8.0.3",
+    "pdf-lib": "^1.17.1",
     "prisma-adapter-node-sqlite": "^0.0.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",

@@ -55,6 +55,12 @@ export async function deleteAsset(id: string): Promise<void> {
   await prisma.asset.delete({ where: { id } }).catch(() => {});
 }
 
+/** Asset metadata (mime + size) without reading the file off disk. */
+export async function getAssetMeta(id: string): Promise<{ mimeType: string; size: number } | null> {
+  const asset = await prisma.asset.findUnique({ where: { id }, select: { mimeType: true, size: true } });
+  return asset ?? null;
+}
+
 export async function readAsset(
   id: string,
 ): Promise<{ buffer: Buffer; mimeType: string } | null> {

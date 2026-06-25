@@ -13,6 +13,11 @@ export interface PlatformSettingsView {
   versionShowDesktop: boolean;
   copyrightEn: string | null;
   copyrightAr: string | null;
+  docLetterheadAssetId: string | null;
+  docMarginTopMm: number;
+  docMarginBottomMm: number;
+  docMarginLeftMm: number;
+  docMarginRightMm: number;
 }
 
 const FALLBACK: PlatformSettingsView = {
@@ -26,6 +31,11 @@ const FALLBACK: PlatformSettingsView = {
   versionShowDesktop: true,
   copyrightEn: null,
   copyrightAr: null,
+  docLetterheadAssetId: null,
+  docMarginTopMm: 45,
+  docMarginBottomMm: 30,
+  docMarginLeftMm: 22,
+  docMarginRightMm: 22,
 };
 
 /** Read the single platform-settings row (memoized per request). */
@@ -44,9 +54,25 @@ export const getPlatformSettings = cache(
       versionShowDesktop: row.versionShowDesktop,
       copyrightEn: row.copyrightEn,
       copyrightAr: row.copyrightAr,
+      docLetterheadAssetId: row.docLetterheadAssetId,
+      docMarginTopMm: row.docMarginTopMm,
+      docMarginBottomMm: row.docMarginBottomMm,
+      docMarginLeftMm: row.docMarginLeftMm,
+      docMarginRightMm: row.docMarginRightMm,
     };
   },
 );
+
+/** Update the Documents-module letterhead + generated-PDF margins (admin only). */
+export async function updateDocSettings(input: {
+  docLetterheadAssetId?: string | null;
+  docMarginTopMm?: number;
+  docMarginBottomMm?: number;
+  docMarginLeftMm?: number;
+  docMarginRightMm?: number;
+}) {
+  await prisma.platformSettings.update({ where: { id: 1 }, data: input });
+}
 
 export async function updateAppearance(input: {
   appName?: string;

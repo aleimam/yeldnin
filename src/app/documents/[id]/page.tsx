@@ -38,7 +38,14 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
   const ackedCount = audience.filter((a) => a.acknowledgedAt).length;
   const pdfUrl = doc.kind === "PDF" ? assetUrl(doc.assetId) : null;
 
-  const actions = canEdit ? <Link href={`/documents/${doc.id}/edit`} className="btn-primary btn-sm">{t("docs.edit")}</Link> : undefined;
+  const actions = (
+    <div className="flex items-center gap-2">
+      {doc.kind === "DOC" && (
+        <a href={`/api/documents/${doc.id}/pdf`} target="_blank" rel="noreferrer" className="btn-secondary btn-sm">{t("docs.pdf.download")}</a>
+      )}
+      {canEdit && <Link href={`/documents/${doc.id}/edit`} className="btn-primary btn-sm">{t("docs.edit")}</Link>}
+    </div>
+  );
 
   return (
     <AppShell access={access} moduleKey="documents" pageTitle={doc.title} backHref="/documents" actions={actions}>
