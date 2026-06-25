@@ -1,6 +1,11 @@
 import type { MetadataRoute } from "next";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
 
+// Rendered per-request, not prerendered at build: this reads PlatformSettings from
+// the DB, and a static build would run that query before a pending migration is
+// applied — which fails the whole build whenever the schema is ahead of the live DB.
+export const dynamic = "force-dynamic";
+
 // PWA manifest. Read the admin-set app name so the install title matches the
 // running brand; icon + theme color are fixed (brand blue). Next auto-injects
 // the <link rel="manifest"> because this file exists.

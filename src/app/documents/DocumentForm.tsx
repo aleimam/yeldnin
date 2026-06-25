@@ -43,10 +43,33 @@ export function DocumentForm({
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId != null ? String(initial.categoryId) : "");
   const [reviewBy, setReviewBy] = useState<string>(initial?.reviewBy ?? "");
   const [contentHtml, setContentHtml] = useState(initial?.contentHtml ?? "");
+  const [editorKey, setEditorKey] = useState(0); // bump to remount the editor with imported content
+  const [importing, setImporting] = useState(false);
   const [assetId, setAssetId] = useState<string | null>(initial?.assetId ?? null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function onDocx(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-importing the same file
+    if (!file) return;
+    setError(null);
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/documents/import-docx", { method: "POST", body: fd });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error ?? "Import failed.");
+      setContentHtml(j.html ?? "");
+      setEditorKey((k) => k + 1); // remount so the editor seeds the imported HTML
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Import failed.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -145,8 +168,15 @@ export function DocumentForm({
 
       {kind === "DOC" ? (
         <div>
-          <label className="label">{t("docs.content")}</label>
-          <RichTextEditor value={contentHtml} onChange={setContentHtml} />
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <label className="label mb-0">{t("docs.content")}</label>
+            <label className="btn-secondary btn-sm cursor-pointer">
+              {importing ? t("common.loading") : t("docs.import.button")}
+              <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="hidden" disabled={importing} onChange={onDocx} />
+            </label>
+          </div>
+          <p className="mb-2 text-xs text-muted">{t("docs.import.hint")}</p>
+          <RichTextEditor key={editorKey} value={contentHtml} onChange={setContentHtml} />
         </div>
       ) : (
         <div>

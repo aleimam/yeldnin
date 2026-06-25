@@ -722,6 +722,8 @@
   "docs.ver.current": "current",
   "docs.ver.confirmRestore": "Restore this version? The current content is saved as a new version first.",
   "docs.pdf.download": "Download PDF",
+  "docs.import.button": "Import from Word",
+  "docs.import.hint": "Upload a Word .docx file to fill the editor with its text. You can edit before saving. (Images and unusual formatting are dropped.)",
   "docs.letterhead.nav": "Letterhead",
   "docs.letterhead.title": "Letterhead & PDF settings",
   "docs.letterhead.intro": "Documents written online can be downloaded as a PDF, laid out on this letterhead within the margins below. (Arabic documents should be uploaded as PDFs instead.)",
