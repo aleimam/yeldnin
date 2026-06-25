@@ -5,14 +5,16 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
 import { assetUrl } from "@/lib/assets/assets-service";
-import { canEditContent, canManageDocument } from "@/lib/documents/documents-logic";
-import { getDocumentForUser } from "@/lib/documents/documents-service";
+import { canEditContent, canManageDocument, isReviewDue } from "@/lib/documents/documents-logic";
+import { getDocumentForUser, getMyAck, listDocumentVersions, ackAudience } from "@/lib/documents/documents-service";
 import { listTeams } from "@/lib/users/users-service";
 import { RichTextView } from "@/components/documents/RichTextView";
 import { DocStatusBadge } from "../DocStatusBadge";
 import { StatusToggle } from "../StatusToggle";
 import { DeleteDocumentButton } from "../DeleteDocumentButton";
 import { PermissionsEditor } from "../PermissionsEditor";
+import { AckButton } from "../AckButton";
+import { RestoreVersionButton } from "../RestoreVersionButton";
 
 export default async function DocumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -24,7 +26,16 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
 
   const canEdit = canEditContent(level);
   const canManage = canManageDocument(level);
-  const [t, teams] = await Promise.all([getT(), canManage ? listTeams() : Promise.resolve([])]);
+  const published = doc.status === "PUBLISHED";
+  const due = isReviewDue(doc.reviewBy);
+  const [t, teams, myAck, versions, audience] = await Promise.all([
+    getT(),
+    canManage ? listTeams() : Promise.resolve([]),
+    published ? getMyAck(doc.id, v.userId) : Promise.resolve(null),
+    canManage ? listDocumentVersions(doc.id) : Promise.resolve([]),
+    canManage ? ackAudience(doc.id) : Promise.resolve([]),
+  ]);
+  const ackedCount = audience.filter((a) => a.acknowledgedAt).length;
   const pdfUrl = doc.kind === "PDF" ? assetUrl(doc.assetId) : null;
 
   const actions = canEdit ? <Link href={`/documents/${doc.id}/edit`} className="btn-primary btn-sm">{t("docs.edit")}</Link> : undefined;
@@ -36,6 +47,7 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <DocStatusBadge status={doc.status} label={t(`docs.status.${doc.status}`)} />
             <span className="text-xs text-muted">{t(`docs.kind.${doc.kind}`)}</span>
+            {due && <span className="rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-600">{t("docs.reviewDue")}</span>}
           </div>
           {doc.description && <p className="mb-3 whitespace-pre-wrap text-sm text-ink">{doc.description}</p>}
           <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
@@ -67,6 +79,61 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
             <p className="text-sm text-muted">—</p>
           )}
         </div>
+
+        {/* Read acknowledgement — published docs, any viewer */}
+        {published && (
+          <div className="card flex flex-wrap items-center justify-between gap-3 p-5">
+            <div className="text-sm">
+              {myAck ? (
+                <span className="text-green-600">✓ {t("docs.ack.done", { date: formatBizDate(myAck.acknowledgedAt) })}</span>
+              ) : (
+                <span className="text-muted">{t("docs.ack.prompt")}</span>
+              )}
+            </div>
+            {!myAck && <AckButton id={doc.id} />}
+          </div>
+        )}
+
+        {/* Who has / hasn't read (Manage) */}
+        {canManage && audience.length > 0 && (
+          <div className="card p-5">
+            <h2 className="mb-3 font-semibold text-ink">
+              {t("docs.ack.section")} <span className="text-sm font-normal text-muted">· {t("docs.ack.summary", { done: ackedCount, total: audience.length })}</span>
+            </h2>
+            <table className="w-full text-sm" data-cards>
+              <thead className="border-b border-line"><tr><th className="th">{t("docs.ack.who")}</th><th className="th">{t("docs.ack.status")}</th><th className="th">{t("docs.ack.when")}</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {audience.map((a) => (
+                  <tr key={a.userId}>
+                    <td className="td" data-label={t("docs.ack.who")}>{a.name}</td>
+                    <td className="td" data-label={t("docs.ack.status")}>{a.acknowledgedAt ? <span className="text-green-600">{t("docs.ack.acknowledged")}</span> : <span className="text-muted">{t("docs.ack.pending")}</span>}</td>
+                    <td className="td text-muted" data-label={t("docs.ack.when")}>{a.acknowledgedAt ? formatBizDate(a.acknowledgedAt) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Version history (Manage) */}
+        {canManage && versions.length > 0 && (
+          <div className="card p-5">
+            <h2 className="mb-3 font-semibold text-ink">{t("docs.ver.section")}</h2>
+            <table className="w-full text-sm" data-cards>
+              <thead className="border-b border-line"><tr><th className="th">{t("docs.ver.no")}</th><th className="th">{t("docs.ver.editedBy")}</th><th className="th">{t("docs.ver.when")}</th><th className="th"></th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {versions.map((vr, i) => (
+                  <tr key={vr.id}>
+                    <td className="td" data-label={t("docs.ver.no")}>v{vr.versionNo}{i === 0 && <span className="ms-2 text-xs text-green-600">{t("docs.ver.current")}</span>}</td>
+                    <td className="td text-muted" data-label={t("docs.ver.editedBy")}>{vr.editedBy ?? "—"}</td>
+                    <td className="td text-muted" data-label={t("docs.ver.when")}>{formatBizDate(vr.createdAt)}</td>
+                    <td className="td text-end">{i !== 0 && <RestoreVersionButton id={doc.id} versionId={vr.id} />}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {canManage && (
           <PermissionsEditor documentId={doc.id} teams={teams.map((tm) => ({ key: tm.key, name: tm.name }))} current={doc.permissions} />

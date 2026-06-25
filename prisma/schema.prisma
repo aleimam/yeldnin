@@ -1828,10 +1828,41 @@ model Document {
   updatedAt   DateTime @updatedAt
 
   permissions DocumentPermission[]
+  versions    DocumentVersion[]
+  acks        DocumentAck[]
 
   @@index([categoryId])
   @@index([status])
   @@index([ownerId])
+}
+
+// An immutable snapshot of a document's content at each save / PDF re-upload /
+// restore. Manage can restore any version (which appends a new snapshot).
+model DocumentVersion {
+  id          Int      @id @default(autoincrement())
+  documentId  Int
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNo   Int
+  kind        String // snapshot of the doc kind
+  title       String // snapshot
+  contentHtml String? // DOC snapshot
+  assetId     String? // PDF snapshot
+  editedById  Int?
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
+}
+
+// A user's "read & acknowledge" on a published document (one per user per doc).
+model DocumentAck {
+  id             Int      @id @default(autoincrement())
+  documentId     Int
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId         Int
+  acknowledgedAt DateTime @default(now())
+
+  @@unique([documentId, userId])
+  @@index([documentId])
 }
 
 model DocumentCategory {

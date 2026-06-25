@@ -30,6 +30,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
           categoryId: doc.categoryId ?? null,
           contentHtml: doc.contentHtml ?? "",
           assetId: doc.assetId ?? null,
+          reviewBy: doc.reviewBy ? doc.reviewBy.toISOString().slice(0, 10) : null,
         }}
       />
     </AppShell>

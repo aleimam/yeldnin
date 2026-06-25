@@ -11,6 +11,9 @@ import {
   setDocumentPermissions,
   softDeleteDocument,
   getDocumentAccess,
+  getDocumentForUser,
+  acknowledgeDocument,
+  restoreDocumentVersion,
   saveDocCategories,
   type DocCategoryRow,
 } from "@/lib/documents/documents-service";
@@ -25,13 +28,14 @@ export async function createDocumentAction(p: {
   categoryId?: number | null;
   assetId?: string | null;
   contentHtml?: string | null;
+  reviewBy?: string | null;
 }): Promise<Res> {
   const access = await requireUser();
   if (!isDocKind(p.kind)) return { ok: false, error: "Invalid document type." };
   if (!p.title?.trim()) return { ok: false, error: "A title is required." };
   if (p.kind === "PDF" && !p.assetId) return { ok: false, error: "Upload a PDF file." };
   const doc = await createDocument(
-    { kind: p.kind, title: p.title, description: p.description ?? null, categoryId: p.categoryId ?? null, assetId: p.assetId ?? null, contentHtml: p.contentHtml ?? null },
+    { kind: p.kind, title: p.title, description: p.description ?? null, categoryId: p.categoryId ?? null, assetId: p.assetId ?? null, contentHtml: p.contentHtml ?? null, reviewBy: p.reviewBy ?? null },
     access.user.id,
   );
   await writeAudit(access.user.id, "documents", "document.create", "document", doc.id, { kind: p.kind });
@@ -99,6 +103,30 @@ export async function deleteDocumentAction(id: number): Promise<Res> {
   if (!g.ok) return { ok: false, error: g.error };
   await softDeleteDocument(id, g.access.user.id);
   await writeAudit(g.access.user.id, "documents", "document.delete", "document", id, {});
+  revalidatePath("/documents");
+  return { ok: true, id };
+}
+
+/** Any viewer acknowledges they've read a published document. */
+export async function acknowledgeDocumentAction(id: number): Promise<Res> {
+  const access = await requireUser();
+  const acc = await getDocumentForUser(id, { isAdmin: access.isAdmin, userId: access.user.id, userTeamKeys: access.user.teamKeys });
+  if (!acc) return { ok: false, error: "Document not found." };
+  if (acc.doc.status !== "PUBLISHED") return { ok: false, error: "Only published documents can be acknowledged." };
+  await acknowledgeDocument(id, access.user.id);
+  await writeAudit(access.user.id, "documents", "document.acknowledge", "document", id, {});
+  revalidatePath(`/documents/${id}`);
+  return { ok: true, id };
+}
+
+/** Restore a prior version (Manage). */
+export async function restoreVersionAction(id: number, versionId: number): Promise<Res> {
+  const g = await guard(id, "manage");
+  if (!g.ok) return { ok: false, error: g.error };
+  const ok = await restoreDocumentVersion(id, versionId, g.access.user.id);
+  if (!ok) return { ok: false, error: "Version not found." };
+  await writeAudit(g.access.user.id, "documents", "document.restore", "document", id, { versionId });
+  revalidatePath(`/documents/${id}`);
   revalidatePath("/documents");
   return { ok: true, id };
 }

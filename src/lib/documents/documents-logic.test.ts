@@ -8,6 +8,8 @@ import {
   canViewDocument,
   canEditContent,
   canManageDocument,
+  isReviewDue,
+  nextVersionNo,
 } from "./documents-logic";
 
 describe("type guards", () => {
@@ -65,5 +67,21 @@ describe("visibility & capabilities", () => {
     expect(canManageDocument("MANAGE")).toBe(true);
     expect(levelMeets("MANAGE", "OPERATE")).toBe(true);
     expect(levelMeets("VIEW", "OPERATE")).toBe(false);
+  });
+});
+
+describe("review-due & versions", () => {
+  const now = new Date("2026-06-25T00:00:00Z");
+  it("isReviewDue: only when a past date is set", () => {
+    expect(isReviewDue(null, now)).toBe(false);
+    expect(isReviewDue(undefined, now)).toBe(false);
+    expect(isReviewDue(new Date("2026-06-24T00:00:00Z"), now)).toBe(true);
+    expect(isReviewDue(new Date("2026-06-25T00:00:00Z"), now)).toBe(true);
+    expect(isReviewDue(new Date("2026-06-26T00:00:00Z"), now)).toBe(false);
+  });
+  it("nextVersionNo increments from the current max", () => {
+    expect(nextVersionNo(0)).toBe(1);
+    expect(nextVersionNo(5)).toBe(6);
+    expect(nextVersionNo(-3)).toBe(1);
   });
 });

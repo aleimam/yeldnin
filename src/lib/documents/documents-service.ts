@@ -3,7 +3,9 @@ import sanitizeHtml from "sanitize-html";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { clean } from "@/lib/text";
-import { documentAccessLevel, canViewDocument, isGrantLevel, type DocLevel } from "./documents-logic";
+import { getLocale } from "@/i18n/server";
+import { displayName } from "@/lib/users/users-logic";
+import { documentAccessLevel, canViewDocument, isGrantLevel, nextVersionNo, type DocLevel } from "./documents-logic";
 
 // Authored HTML comes from internal staff via Tiptap, but it's still stored and
 // re-rendered (dangerouslySetInnerHTML), so sanitize on the server boundary.
@@ -107,39 +109,60 @@ export interface CreateDocInput {
   categoryId?: number | null;
   assetId?: string | null; // PDF
   contentHtml?: string | null; // DOC
+  reviewBy?: string | null;
 }
+/** Append an immutable snapshot of a document's current content as a new version. */
+async function recordVersion(
+  documentId: number,
+  snap: { kind: string; title: string; contentHtml: string | null; assetId: string | null },
+  editedById: number,
+) {
+  const agg = await prisma.documentVersion.aggregate({ where: { documentId }, _max: { versionNo: true } });
+  await prisma.documentVersion.create({
+    data: { documentId, versionNo: nextVersionNo(agg._max.versionNo ?? 0), kind: snap.kind, title: snap.title, contentHtml: snap.contentHtml, assetId: snap.assetId, editedById },
+  });
+}
+
 export async function createDocument(input: CreateDocInput, ownerId: number) {
   const uid = await nextUid("DOC");
-  return prisma.document.create({
+  const contentHtml = input.kind === "DOC" ? sanitizeContent(input.contentHtml) : null;
+  const assetId = input.kind === "PDF" ? input.assetId ?? null : null;
+  const doc = await prisma.document.create({
     data: {
       uid,
       kind: input.kind,
       title: input.title.trim(),
       description: clean(input.description),
       categoryId: input.categoryId ?? null,
+      reviewBy: input.reviewBy ? new Date(input.reviewBy) : null,
       status: "DRAFT",
       ownerId,
-      assetId: input.kind === "PDF" ? input.assetId ?? null : null,
-      contentHtml: input.kind === "DOC" ? sanitizeContent(input.contentHtml) : null,
+      assetId,
+      contentHtml,
       createdById: ownerId,
       updatedById: ownerId,
     },
-    select: { id: true },
+    select: { id: true, title: true },
   });
+  await recordVersion(doc.id, { kind: input.kind, title: doc.title, contentHtml, assetId }, ownerId);
+  return { id: doc.id };
 }
 
-/** Edit the body (Operate+): DOC content or a replaced PDF file. */
+/** Edit the body (Operate+): DOC content or a replaced PDF file. Snapshots a version. */
 export async function updateDocumentContent(id: number, input: { contentHtml?: string | null; assetId?: string | null }, userId: number) {
-  const doc = await prisma.document.findUnique({ where: { id }, select: { kind: true } });
+  const doc = await prisma.document.findUnique({ where: { id }, select: { kind: true, title: true } });
   if (!doc) return;
+  const contentHtml = doc.kind === "DOC" ? sanitizeContent(input.contentHtml) : null;
+  const assetId = doc.kind === "PDF" && input.assetId ? input.assetId : null;
   await prisma.document.update({
     where: { id },
     data: {
-      ...(doc.kind === "DOC" ? { contentHtml: sanitizeContent(input.contentHtml) } : {}),
-      ...(doc.kind === "PDF" && input.assetId ? { assetId: input.assetId } : {}),
+      ...(doc.kind === "DOC" ? { contentHtml } : {}),
+      ...(doc.kind === "PDF" && assetId ? { assetId } : {}),
       updatedById: userId,
     },
   });
+  await recordVersion(id, { kind: doc.kind, title: doc.title, contentHtml, assetId }, userId);
 }
 
 /** Edit metadata (Manage). */
@@ -201,4 +224,71 @@ export async function saveDocCategories(rows: DocCategoryRow[]) {
       }
     }
   });
+}
+
+// ── Versions (history + restore) ─────────────────────────────────────────────
+export interface DocVersionRow {
+  id: number;
+  versionNo: number;
+  kind: string;
+  editedBy: string | null;
+  createdAt: Date;
+}
+/** A document's edit history, newest first, with the editor's display name. */
+export async function listDocumentVersions(documentId: number): Promise<DocVersionRow[]> {
+  const versions = await prisma.documentVersion.findMany({ where: { documentId }, orderBy: { versionNo: "desc" } });
+  const ids = [...new Set(versions.map((v) => v.editedById).filter((x): x is number => x != null))];
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    ids.length ? prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, nameAr: true } }) : Promise.resolve([]),
+  ]);
+  const nameOf = new Map(users.map((u) => [u.id, displayName(u, locale)]));
+  return versions.map((v) => ({ id: v.id, versionNo: v.versionNo, kind: v.kind, editedBy: v.editedById ? nameOf.get(v.editedById) ?? null : null, createdAt: v.createdAt }));
+}
+
+/** Restore a prior version's content into the document (appends a new snapshot). */
+export async function restoreDocumentVersion(documentId: number, versionId: number, userId: number): Promise<boolean> {
+  const v = await prisma.documentVersion.findFirst({ where: { id: versionId, documentId } });
+  if (!v) return false;
+  await prisma.document.update({
+    where: { id: documentId },
+    data: { ...(v.kind === "DOC" ? { contentHtml: v.contentHtml } : { assetId: v.assetId }), updatedById: userId },
+  });
+  await recordVersion(documentId, { kind: v.kind, title: v.title, contentHtml: v.contentHtml, assetId: v.assetId }, userId);
+  return true;
+}
+
+// ── Read acknowledgements ────────────────────────────────────────────────────
+export async function acknowledgeDocument(documentId: number, userId: number) {
+  await prisma.documentAck.upsert({
+    where: { documentId_userId: { documentId, userId } },
+    create: { documentId, userId },
+    update: {},
+  });
+}
+export function getMyAck(documentId: number, userId: number) {
+  return prisma.documentAck.findUnique({ where: { documentId_userId: { documentId, userId } }, select: { acknowledgedAt: true } });
+}
+
+export interface AckAudienceRow { userId: number; name: string; acknowledgedAt: Date | null }
+/** Expected readers (owner + members of teams granted access) and whether each has
+ *  acknowledged — for the Manage "who has/hasn't read" view. Un-acknowledged first. */
+export async function ackAudience(documentId: number): Promise<AckAudienceRow[]> {
+  const doc = await prisma.document.findUnique({ where: { id: documentId }, select: { ownerId: true, permissions: { select: { teamKey: true } } } });
+  if (!doc) return [];
+  const teamKeys = doc.permissions.map((p) => p.teamKey);
+  const members = teamKeys.length
+    ? await prisma.teamMember.findMany({ where: { team: { key: { in: teamKeys } } }, select: { userId: true } })
+    : [];
+  const userIds = [...new Set([doc.ownerId, ...members.map((m) => m.userId)])];
+  if (!userIds.length) return [];
+  const [locale, users, acks] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({ where: { id: { in: userIds }, active: true, archivedAt: null }, select: { id: true, name: true, nameAr: true } }),
+    prisma.documentAck.findMany({ where: { documentId, userId: { in: userIds } }, select: { userId: true, acknowledgedAt: true } }),
+  ]);
+  const ackOf = new Map(acks.map((a) => [a.userId, a.acknowledgedAt]));
+  return users
+    .map((u) => ({ userId: u.id, name: displayName(u, locale), acknowledgedAt: ackOf.get(u.id) ?? null }))
+    .sort((a, b) => Number(!!a.acknowledgedAt) - Number(!!b.acknowledgedAt) || a.name.localeCompare(b.name));
 }

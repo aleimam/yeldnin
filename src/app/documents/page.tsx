@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
-import { isDocStatus } from "@/lib/documents/documents-logic";
+import { isDocStatus, isReviewDue, canEditContent } from "@/lib/documents/documents-logic";
 import { listDocumentsForUser, listDocCategories } from "@/lib/documents/documents-service";
 import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
 import { Paginator } from "@/components/Paginator";
@@ -56,6 +56,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
             <tr key={d.id}>
               <td className="td" data-label={t("docs.col.title")}>
                 <Link href={`/documents/${d.id}`} className="text-brand hover:underline">{d.title}</Link>
+                {isReviewDue(d.reviewBy) && canEditContent(d.level) && (
+                  <span className="ms-2 rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 text-[10px] font-medium text-red-600">{t("docs.reviewDue")}</span>
+                )}
               </td>
               <td className="td text-muted" data-label={t("docs.col.category")}>{d.categoryName ?? "—"}</td>
               <td className="td text-muted" data-label={t("docs.col.kind")}>{t(`docs.kind.${d.kind}`)}</td>

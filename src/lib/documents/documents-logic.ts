@@ -60,3 +60,13 @@ export function canEditContent(level: DocLevel): boolean {
 export function canManageDocument(level: DocLevel): boolean {
   return level === "MANAGE";
 }
+
+/** A document is "due for review" once its reviewBy date has passed. */
+export function isReviewDue(reviewBy: Date | null | undefined, now: Date = new Date()): boolean {
+  return !!reviewBy && reviewBy.getTime() <= now.getTime();
+}
+
+/** Next version number given the current highest (0 when there are none). */
+export function nextVersionNo(currentMax: number): number {
+  return Math.max(0, Math.floor(currentMax || 0)) + 1;
+}

@@ -13,6 +13,7 @@ interface Initial {
   categoryId: number | null;
   contentHtml: string;
   assetId: string | null;
+  reviewBy: string | null; // yyyy-mm-dd
 }
 
 /**
@@ -40,6 +41,7 @@ export function DocumentForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId != null ? String(initial.categoryId) : "");
+  const [reviewBy, setReviewBy] = useState<string>(initial?.reviewBy ?? "");
   const [contentHtml, setContentHtml] = useState(initial?.contentHtml ?? "");
   const [assetId, setAssetId] = useState<string | null>(initial?.assetId ?? null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export function DocumentForm({
           if (!r.ok) { setError(r.error); return; }
         }
         if (canManageMeta) {
-          const r = await updateDocumentMetaAction(editId, { title: title.trim(), description: description.trim() || null, categoryId: catId });
+          const r = await updateDocumentMetaAction(editId, { title: title.trim(), description: description.trim() || null, categoryId: catId, reviewBy: reviewBy || null });
           if (!r.ok) { setError(r.error); return; }
         }
         router.push(`/documents/${editId}`);
@@ -95,6 +97,7 @@ export function DocumentForm({
           categoryId: catId,
           assetId: kind === "PDF" ? assetId : null,
           contentHtml: kind === "DOC" ? contentHtml : null,
+          reviewBy: reviewBy || null,
         });
         if (!r.ok || r.id == null) { setError(r.ok ? "Failed." : r.error); return; }
         router.push(`/documents/${r.id}`);
@@ -132,6 +135,12 @@ export function DocumentForm({
           <option value="">{t("docs.noCategory")}</option>
           {categories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
         </select>
+      </div>
+
+      <div>
+        <label className="label">{t("docs.reviewByField")}</label>
+        <input type="date" className="input" value={reviewBy} disabled={!canManageMeta} onChange={(e) => setReviewBy(e.target.value)} />
+        <p className="mt-1 text-xs text-muted">{t("docs.reviewByHint")}</p>
       </div>
 
       {kind === "DOC" ? (
