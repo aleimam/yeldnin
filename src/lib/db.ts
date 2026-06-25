@@ -14,10 +14,27 @@ const globalForPrisma = globalThis as unknown as {
 
 function createClient() {
   const adapter = new PrismaNodeSQLite({ url: `file:${dbFile}` });
-  return new PrismaClient({
+  const client = new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
+  // Tune SQLite for concurrent web traffic. The default DELETE journal makes every
+  // write take a database-wide exclusive lock that blocks ALL readers — under
+  // multi-user load that serialises the whole app. WAL lets readers run while one
+  // writer is active; busy_timeout waits instead of failing fast on contention;
+  // synchronous=NORMAL is safe under WAL and avoids an fsync per statement. WAL is
+  // persisted in the DB file; the timeouts are per-connection (one per client).
+  void (async () => {
+    try {
+      await client.$queryRawUnsafe("PRAGMA journal_mode = WAL");
+      await client.$queryRawUnsafe("PRAGMA busy_timeout = 5000");
+      await client.$queryRawUnsafe("PRAGMA synchronous = NORMAL");
+      await client.$queryRawUnsafe("PRAGMA wal_autocheckpoint = 1000");
+    } catch {
+      // best-effort tuning; the app still works on the default journal
+    }
+  })();
+  return client;
 }
 
 export const prisma = globalForPrisma.prisma ?? createClient();
