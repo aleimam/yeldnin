@@ -692,6 +692,7 @@
   "docs.perm.operate": "Operate",
   "docs.perm.manage": "Manage",
   "docs.perm.save": "Save permissions",
+  "docs.perm.viewAll": "Grant View to all teams",
   "docs.perm.saved": "Permissions saved.",
   "docs.perm.hint": "View = read & download · Operate = edit content · Manage = full control. The owner and admins always have full access.",
   "docs.cat.title": "Document categories",

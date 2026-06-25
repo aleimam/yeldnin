@@ -43,6 +43,20 @@ export function PermissionsEditor({
     });
   }
 
+  /** One click: grant View to every team and persist immediately. */
+  function grantViewAll() {
+    setSaved(false);
+    const next: Record<string, Level> = {};
+    for (const tm of teams) next[tm.key] = "VIEW";
+    setLevels(next);
+    const perms = teams.map((tm) => ({ teamKey: tm.key, level: "VIEW" }));
+    start(async () => {
+      await setDocumentPermissionsAction(documentId, perms);
+      setSaved(true);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="card space-y-3 p-5">
       <h2 className="font-semibold text-ink">{t("docs.permissions")}</h2>
@@ -68,8 +82,9 @@ export function PermissionsEditor({
         </tbody>
       </table>
       <p className="text-xs text-muted">{t("docs.perm.hint")}</p>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={save} disabled={pending} className="btn-primary">{pending ? "…" : t("docs.perm.save")}</button>
+        <button type="button" onClick={grantViewAll} disabled={pending} className="btn-secondary">{t("docs.perm.viewAll")}</button>
         {saved && <span className="text-sm text-green-600">{t("docs.perm.saved")}</span>}
       </div>
     </div>
