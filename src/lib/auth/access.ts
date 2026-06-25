@@ -73,8 +73,13 @@ export const getAccess = cache(async (): Promise<Access> => {
     avatarUrl: user.avatarUrl ?? null,
   };
 
-  const moduleLevel = (moduleKey: string): Level =>
-    effectiveLevel(tier, levels.get(moduleKey));
+  const moduleLevel = (moduleKey: string): Level => {
+    const base = effectiveLevel(tier, levels.get(moduleKey));
+    // Documents is open to every signed-in user; per-document team ACLs gate the
+    // actual content, so the module itself needs no per-user grant.
+    if (moduleKey === "documents" && !levelMeets(base, "VIEW")) return "VIEW";
+    return base;
+  };
 
   return {
     user: sessionUser,

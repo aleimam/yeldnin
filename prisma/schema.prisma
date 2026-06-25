@@ -1804,3 +1804,55 @@ model ErrorLog {
   @@index([level])
   @@index([source])
 }
+
+// ─── Documents module (Administration; visible to all, per-doc team ACLs) ────────
+// A document is one item: an uploaded PDF (content fixed) or an online DOC
+// (rich-text HTML). Single-language content. See DOCUMENTS.md.
+model Document {
+  id          Int      @id @default(autoincrement())
+  uid         String?  @unique // DOC<YY><MM><seq3>
+  kind        String // PDF | DOC
+  title       String
+  description String?
+  categoryId  Int?
+  category    DocumentCategory? @relation(fields: [categoryId], references: [id])
+  status      String   @default("DRAFT") // DRAFT (hidden from VIEW) | PUBLISHED
+  ownerId     Int // creator — always MANAGE
+  reviewBy    DateTime? // optional "due for review" date
+  assetId     String? // PDF kind: the uploaded file
+  contentHtml String? // DOC kind: sanitized rich-text HTML
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedById Int?
+  updatedAt   DateTime @updatedAt
+
+  permissions DocumentPermission[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([ownerId])
+}
+
+model DocumentCategory {
+  id         Int        @id @default(autoincrement())
+  name       String
+  sortOrder  Int        @default(0)
+  archivedAt DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  documents Document[]
+}
+
+// Per-document access granted to a team. level = VIEW | OPERATE | MANAGE.
+model DocumentPermission {
+  id         Int      @id @default(autoincrement())
+  documentId Int
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  teamKey    String
+  level      String
+
+  @@unique([documentId, teamKey])
+  @@index([documentId])
+}

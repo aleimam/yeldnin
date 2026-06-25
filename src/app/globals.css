@@ -196,3 +196,27 @@
     transform: translateX(400%);
   }
 }
+
+/* Rich-text document content — shared by the Tiptap editor surface and the
+   read-only view (.doc-content). No typography plugin, so style explicitly. */
+.doc-content {
+  color: rgb(var(--ink));
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.doc-content h1 { font-size: 1.6rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+.doc-content h2 { font-size: 1.35rem; font-weight: 700; margin: 0.9rem 0 0.45rem; }
+.doc-content h3 { font-size: 1.15rem; font-weight: 600; margin: 0.8rem 0 0.4rem; }
+.doc-content h4 { font-size: 1rem; font-weight: 600; margin: 0.7rem 0 0.35rem; }
+.doc-content p { margin: 0.5rem 0; }
+.doc-content ul { list-style: disc; padding-inline-start: 1.5rem; margin: 0.5rem 0; }
+.doc-content ol { list-style: decimal; padding-inline-start: 1.5rem; margin: 0.5rem 0; }
+.doc-content li { margin: 0.2rem 0; }
+.doc-content a { color: rgb(var(--brand)); text-decoration: underline; }
+.doc-content blockquote { border-inline-start: 3px solid rgb(var(--line)); padding-inline-start: 0.75rem; color: rgb(var(--muted)); margin: 0.6rem 0; }
+.doc-content code { background: rgb(var(--canvas)); padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-size: 0.9em; }
+.doc-content pre { background: rgb(var(--canvas)); padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.6rem 0; }
+.doc-content hr { border: 0; border-top: 1px solid rgb(var(--line)); margin: 1rem 0; }
+.doc-content table { border-collapse: collapse; width: 100%; margin: 0.6rem 0; }
+.doc-content th, .doc-content td { border: 1px solid rgb(var(--line)); padding: 0.4rem 0.6rem; text-align: start; }
+.doc-content th { background: rgb(var(--canvas)); font-weight: 600; }

@@ -26,7 +26,11 @@ const MODULES = [
   { key: "user_access", route: "/users", section: "admin", sortOrder: 13 },
   { key: "audit_log", route: "/audit", section: "admin", sortOrder: 14 },
   { key: "error_log", route: "/error-log", section: "admin", sortOrder: 15 },
+  { key: "documents", route: "/documents", section: "admin", sortOrder: 16 },
 ];
+
+// Starter document categories (admin-editable afterwards). Seeded by name (idempotent).
+const DOC_CATEGORIES = ["Policies", "SOP", "Human Resources", "KPIs", "Information", "Report", "Release"];
 
 const TEAMS = [
   { key: "sales", name: "Sales" },
@@ -78,6 +82,13 @@ async function main() {
       update: { name: team.name },
       create: team,
     });
+  }
+
+  // Starter document categories — created once by name; never clobbers later edits.
+  for (let i = 0; i < DOC_CATEGORIES.length; i++) {
+    const name = DOC_CATEGORIES[i];
+    const existing = await prisma.documentCategory.findFirst({ where: { name } });
+    if (!existing) await prisma.documentCategory.create({ data: { name, sortOrder: i } });
   }
 
   // CS Quality access bridge: CS is governed by the per-user cs_quality module

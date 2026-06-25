@@ -45,6 +45,7 @@ export const MODULES: ModuleDef[] = [
   { key: "user_access", route: "/users", section: "admin", category: "administration", icon: "👥" },
   { key: "audit_log", route: "/audit", section: "admin", category: "administration", icon: "📜" },
   { key: "error_log", route: "/error-log", section: "admin", category: "administration", icon: "🐞" },
+  { key: "documents", route: "/documents", section: "admin", category: "administration", icon: "📄" },
 ];
 
 export const MAIN_MODULES = MODULES.filter((m) => m.section === "main");

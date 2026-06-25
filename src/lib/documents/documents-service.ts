@@ -1,0 +1,204 @@
+import "server-only";
+import sanitizeHtml from "sanitize-html";
+import { prisma } from "@/lib/db";
+import { nextUid } from "@/lib/uid";
+import { clean } from "@/lib/text";
+import { documentAccessLevel, canViewDocument, isGrantLevel, type DocLevel } from "./documents-logic";
+
+// Authored HTML comes from internal staff via Tiptap, but it's still stored and
+// re-rendered (dangerouslySetInnerHTML), so sanitize on the server boundary.
+const SANITIZE_OPTS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    "p", "br", "h1", "h2", "h3", "h4", "strong", "b", "em", "i", "u", "s",
+    "ul", "ol", "li", "blockquote", "a", "code", "pre", "hr",
+    "table", "thead", "tbody", "tr", "td", "th",
+  ],
+  allowedAttributes: {
+    a: ["href", "target", "rel"],
+    td: ["colspan", "rowspan"],
+    th: ["colspan", "rowspan"],
+  },
+  allowedStyles: { "*": { "text-align": [/^(left|right|center|justify)$/] } },
+  allowedSchemes: ["http", "https", "mailto"],
+  transformTags: { a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer", target: "_blank" }) },
+};
+export function sanitizeContent(html: string | null | undefined): string {
+  return sanitizeHtml(html ?? "", SANITIZE_OPTS);
+}
+
+export interface DocListRow {
+  id: number;
+  uid: string | null;
+  kind: string;
+  title: string;
+  description: string | null;
+  status: string;
+  categoryName: string | null;
+  ownerId: number;
+  level: DocLevel;
+  reviewBy: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+type DocWithRel = Awaited<ReturnType<typeof fetchDocs>>[number];
+function fetchDocs(where: object) {
+  return prisma.document.findMany({
+    where,
+    orderBy: { updatedAt: "desc" },
+    include: { category: { select: { name: true } }, permissions: { select: { teamKey: true, level: true } } },
+  });
+}
+function toRow(d: DocWithRel, level: DocLevel): DocListRow {
+  return {
+    id: d.id, uid: d.uid, kind: d.kind, title: d.title, description: d.description,
+    status: d.status, categoryName: d.category?.name ?? null, ownerId: d.ownerId,
+    level, reviewBy: d.reviewBy, createdAt: d.createdAt, updatedAt: d.updatedAt,
+  };
+}
+
+interface Viewer { isAdmin: boolean; userId: number; userTeamKeys: string[] }
+const levelOf = (d: { ownerId: number; permissions: { teamKey: string; level: string }[] }, v: Viewer): DocLevel =>
+  documentAccessLevel({ isAdmin: v.isAdmin, isOwner: d.ownerId === v.userId, userTeamKeys: v.userTeamKeys, perms: d.permissions });
+
+/** Documents the viewer can at least see, with their per-doc level. Access + draft
+ *  visibility are applied in JS (per-doc ACL), then the result is paginated. */
+export async function listDocumentsForUser(
+  v: Viewer,
+  opts: { search?: string; categoryId?: number; status?: string; skip?: number; take?: number },
+): Promise<{ rows: DocListRow[]; total: number }> {
+  const where = {
+    archivedAt: null,
+    ...(opts.categoryId ? { categoryId: opts.categoryId } : {}),
+    ...(opts.status ? { status: opts.status } : {}),
+    ...(opts.search ? { OR: [{ title: { contains: opts.search } }, { description: { contains: opts.search } }] } : {}),
+  };
+  const visible = (await fetchDocs(where))
+    .map((d) => ({ d, level: levelOf(d, v) }))
+    .filter(({ d, level }) => canViewDocument(d.status, level));
+  const skip = opts.skip ?? 0;
+  const take = opts.take ?? 50;
+  return { rows: visible.slice(skip, skip + take).map(({ d, level }) => toRow(d, level)), total: visible.length };
+}
+
+/** Full document + the viewer's level; null when they can't see it. */
+export async function getDocumentForUser(id: number, v: Viewer) {
+  const d = await prisma.document.findFirst({
+    where: { id, archivedAt: null },
+    include: { category: { select: { id: true, name: true } }, permissions: { select: { teamKey: true, level: true } } },
+  });
+  if (!d) return null;
+  const level = documentAccessLevel({ isAdmin: v.isAdmin, isOwner: d.ownerId === v.userId, userTeamKeys: v.userTeamKeys, perms: d.permissions });
+  if (!canViewDocument(d.status, level)) return null;
+  return { doc: d, level };
+}
+
+/** Doc + the viewer's level without the view gate — for edit/manage guards. */
+export async function getDocumentAccess(id: number, v: Viewer) {
+  const d = await prisma.document.findFirst({ where: { id, archivedAt: null }, include: { permissions: { select: { teamKey: true, level: true } } } });
+  if (!d) return null;
+  return { doc: d, level: levelOf(d, v) };
+}
+
+export interface CreateDocInput {
+  kind: string; // PDF | DOC
+  title: string;
+  description?: string | null;
+  categoryId?: number | null;
+  assetId?: string | null; // PDF
+  contentHtml?: string | null; // DOC
+}
+export async function createDocument(input: CreateDocInput, ownerId: number) {
+  const uid = await nextUid("DOC");
+  return prisma.document.create({
+    data: {
+      uid,
+      kind: input.kind,
+      title: input.title.trim(),
+      description: clean(input.description),
+      categoryId: input.categoryId ?? null,
+      status: "DRAFT",
+      ownerId,
+      assetId: input.kind === "PDF" ? input.assetId ?? null : null,
+      contentHtml: input.kind === "DOC" ? sanitizeContent(input.contentHtml) : null,
+      createdById: ownerId,
+      updatedById: ownerId,
+    },
+    select: { id: true },
+  });
+}
+
+/** Edit the body (Operate+): DOC content or a replaced PDF file. */
+export async function updateDocumentContent(id: number, input: { contentHtml?: string | null; assetId?: string | null }, userId: number) {
+  const doc = await prisma.document.findUnique({ where: { id }, select: { kind: true } });
+  if (!doc) return;
+  await prisma.document.update({
+    where: { id },
+    data: {
+      ...(doc.kind === "DOC" ? { contentHtml: sanitizeContent(input.contentHtml) } : {}),
+      ...(doc.kind === "PDF" && input.assetId ? { assetId: input.assetId } : {}),
+      updatedById: userId,
+    },
+  });
+}
+
+/** Edit metadata (Manage). */
+export async function updateDocumentMeta(
+  id: number,
+  input: { title?: string; description?: string | null; categoryId?: number | null; reviewBy?: string | null },
+  userId: number,
+) {
+  await prisma.document.update({
+    where: { id },
+    data: {
+      ...(input.title != null ? { title: input.title.trim() } : {}),
+      description: clean(input.description),
+      categoryId: input.categoryId ?? null,
+      reviewBy: input.reviewBy ? new Date(input.reviewBy) : null,
+      updatedById: userId,
+    },
+  });
+}
+
+export async function setDocumentStatus(id: number, status: string, userId: number) {
+  await prisma.document.update({ where: { id }, data: { status, updatedById: userId } });
+}
+
+/** Replace the document's team permissions with the given (deduped, valid) set. */
+export async function setDocumentPermissions(id: number, perms: { teamKey: string; level: string }[], userId: number) {
+  const valid = new Map<string, string>();
+  for (const p of perms) if (p.teamKey && isGrantLevel(p.level)) valid.set(p.teamKey, p.level);
+  await prisma.$transaction([
+    prisma.documentPermission.deleteMany({ where: { documentId: id } }),
+    ...(valid.size
+      ? [prisma.documentPermission.createMany({ data: [...valid].map(([teamKey, level]) => ({ documentId: id, teamKey, level })) })]
+      : []),
+    prisma.document.update({ where: { id }, data: { updatedById: userId } }),
+  ]);
+}
+
+export async function softDeleteDocument(id: number, userId: number) {
+  await prisma.document.update({ where: { id }, data: { archivedAt: new Date(), updatedById: userId } });
+}
+
+// ── Categories (admin) ───────────────────────────────────────────────────────
+export function listDocCategories() {
+  return prisma.documentCategory.findMany({ where: { archivedAt: null }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
+}
+
+export interface DocCategoryRow { id?: number; name: string; remove?: boolean }
+/** Save the category list: rename/sort existing, soft-delete removed, add new. */
+export async function saveDocCategories(rows: DocCategoryRow[]) {
+  await prisma.$transaction(async (tx) => {
+    let order = 0;
+    for (const r of rows) {
+      const name = r.name.trim();
+      if (r.id) {
+        if (r.remove) await tx.documentCategory.update({ where: { id: r.id }, data: { archivedAt: new Date() } });
+        else if (name) await tx.documentCategory.update({ where: { id: r.id }, data: { name, sortOrder: order++ } });
+      } else if (name && !r.remove) {
+        await tx.documentCategory.create({ data: { name, sortOrder: order++ } });
+      }
+    }
+  });
+}
