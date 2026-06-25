@@ -38,28 +38,36 @@ const FALLBACK: PlatformSettingsView = {
   docMarginRightMm: 22,
 };
 
-/** Read the single platform-settings row (memoized per request). */
+/** Read the single platform-settings row (memoized per request). Degrades to
+ *  defaults rather than throwing if the DB is briefly unreachable or the schema is
+ *  ahead of the live DB (e.g. mid-deploy, before a migration is applied) — this is
+ *  called on every page render, so a hard error here would 500 the whole app. */
 export const getPlatformSettings = cache(
   async (): Promise<PlatformSettingsView> => {
-    const row = await prisma.platformSettings.findUnique({ where: { id: 1 } });
-    if (!row) return FALLBACK;
-    return {
-      appName: row.appName,
-      themeKey: row.themeKey,
-      logoUrl: row.logoUrl,
-      darkLogoUrl: row.darkLogoUrl,
-      faviconUrl: row.faviconUrl,
-      version: row.version,
-      versionShowMobile: row.versionShowMobile,
-      versionShowDesktop: row.versionShowDesktop,
-      copyrightEn: row.copyrightEn,
-      copyrightAr: row.copyrightAr,
-      docLetterheadAssetId: row.docLetterheadAssetId,
-      docMarginTopMm: row.docMarginTopMm,
-      docMarginBottomMm: row.docMarginBottomMm,
-      docMarginLeftMm: row.docMarginLeftMm,
-      docMarginRightMm: row.docMarginRightMm,
-    };
+    try {
+      const row = await prisma.platformSettings.findUnique({ where: { id: 1 } });
+      if (!row) return FALLBACK;
+      return {
+        appName: row.appName,
+        themeKey: row.themeKey,
+        logoUrl: row.logoUrl,
+        darkLogoUrl: row.darkLogoUrl,
+        faviconUrl: row.faviconUrl,
+        version: row.version,
+        versionShowMobile: row.versionShowMobile,
+        versionShowDesktop: row.versionShowDesktop,
+        copyrightEn: row.copyrightEn,
+        copyrightAr: row.copyrightAr,
+        docLetterheadAssetId: row.docLetterheadAssetId,
+        docMarginTopMm: row.docMarginTopMm,
+        docMarginBottomMm: row.docMarginBottomMm,
+        docMarginLeftMm: row.docMarginLeftMm,
+        docMarginRightMm: row.docMarginRightMm,
+      };
+    } catch (e) {
+      console.error("getPlatformSettings failed; using defaults:", e);
+      return FALLBACK;
+    }
   },
 );
 
