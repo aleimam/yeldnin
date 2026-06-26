@@ -1350,26 +1350,13 @@ model EmployeeEventPhoto {
   @@index([eventId])
 }
 
-// ─── HR — Departments & Positions (admin-managed org structure) ───────────────
-// A Department groups Positions; a Position (job title) is structured: title,
-// grade/level, description — bilingual. Each Employee holds at most one Position.
-model Department {
-  id          Int        @id @default(autoincrement())
-  name        String
-  nameAr      String?
-  sortOrder   Int        @default(0)
-  archivedAt  DateTime?
-  createdById Int?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  positions Position[]
-}
-
+// ─── HR — Positions (admin-managed job titles) ────────────────────────────────
+// A Position (job title) is structured: title, grade/level, description —
+// bilingual. Each Employee holds at most one Position. Departments are the same
+// thing as Teams (see model Team) — an employee's department is their team
+// membership, so Positions are a flat list (no department grouping).
 model Position {
   id            Int         @id @default(autoincrement())
-  departmentId  Int?
-  department    Department? @relation(fields: [departmentId], references: [id])
   title         String
   titleAr       String?
   grade         String? // grade / level (e.g. Junior, Senior, L3)
@@ -1382,8 +1369,6 @@ model Position {
   updatedAt     DateTime    @updatedAt
 
   employees Employee[]
-
-  @@index([departmentId])
 }
 
 // ─── HR Phase 2 — Attendance & Leaves ─────────────────────────────────────────

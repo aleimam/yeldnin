@@ -28,6 +28,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   const managers = canManage ? await managerOptions(emp.id) : [];
   const positions = canManage ? await listPositions() : [];
   const posName = (p: { title: string; titleAr: string | null }) => (locale === "ar" && p.titleAr ? p.titleAr : p.title);
+  const deptNames = emp.user?.teamMembers?.map((m) => m.team.name).join(", ") || null; // department(s) = team membership
   const hrYear = new Date().getUTCFullYear();
   const balance = canManage ? await leaveBalance(emp.id, hrYear) : null;
   const absences = canManage ? await listAbsences(emp.id, hrYear) : [];
@@ -58,6 +59,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
             {detail(t("hr.phone"), emp.user?.primaryPhone)}
             {detail(t("hr.tier"), emp.user?.tier ? t(`tier.${emp.user.tier}`) : null)}
             {detail(t("hr.position"), emp.position ? posName(emp.position) : null)}
+            {detail(t("hr.department"), deptNames)}
             {detail(t("hr.hiringDate"), emp.hiringDate ? formatBizDate(emp.hiringDate) : null)}
             {emp.user?.active === false && <span className="rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t("products.inactive")}</span>}
           </div>
@@ -118,7 +120,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           email: emp.user?.email ?? "", uid: emp.user?.uid ?? "",
           primaryPhone: emp.user?.primaryPhone ?? "", secondaryPhone: emp.user?.secondaryPhone ?? "", yeldnPhone: emp.user?.yeldnPhone ?? "",
           positionId: emp.positionId ? String(emp.positionId) : "",
-        }} positions={positions.map((p) => ({ id: p.id, label: `${posName(p)}${p.department ? ` — ${locale === "ar" && p.department.nameAr ? p.department.nameAr : p.department.name}` : ""}` }))} />}
+        }} positions={positions.map((p) => ({ id: p.id, label: posName(p) }))} />}
 
         {canManage && balance && (
           <AttendancePanel

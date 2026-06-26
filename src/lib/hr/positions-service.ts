@@ -2,43 +2,20 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { clean } from "@/lib/text";
 
-// ── Departments + Positions (admin-managed org structure) ────────────────────
-
-export function listDepartments(includeArchived = false) {
-  return prisma.department.findMany({
-    where: includeArchived ? {} : { archivedAt: null },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-  });
-}
+// ── Positions (admin-managed job titles) ─────────────────────────────────────
+// Departments are the same thing as Teams now (an employee's department is their
+// team membership), so a Position is just a flat job title.
 
 export function listPositions(includeArchived = false) {
   return prisma.position.findMany({
     where: includeArchived ? {} : { archivedAt: null },
-    include: { department: { select: { id: true, name: true, nameAr: true } } },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
   });
-}
-
-export interface DeptRow {
-  id: number;
-  remove: boolean;
-  name: string;
-  nameAr: string | null;
-}
-export async function saveDepartmentBatch(rows: DeptRow[], add: { name: string; nameAr: string | null } | null) {
-  const ops = [];
-  for (const r of rows) {
-    if (r.remove) ops.push(prisma.department.update({ where: { id: r.id }, data: { archivedAt: new Date() } }));
-    else if (r.name.trim()) ops.push(prisma.department.update({ where: { id: r.id }, data: { name: r.name.trim(), nameAr: clean(r.nameAr) } }));
-  }
-  if (add?.name.trim()) ops.push(prisma.department.create({ data: { name: add.name.trim(), nameAr: clean(add.nameAr) } }));
-  if (ops.length) await prisma.$transaction(ops);
 }
 
 export interface PosRow {
   id: number;
   remove: boolean;
-  departmentId: number | null;
   title: string;
   titleAr: string | null;
   grade: string | null;
@@ -47,7 +24,6 @@ export interface PosRow {
 }
 type NewPos = Omit<PosRow, "id" | "remove">;
 const posData = (r: NewPos) => ({
-  departmentId: r.departmentId,
   title: r.title.trim(),
   titleAr: clean(r.titleAr),
   grade: clean(r.grade),

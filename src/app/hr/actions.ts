@@ -17,7 +17,7 @@ import {
   type EmployeeIdentityInput,
   type NewEmployeeInput,
 } from "@/lib/hr/hr-service";
-import { saveDepartmentBatch, savePositionBatch, type DeptRow, type PosRow } from "@/lib/hr/positions-service";
+import { savePositionBatch, type PosRow } from "@/lib/hr/positions-service";
 
 /** Creating staff = HR operate (or admin). */
 async function requireHrCreate() {
@@ -74,18 +74,6 @@ export async function updateEmployeeIdentityAction(id: number, input: EmployeeId
     revalidatePath(`/hr/employees/${id}`);
     revalidatePath(`/users`);
     return { ok: true, id };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Could not save." };
-  }
-}
-
-export async function saveDepartmentsAction(rows: DeptRow[], add: { name: string; nameAr: string | null } | null): Promise<{ ok: boolean; error?: string }> {
-  const access = await requireHrManage();
-  try {
-    await saveDepartmentBatch(rows, add);
-    await writeAudit(access.user.id, "human_resources", "department.save", "department", "batch", { rows: rows.length });
-    revalidatePath("/hr/positions");
-    return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Could not save." };
   }

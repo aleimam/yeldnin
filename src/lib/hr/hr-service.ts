@@ -193,8 +193,14 @@ export function getEmployee(id: number) {
   return prisma.employee.findFirst({
     where: { id, archivedAt: null },
     include: {
-      user: { select: { id: true, uid: true, name: true, nameAr: true, fullName: true, fullNameAr: true, email: true, username: true, primaryPhone: true, secondaryPhone: true, yeldnPhone: true, tier: true, active: true } },
-      position: { include: { department: { select: { name: true, nameAr: true } } } },
+      user: {
+        select: {
+          id: true, uid: true, name: true, nameAr: true, fullName: true, fullNameAr: true, email: true, username: true,
+          primaryPhone: true, secondaryPhone: true, yeldnPhone: true, tier: true, active: true,
+          teamMembers: { select: { team: { select: { name: true } } } }, // department(s) = team membership
+        },
+      },
+      position: { select: { id: true, title: true, titleAr: true } },
       lineManager: { select: { id: true, user: { select: { name: true } } } },
       reports: { include: { user: { select: { name: true } } }, orderBy: { id: "asc" } },
       photos: { orderBy: { id: "asc" } },
