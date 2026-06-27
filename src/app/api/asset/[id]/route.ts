@@ -70,9 +70,13 @@ export async function GET(
   const asset = await readAsset(id);
   if (!asset) return new NextResponse("Not found", { status: 404 });
 
-  // Non-image attachments (e.g. uploaded PDFs) are still shown inline, but
-  // sandboxed so an embedded script can't run in our origin if opened directly.
+  // Images and PDFs are rendered by the browser in their own isolated viewer
+  // (with Content-Type + nosniff they can't be reinterpreted as HTML, and a PDF's
+  // scripts run in the PDF sandbox, not our origin), so they're shown inline. A
+  // bare `Content-Security-Policy: sandbox` would BREAK the PDF viewer, so it's
+  // only applied to any other (currently impossible) upload type as defence.
   const isImage = asset.mimeType.startsWith("image/");
+  const isPdf = asset.mimeType === "application/pdf";
 
   return new NextResponse(new Uint8Array(asset.buffer), {
     headers: {
@@ -80,7 +84,7 @@ export async function GET(
       "Content-Disposition": "inline",
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "private, max-age=31536000, immutable",
-      ...(isImage ? {} : { "Content-Security-Policy": "sandbox" }),
+      ...(isImage || isPdf ? {} : { "Content-Security-Policy": "sandbox" }),
     },
   });
 }
