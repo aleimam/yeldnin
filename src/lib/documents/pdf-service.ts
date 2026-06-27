@@ -1,7 +1,11 @@
 import "server-only";
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type Color } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage, type PDFImage, type Color } from "pdf-lib";
 import { parse, HTMLElement, TextNode, type Node } from "node-html-parser";
 import { contentBox, lineHeight, type MarginsMm, type ContentBox } from "./pdf-logic";
+
+/** Reads an uploaded asset's bytes by id — injected by the caller (keeps this
+ *  module free of the Prisma/node:sqlite import chain so it stays unit-testable). */
+export type AssetLoader = (id: string) => Promise<{ buffer: Buffer; mimeType: string } | null>;
 
 // Generated PDF for a DOC-kind document: the sanitized rich-text HTML is laid out
 // onto an admin-uploaded letterhead PDF (page 0 used as a per-page background),
@@ -46,10 +50,18 @@ function toWinAnsi(text: string): string {
 }
 
 // ── inline run model ────────────────────────────────────────────────────────
-interface Style { bold: boolean; italic: boolean; underline: boolean; mono: boolean; link: boolean; color: string | null; highlight: string | null }
-const BASE: Style = { bold: false, italic: false, underline: false, mono: false, link: false, color: null, highlight: null };
+interface Style { bold: boolean; italic: boolean; underline: boolean; mono: boolean; link: boolean; color: string | null; highlight: string | null; fontSize: number | null }
+const BASE: Style = { bold: false, italic: false, underline: false, mono: false, link: false, color: null, highlight: null, fontSize: null };
 interface Run { text: string; style: Style; br?: boolean }
 type Align = "left" | "center" | "right" | "justify";
+
+/** CSS font-size (px or pt) → points; px is scaled ×0.75. */
+function parseFontSize(v: string): number | null {
+  const m = /^(\d{1,3})(px|pt)$/.exec(v.trim().toLowerCase());
+  if (!m) return null;
+  const n = Number(m[1]);
+  return m[2] === "pt" ? n : Math.round(n * 0.75 * 10) / 10;
+}
 
 /** Read one CSS property's value off an element's inline `style` attribute. */
 function styleProp(el: HTMLElement, prop: string): string | null {
@@ -87,10 +99,11 @@ function collectRuns(node: HTMLElement, style: Style, out: Run[]): void {
     else if (t === "code") next.mono = true;
     else if (t === "a") { next.link = true; next.underline = true; }
     // "s" (strikethrough) recurses with no distinct styling
-    // Inline text colour (<span style="color">) + highlight (<mark>/background-color).
+    // Inline text colour (<span style="color">) + highlight (<mark>/background-color) + size.
     const col = styleProp(child, "color"); if (col) next.color = col;
     const bg = styleProp(child, "background-color"); if (bg) next.highlight = bg;
     else if (t === "mark") next.highlight = "#fff3a3";
+    const fs = styleProp(child, "font-size"); if (fs) { const pt = parseFontSize(fs); if (pt) next.fontSize = pt; }
     collectRuns(child, next, out);
   }
 }
@@ -136,8 +149,9 @@ class Renderer {
   private box!: ContentBox;
   private page!: PDFPage;
   private y = 0;
+  private images = new Map<string, { img: PDFImage; w: number; h: number }>(); // by src
 
-  constructor(private title: string, private html: string, private letterhead: Buffer | null, private margins: MarginsMm) {}
+  constructor(private title: string, private html: string, private letterhead: Buffer | null, private margins: MarginsMm, private loadAsset: AssetLoader | null) {}
 
   async render(): Promise<Uint8Array> {
     this.out = await PDFDocument.create();
@@ -172,9 +186,38 @@ class Renderer {
     this.y -= 4;
 
     const root = parse(this.html || "", { lowerCaseTagName: true });
+    await this.preloadImages(root); // embed all <img> assets up front (drawing stays sync)
     this.renderBlocks(root.childNodes, this.box.left);
 
     return this.out.save();
+  }
+
+  /** Read + embed every `/api/asset/<id>` image once. webp/gif → png via sharp. */
+  private async preloadImages(root: HTMLElement): Promise<void> {
+    if (!this.loadAsset) return;
+    const srcs = new Set<string>();
+    for (const el of root.querySelectorAll("img")) {
+      const src = el.getAttribute("src");
+      if (src && /^\/api\/asset\//.test(src) && !srcs.has(src)) srcs.add(src);
+    }
+    for (const src of srcs) {
+      try {
+        const id = src.replace(/^\/api\/asset\//, "");
+        const asset = await this.loadAsset(id);
+        if (!asset) continue;
+        let img: PDFImage;
+        if (asset.mimeType === "image/png") img = await this.out.embedPng(asset.buffer);
+        else if (asset.mimeType === "image/jpeg") img = await this.out.embedJpg(asset.buffer);
+        else {
+          const sharp = (await import("sharp")).default;
+          const png = await sharp(asset.buffer).png().toBuffer();
+          img = await this.out.embedPng(png);
+        }
+        this.images.set(src, { img, w: img.width, h: img.height });
+      } catch {
+        // unreadable / unsupported image → skip it (never break the PDF)
+      }
+    }
   }
 
   private newPage(): void {
@@ -217,6 +260,7 @@ class Renderer {
         case "hr": this.ensure(10); this.y -= 4; this.drawRule(); this.y -= 6; break;
         case "pre": this.pre(node, leftX); break;
         case "table": this.table(node); break;
+        case "img": this.drawImage(node); break;
         case "div": case "section": case "article": this.renderBlocks(node.childNodes, leftX); break;
         default: {
           // unknown wrapper holding inline content → treat as a paragraph
@@ -230,29 +274,45 @@ class Renderer {
   private block(node: HTMLElement, leftX: number, size: number): void {
     const runs: Run[] = []; collectRuns(node, { ...BASE, bold: true }, runs);
     this.y -= size * 0.5; // space before
+    this.ensure(lineHeight(size) + 16); // keep a heading off the very bottom (avoid an orphan)
     this.drawParagraph(runs, leftX, size, size * 0.3, true, alignOf(node));
+  }
+
+  /** Draw a pre-embedded image scaled to fit the content width (and one page). */
+  private drawImage(node: HTMLElement): void {
+    const rec = this.images.get(node.getAttribute("src") || "");
+    if (!rec) return;
+    const maxW = this.box.width;
+    const maxH = this.box.top - this.box.bottom;
+    let scale = Math.min(1, maxW / rec.w);
+    if (rec.h * scale > maxH) scale = maxH / rec.h;
+    const w = rec.w * scale, h = rec.h * scale;
+    this.y -= 4;
+    if (this.y - h < this.box.bottom) this.newPage();
+    this.page.drawImage(rec.img, { x: this.box.left, y: this.y - h, width: w, height: h });
+    this.y -= h + 6;
   }
 
   // ── paragraph / inline layout (page-aware) ──
   private drawParagraph(runs: Run[], leftX: number, size: number, gapAfter: number, bold = false, align: Align = "left"): void {
     const maxWidth = this.box.right - leftX;
-    const lh = lineHeight(size);
     const spaceW = this.spaceWidth(size);
 
-    // Tokenize runs into placeable words carrying their own style + spaceBefore.
-    interface Word { text: string; font: PDFFont; color: Color; highlight: Color | null; underline: boolean; width: number; spaceBefore: boolean }
+    // Tokenize runs into placeable words carrying their own style + size + spaceBefore.
+    interface Word { text: string; font: PDFFont; size: number; color: Color; highlight: Color | null; underline: boolean; width: number; spaceBefore: boolean }
     const words: (Word | "break")[] = [];
     let pendingSpace = false;
     for (const run of runs) {
       if (run.br) { words.push("break"); pendingSpace = false; continue; }
       const font = pickFont(this.fonts, bold ? { ...run.style, bold: true } : run.style);
+      const wsize = run.style.fontSize ?? size;
       const color = parseColor(run.style.color) ?? (run.style.link ? LINK : INK);
       const highlight = parseColor(run.style.highlight);
       const parts = run.text.split(/(\s+)/);
       for (const part of parts) {
         if (part === "") continue;
         if (/^\s+$/.test(part)) { pendingSpace = true; continue; }
-        words.push({ text: part, font, color, highlight, underline: run.style.underline, width: font.widthOfTextAtSize(part, size), spaceBefore: pendingSpace });
+        words.push({ text: part, font, size: wsize, color, highlight, underline: run.style.underline, width: font.widthOfTextAtSize(part, wsize), spaceBefore: pendingSpace });
         pendingSpace = false;
       }
     }
@@ -275,8 +335,10 @@ class Renderer {
     if (lines.length === 0) { this.y -= gapAfter; return; }
 
     for (const ln of lines) {
+      const lineSize = ln.reduce((m, p) => Math.max(m, p.word.size), size); // tallest word drives line height
+      const lh = lineHeight(lineSize);
       this.ensure(lh);
-      const baseline = this.y - size;
+      const baseline = this.y - lineSize;
       // Alignment: shift the whole line within the content width (justify → left).
       const lineWidth = ln.length ? ln[ln.length - 1].x + ln[ln.length - 1].word.width : 0;
       const off = align === "center" ? (maxWidth - lineWidth) / 2 : align === "right" ? maxWidth - lineWidth : 0;
@@ -284,9 +346,9 @@ class Renderer {
       for (const p of ln) {
         const x = startX + p.x;
         if (p.word.highlight) {
-          this.page.drawRectangle({ x: x - 0.5, y: baseline - size * 0.2, width: p.word.width + 1, height: size * 1.05, color: p.word.highlight });
+          this.page.drawRectangle({ x: x - 0.5, y: baseline - p.word.size * 0.2, width: p.word.width + 1, height: p.word.size * 1.05, color: p.word.highlight });
         }
-        this.page.drawText(p.word.text, { x, y: baseline, size, font: p.word.font, color: p.word.color });
+        this.page.drawText(p.word.text, { x, y: baseline, size: p.word.size, font: p.word.font, color: p.word.color });
         if (p.word.underline) {
           this.page.drawLine({ start: { x, y: baseline - 1.5 }, end: { x: x + p.word.width, y: baseline - 1.5 }, thickness: 0.5, color: p.word.color });
         }
@@ -444,10 +506,12 @@ export interface GenerateDocPdfInput {
   contentHtml: string | null | undefined;
   letterhead: Buffer | null;
   margins: MarginsMm;
+  /** Loads embedded image bytes by asset id; omit to skip images (e.g. in tests). */
+  loadAsset?: AssetLoader;
 }
 
 /** Render a DOC-kind document to a stamped PDF. Returns the PDF bytes. */
 export async function generateDocumentPdf(input: GenerateDocPdfInput): Promise<Uint8Array> {
-  const renderer = new Renderer(input.title, input.contentHtml ?? "", input.letterhead, input.margins);
+  const renderer = new Renderer(input.title, input.contentHtml ?? "", input.letterhead, input.margins, input.loadAsset ?? null);
   return renderer.render();
 }

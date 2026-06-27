@@ -17,6 +17,8 @@ const HTML = `
   <p>أهلا 😀 emoji and arabic get dropped safely.</p>
   <p style="text-align:center">A centered line with <span style="color:#cc0000">red text</span>.</p>
   <p style="text-align:right">Right-aligned with a <mark style="background-color:#fdfaa0">highlighted phrase</mark>.</p>
+  <p>Mixed sizes: <span style="font-size:26px">big</span> and <span style="font-size:13px">small</span> words.</p>
+  <p><img src="/api/asset/nonexistent" alt="skipped (no loader in test)" /></p>
 `;
 
 describe("generateDocumentPdf", () => {

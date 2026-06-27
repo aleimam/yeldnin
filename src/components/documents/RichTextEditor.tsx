@@ -1,24 +1,18 @@
 "use client";
+import { useMemo, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TableKit } from "@tiptap/extension-table";
 import { TextAlign } from "@tiptap/extension-text-align";
-import { TextStyle, Color } from "@tiptap/extension-text-style";
+import { TextStyle, Color, FontSize } from "@tiptap/extension-text-style";
 import { Highlight } from "@tiptap/extension-highlight";
+import { Image } from "@tiptap/extension-image";
+import { Placeholder } from "@tiptap/extension-placeholder";
 import { useT } from "@/i18n/client";
 
 // StarterKit v3 bundles bold/italic/underline/strike/headings/lists/blockquote/
-// code/link/hr/history; on top we add tables, text alignment, text color, and
-// highlight. The stored HTML is sanitized server-side (spans/marks + color/
-// background-color/text-align are on the allowlist).
-const EXTENSIONS = [
-  StarterKit,
-  TableKit,
-  TextAlign.configure({ types: ["heading", "paragraph"] }),
-  TextStyle,
-  Color,
-  Highlight.configure({ multicolor: true }),
-];
+// code/link/hr/history; on top: tables, alignment, colour, highlight, font size,
+// and images. Stored HTML is sanitized server-side (the allowlist mirrors this).
 
 function ToolBtn({ active, disabled, onClick, children, title }: { active?: boolean; disabled?: boolean; onClick: () => void; children: React.ReactNode; title: string }) {
   return (
@@ -50,8 +44,23 @@ function AlignIcon({ dir }: { dir: "left" | "center" | "right" | "justify" }) {
   );
 }
 
-/** Text-color and highlight pickers — the swatch opens the OS colour picker; the
- *  ✕ button clears the colour. */
+const FONT_SIZES = ["13px", "16px", "20px", "26px", "34px"];
+function FontSizeControl({ editor }: { editor: Editor }) {
+  const t = useT();
+  const cur = (editor.getAttributes("textStyle").fontSize as string) || "";
+  return (
+    <select
+      title={t("docs.editor.fontSize")}
+      value={cur}
+      onChange={(e) => { const v = e.target.value; v ? editor.chain().focus().setFontSize(v).run() : editor.chain().focus().unsetFontSize().run(); }}
+      className="h-8 cursor-pointer rounded bg-transparent px-1 text-sm text-ink hover:bg-canvas focus:outline-none"
+    >
+      <option value="">{t("docs.editor.fontDefault")}</option>
+      {FONT_SIZES.map((s) => <option key={s} value={s}>{parseInt(s, 10)}</option>)}
+    </select>
+  );
+}
+
 function ColorControls({ editor }: { editor: Editor }) {
   const t = useT();
   const textColor = (editor.getAttributes("textStyle").color as string) || "#1f2430";
@@ -72,6 +81,32 @@ function ColorControls({ editor }: { editor: Editor }) {
   );
 }
 
+function ImageButton({ editor }: { editor: Editor }) {
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j.id) editor.chain().focus().setImage({ src: `/api/asset/${j.id}` }).run();
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <label className="relative inline-flex h-8 min-w-8 cursor-pointer items-center justify-center rounded text-sm text-ink hover:bg-canvas" title={t("docs.editor.image")}>
+      {busy ? "…" : "🖼"}
+      <input type="file" accept="image/*" className="absolute inset-0 cursor-pointer opacity-0" disabled={busy} onChange={onPick} tabIndex={-1} />
+    </label>
+  );
+}
+
 function Toolbar({ editor }: { editor: Editor }) {
   const t = useT();
   const link = () => {
@@ -83,7 +118,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   };
   const inTable = editor.isActive("table");
   return (
-    <div className="flex flex-wrap items-center gap-0.5 border-b border-line bg-canvas/60 p-1.5">
+    <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b border-line bg-surface p-1.5">
       <ToolBtn title="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}><b>B</b></ToolBtn>
       <ToolBtn title="Italic" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}><i>I</i></ToolBtn>
       <ToolBtn title="Underline" active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></ToolBtn>
@@ -92,6 +127,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolBtn title="Heading 1" active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>H1</ToolBtn>
       <ToolBtn title="Heading 2" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</ToolBtn>
       <ToolBtn title="Heading 3" active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</ToolBtn>
+      <FontSizeControl editor={editor} />
       <Divider />
       <ToolBtn title={t("docs.editor.alignLeft")} active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}><AlignIcon dir="left" /></ToolBtn>
       <ToolBtn title={t("docs.editor.alignCenter")} active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}><AlignIcon dir="center" /></ToolBtn>
@@ -104,6 +140,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolBtn title="Numbered list" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>1.</ToolBtn>
       <ToolBtn title="Quote" active={editor.isActive("blockquote")} onClick={() => editor.chain().focus().toggleBlockquote().run()}>❝</ToolBtn>
       <ToolBtn title="Link" active={editor.isActive("link")} onClick={link}>🔗</ToolBtn>
+      <ImageButton editor={editor} />
       <ToolBtn title={t("docs.editor.table")} onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>▦</ToolBtn>
       {inTable && (
         <>
@@ -128,8 +165,22 @@ function Toolbar({ editor }: { editor: Editor }) {
  *  on every change. Paste from Word keeps basic formatting. */
 export function RichTextEditor({ value, onChange }: { value: string; onChange: (html: string) => void }) {
   const t = useT();
+  const extensions = useMemo(
+    () => [
+      StarterKit,
+      TableKit,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextStyle,
+      Color,
+      FontSize,
+      Highlight.configure({ multicolor: true }),
+      Image.configure({ inline: false }),
+      Placeholder.configure({ placeholder: t("docs.editor.placeholder") }),
+    ],
+    [t],
+  );
   const editor = useEditor({
-    extensions: EXTENSIONS,
+    extensions,
     content: value || "",
     immediatelyRender: false, // required under SSR (Next) to avoid hydration mismatch
     editorProps: { attributes: { class: "doc-content min-h-[320px] px-4 py-3 focus:outline-none" } },

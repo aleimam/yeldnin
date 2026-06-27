@@ -44,6 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       left: settings.docMarginLeftMm,
       right: settings.docMarginRightMm,
     },
+    loadAsset: readAsset, // embed any inline images (same-origin /api/asset only)
   });
 
   const filename = `${doc.uid ?? `document-${doc.id}`}.pdf`;

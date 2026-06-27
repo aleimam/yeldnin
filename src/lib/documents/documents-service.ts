@@ -16,15 +16,19 @@ const COLOR = [
   /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/,
   /^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(?:0|1|0?\.\d+)\s*\)$/,
 ];
+// Images are only ever our own uploads, served from /api/asset/<id>. Restrict the
+// src to exactly that shape so a document can't embed external/tracking images.
+const ASSET_SRC = /^\/api\/asset\/[A-Za-z0-9_-]+$/;
 const SANITIZE_OPTS: sanitizeHtml.IOptions = {
   allowedTags: [
     "p", "br", "h1", "h2", "h3", "h4", "strong", "b", "em", "i", "u", "s",
-    "span", "mark", "ul", "ol", "li", "blockquote", "a", "code", "pre", "hr",
+    "span", "mark", "ul", "ol", "li", "blockquote", "a", "code", "pre", "hr", "img",
     "table", "thead", "tbody", "tr", "td", "th",
   ],
   allowedAttributes: {
-    "*": ["style"], // needed so allowedStyles (align/colour) actually survives
+    "*": ["style"], // needed so allowedStyles (align/colour/size) actually survives
     a: ["href", "target", "rel"],
+    img: ["src", "alt"],
     td: ["colspan", "rowspan"],
     th: ["colspan", "rowspan"],
   },
@@ -33,10 +37,19 @@ const SANITIZE_OPTS: sanitizeHtml.IOptions = {
       "text-align": [/^(left|right|center|justify)$/],
       color: COLOR,
       "background-color": COLOR,
+      "font-size": [/^\d{1,3}(?:px|pt)$/],
     },
   },
   allowedSchemes: ["http", "https", "mailto"],
-  transformTags: { a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer", target: "_blank" }) },
+  transformTags: {
+    a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer", target: "_blank" }),
+    // Drop any image whose src isn't one of our own assets.
+    img: (tagName, attribs) => {
+      const ok = ASSET_SRC.test(attribs.src || "");
+      const out: Record<string, string> = ok ? { src: attribs.src, alt: (attribs.alt || "").slice(0, 200) } : {};
+      return { tagName: ok ? "img" : "span", attribs: out };
+    },
+  },
 };
 export function sanitizeContent(html: string | null | undefined): string {
   return sanitizeHtml(html ?? "", SANITIZE_OPTS);
