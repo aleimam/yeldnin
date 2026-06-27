@@ -9,18 +9,32 @@ import { documentAccessLevel, canViewDocument, isGrantLevel, nextVersionNo, type
 
 // Authored HTML comes from internal staff via Tiptap, but it's still stored and
 // re-rendered (dangerouslySetInnerHTML), so sanitize on the server boundary.
+// Colours the editor emits: #rgb / #rrggbb or rgb()/rgba(). Keep the patterns
+// tight so the `style` attribute can't smuggle anything but a colour/alignment.
+const COLOR = [
+  /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
+  /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/,
+  /^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(?:0|1|0?\.\d+)\s*\)$/,
+];
 const SANITIZE_OPTS: sanitizeHtml.IOptions = {
   allowedTags: [
     "p", "br", "h1", "h2", "h3", "h4", "strong", "b", "em", "i", "u", "s",
-    "ul", "ol", "li", "blockquote", "a", "code", "pre", "hr",
+    "span", "mark", "ul", "ol", "li", "blockquote", "a", "code", "pre", "hr",
     "table", "thead", "tbody", "tr", "td", "th",
   ],
   allowedAttributes: {
+    "*": ["style"], // needed so allowedStyles (align/colour) actually survives
     a: ["href", "target", "rel"],
     td: ["colspan", "rowspan"],
     th: ["colspan", "rowspan"],
   },
-  allowedStyles: { "*": { "text-align": [/^(left|right|center|justify)$/] } },
+  allowedStyles: {
+    "*": {
+      "text-align": [/^(left|right|center|justify)$/],
+      color: COLOR,
+      "background-color": COLOR,
+    },
+  },
   allowedSchemes: ["http", "https", "mailto"],
   transformTags: { a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer", target: "_blank" }) },
 };

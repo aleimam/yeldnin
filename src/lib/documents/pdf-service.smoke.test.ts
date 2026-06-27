@@ -15,6 +15,8 @@ const HTML = `
   <table><thead><tr><th>Col A</th><th>Col B</th></tr></thead>
   <tbody><tr><td>cell one with some longer text to wrap</td><td>cell two</td></tr></tbody></table>
   <p>أهلا 😀 emoji and arabic get dropped safely.</p>
+  <p style="text-align:center">A centered line with <span style="color:#cc0000">red text</span>.</p>
+  <p style="text-align:right">Right-aligned with a <mark style="background-color:#fdfaa0">highlighted phrase</mark>.</p>
 `;
 
 describe("generateDocumentPdf", () => {

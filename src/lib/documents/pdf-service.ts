@@ -46,9 +46,22 @@ function toWinAnsi(text: string): string {
 }
 
 // ── inline run model ────────────────────────────────────────────────────────
-interface Style { bold: boolean; italic: boolean; underline: boolean; mono: boolean; link: boolean }
-const BASE: Style = { bold: false, italic: false, underline: false, mono: false, link: false };
+interface Style { bold: boolean; italic: boolean; underline: boolean; mono: boolean; link: boolean; color: string | null; highlight: string | null }
+const BASE: Style = { bold: false, italic: false, underline: false, mono: false, link: false, color: null, highlight: null };
 interface Run { text: string; style: Style; br?: boolean }
+type Align = "left" | "center" | "right" | "justify";
+
+/** Read one CSS property's value off an element's inline `style` attribute. */
+function styleProp(el: HTMLElement, prop: string): string | null {
+  const s = el.getAttribute("style");
+  if (!s) return null;
+  const m = new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([^;]+)`, "i").exec(s);
+  return m ? m[1].trim() : null;
+}
+function alignOf(el: HTMLElement): Align {
+  const a = (styleProp(el, "text-align") || "").toLowerCase();
+  return a === "center" || a === "right" || a === "justify" ? a : "left";
+}
 
 function isEl(n: Node): n is HTMLElement {
   return n instanceof HTMLElement;
@@ -74,6 +87,10 @@ function collectRuns(node: HTMLElement, style: Style, out: Run[]): void {
     else if (t === "code") next.mono = true;
     else if (t === "a") { next.link = true; next.underline = true; }
     // "s" (strikethrough) recurses with no distinct styling
+    // Inline text colour (<span style="color">) + highlight (<mark>/background-color).
+    const col = styleProp(child, "color"); if (col) next.color = col;
+    const bg = styleProp(child, "background-color"); if (bg) next.highlight = bg;
+    else if (t === "mark") next.highlight = "#fff3a3";
     collectRuns(child, next, out);
   }
 }
@@ -95,6 +112,19 @@ const MUTED = rgb(0.45, 0.47, 0.5);
 const LINK = rgb(0.13, 0.39, 0.92);
 const RULE = rgb(0.82, 0.84, 0.86);
 const HEADER_FILL = rgb(0.95, 0.96, 0.97);
+
+/** CSS colour (#rgb / #rrggbb / rgb()/rgba()) → pdf-lib colour, or null. */
+function parseColor(v: string | null | undefined): Color | null {
+  if (!v) return null;
+  const s = v.trim().toLowerCase();
+  let m = /^#([0-9a-f]{3})$/.exec(s);
+  if (m) { const h = m[1]; return rgb(parseInt(h[0] + h[0], 16) / 255, parseInt(h[1] + h[1], 16) / 255, parseInt(h[2] + h[2], 16) / 255); }
+  m = /^#([0-9a-f]{6})$/.exec(s);
+  if (m) { const h = m[1]; return rgb(parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255); }
+  m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/.exec(s);
+  if (m) return rgb(Math.min(255, +m[1]) / 255, Math.min(255, +m[2]) / 255, Math.min(255, +m[3]) / 255);
+  return null;
+}
 
 // ── the renderer ────────────────────────────────────────────────────────────
 class Renderer {
@@ -179,7 +209,7 @@ class Renderer {
         case "h4": this.block(node, leftX, 12); break;
         case "p": {
           const runs: Run[] = []; collectRuns(node, BASE, runs);
-          this.drawParagraph(runs, leftX, 11, 6);
+          this.drawParagraph(runs, leftX, 11, 6, false, alignOf(node));
           break;
         }
         case "ul": case "ol": this.list(node, leftX, t === "ol"); break;
@@ -191,7 +221,7 @@ class Renderer {
         default: {
           // unknown wrapper holding inline content → treat as a paragraph
           const runs: Run[] = []; collectRuns(node, BASE, runs);
-          if (runs.some((r) => r.text.trim() || r.br)) this.drawParagraph(runs, leftX, 11, 6);
+          if (runs.some((r) => r.text.trim() || r.br)) this.drawParagraph(runs, leftX, 11, 6, false, alignOf(node));
         }
       }
     }
@@ -200,28 +230,29 @@ class Renderer {
   private block(node: HTMLElement, leftX: number, size: number): void {
     const runs: Run[] = []; collectRuns(node, { ...BASE, bold: true }, runs);
     this.y -= size * 0.5; // space before
-    this.drawParagraph(runs, leftX, size, size * 0.3, true);
+    this.drawParagraph(runs, leftX, size, size * 0.3, true, alignOf(node));
   }
 
   // ── paragraph / inline layout (page-aware) ──
-  private drawParagraph(runs: Run[], leftX: number, size: number, gapAfter: number, bold = false): void {
+  private drawParagraph(runs: Run[], leftX: number, size: number, gapAfter: number, bold = false, align: Align = "left"): void {
     const maxWidth = this.box.right - leftX;
     const lh = lineHeight(size);
     const spaceW = this.spaceWidth(size);
 
     // Tokenize runs into placeable words carrying their own style + spaceBefore.
-    interface Word { text: string; font: PDFFont; color: Color; underline: boolean; width: number; spaceBefore: boolean }
+    interface Word { text: string; font: PDFFont; color: Color; highlight: Color | null; underline: boolean; width: number; spaceBefore: boolean }
     const words: (Word | "break")[] = [];
     let pendingSpace = false;
     for (const run of runs) {
       if (run.br) { words.push("break"); pendingSpace = false; continue; }
       const font = pickFont(this.fonts, bold ? { ...run.style, bold: true } : run.style);
-      const color = run.style.link ? LINK : INK;
+      const color = parseColor(run.style.color) ?? (run.style.link ? LINK : INK);
+      const highlight = parseColor(run.style.highlight);
       const parts = run.text.split(/(\s+)/);
       for (const part of parts) {
         if (part === "") continue;
         if (/^\s+$/.test(part)) { pendingSpace = true; continue; }
-        words.push({ text: part, font, color, underline: run.style.underline, width: font.widthOfTextAtSize(part, size), spaceBefore: pendingSpace });
+        words.push({ text: part, font, color, highlight, underline: run.style.underline, width: font.widthOfTextAtSize(part, size), spaceBefore: pendingSpace });
         pendingSpace = false;
       }
     }
@@ -246,10 +277,18 @@ class Renderer {
     for (const ln of lines) {
       this.ensure(lh);
       const baseline = this.y - size;
+      // Alignment: shift the whole line within the content width (justify → left).
+      const lineWidth = ln.length ? ln[ln.length - 1].x + ln[ln.length - 1].word.width : 0;
+      const off = align === "center" ? (maxWidth - lineWidth) / 2 : align === "right" ? maxWidth - lineWidth : 0;
+      const startX = leftX + Math.max(0, off);
       for (const p of ln) {
-        this.page.drawText(p.word.text, { x: leftX + p.x, y: baseline, size, font: p.word.font, color: p.word.color });
+        const x = startX + p.x;
+        if (p.word.highlight) {
+          this.page.drawRectangle({ x: x - 0.5, y: baseline - size * 0.2, width: p.word.width + 1, height: size * 1.05, color: p.word.highlight });
+        }
+        this.page.drawText(p.word.text, { x, y: baseline, size, font: p.word.font, color: p.word.color });
         if (p.word.underline) {
-          this.page.drawLine({ start: { x: leftX + p.x, y: baseline - 1.5 }, end: { x: leftX + p.x + p.word.width, y: baseline - 1.5 }, thickness: 0.5, color: p.word.color });
+          this.page.drawLine({ start: { x, y: baseline - 1.5 }, end: { x: x + p.word.width, y: baseline - 1.5 }, thickness: 0.5, color: p.word.color });
         }
       }
       this.y -= lh;
