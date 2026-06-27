@@ -3,6 +3,8 @@
   "app.tagline": "الشبكة الداخلية ليلدن",
 
   "common.search": "ابحث في النظام ...",
+  "combo.noMatches": "لا توجد نتائج",
+  "combo.more": "+{n} أخرى — تابع الكتابة للتضييق",
   "common.allModules": "كل الوحدات",
   "common.modules": "الوحدات",
   "common.expand": "توسيع",

@@ -86,7 +86,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
           {canManage && !onWebsite && (
             <div className="mt-4 border-t border-line pt-4">
               <p className="label mb-2">{t("purchasing.addGift")}</p>
-              <AddGiftForm purchaseId={purchase.id} products={giftProducts.map((p) => ({ id: p.id, name: p.name }))} />
+              <AddGiftForm purchaseId={purchase.id} products={giftProducts.map((p) => ({ id: p.id, name: p.name, sku: p.sku }))} />
             </div>
           )}
         </div>

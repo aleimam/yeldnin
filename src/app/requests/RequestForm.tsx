@@ -5,6 +5,7 @@ import { useT } from "@/i18n/client";
 import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { AutoTextarea } from "@/components/AutoTextarea";
+import { Combobox } from "@/components/Combobox";
 import { REQUEST_TYPES, requiresCustomer, allowsPhotos, expectedDeposit } from "@/lib/requests/request-logic";
 import type { Scope } from "@/lib/products/products-logic";
 import { createRequestAction, updateRequestAction } from "./actions";
@@ -38,7 +39,7 @@ export function RequestForm({
   initial,
 }: {
   allowedScopes: Scope[];
-  products: { id: number; name: string; scope: string; sellingPrice: number | null; purchasePrice: number | null }[];
+  products: { id: number; name: string; sku: string | null; scope: string; sellingPrice: number | null; purchasePrice: number | null }[];
   customers: { id: number; name: string; scope: string }[];
   depositPct: number;
   editId?: number;
@@ -169,10 +170,13 @@ export function RequestForm({
         <div className="space-y-2">
           {lines.map((l, i) => (
             <div key={i} className="grid grid-cols-2 gap-2 rounded-lg border border-line p-2 sm:grid-cols-12">
-              <select className="input col-span-2 sm:col-span-4" value={l.productId} onChange={(e) => pickProduct(i, e.target.value)}>
-                <option value="">{t("requests.product")}…</option>
-                {scopeProducts.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              <Combobox
+                className="col-span-2 sm:col-span-4"
+                placeholder={`${t("requests.product")}…`}
+                value={l.productId}
+                onChange={(v) => pickProduct(i, v)}
+                options={scopeProducts.map((p) => ({ value: String(p.id), label: p.name, hint: p.sku ?? undefined }))}
+              />
               <input type="number" min={1} className="input sm:col-span-2" placeholder={t("requests.count")} value={l.count} onChange={(e) => setLine(i, "count", e.target.value)} />
               <input type="number" step="any" className="input sm:col-span-2" placeholder={t("requests.sell")} value={l.sellingPrice} onChange={(e) => setLine(i, "sellingPrice", e.target.value)} />
               <input type="number" step="any" className="input sm:col-span-2" placeholder={t("requests.buy")} value={l.purchasePrice} onChange={(e) => setLine(i, "purchasePrice", e.target.value)} />

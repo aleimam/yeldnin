@@ -2,10 +2,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { Combobox } from "@/components/Combobox";
 import { addGiftItemsAction } from "./actions";
 
 /** Add free gift units (received from the supplier) to a purchase. */
-export function AddGiftForm({ purchaseId, products }: { purchaseId: number; products: { id: number; name: string }[] }) {
+export function AddGiftForm({ purchaseId, products }: { purchaseId: number; products: { id: number; name: string; sku: string | null }[] }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -15,10 +16,13 @@ export function AddGiftForm({ purchaseId, products }: { purchaseId: number; prod
 
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <select className="input w-48" value={productId} onChange={(e) => setProductId(e.target.value)}>
-        <option value="">{t("purchasing.giftProduct")}…</option>
-        {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
+      <Combobox
+        className="w-48"
+        placeholder={`${t("purchasing.giftProduct")}…`}
+        value={productId}
+        onChange={setProductId}
+        options={products.map((p) => ({ value: String(p.id), label: p.name, hint: p.sku ?? undefined }))}
+      />
       <input type="number" min={1} className="input w-20" value={count} onChange={(e) => setCount(e.target.value)} />
       <button
         type="button"

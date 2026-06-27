@@ -3,6 +3,8 @@
   "app.tagline": "Yeldn Internal Network",
 
   "common.search": "Search system ...",
+  "combo.noMatches": "No matches",
+  "combo.more": "+{n} more — keep typing to narrow",
   "common.allModules": "All modules",
   "common.modules": "Modules",
   "common.expand": "Expand",
