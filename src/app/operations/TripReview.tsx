@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import type { ReviewTeam } from "@/lib/review/review-logic";
 import { setTripMarkAction, approveTripAction, holdTripAction } from "./actions";
 
@@ -143,7 +144,7 @@ function MarkRow({
           </div>
           {status === "ISSUE" && (
             <>
-              <textarea className="input" rows={2} placeholder={t("review.notePlaceholder")} value={note} onChange={(e) => setNote(e.target.value)} />
+              <AutoTextarea placeholder={t("review.notePlaceholder")} value={note} onChange={(e) => setNote(e.target.value)} />
               <PhotoUpload photos={photos} onChange={setPhotos} />
             </>
           )}

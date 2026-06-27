@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { DateField } from "@/components/DateField";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { categoryLabel } from "@/lib/expenses/category-label";
 import { CATEGORY_TYPES, typeLabelKey } from "@/lib/expenses/expenses-logic";
 import { createTransactionAction, updateTransactionAction } from "./actions";
@@ -93,7 +94,7 @@ export function ExpenseForm({
       </div>
       <div>
         <label className="label">{t("exp.note")}</label>
-        <textarea rows={3} className="input" value={note} onChange={(e) => setNote(e.target.value)} />
+        <AutoTextarea value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
       <div>
         <label className="label">{t("exp.attachments")}</label>

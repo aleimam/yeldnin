@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { DateField } from "@/components/DateField";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { applyLeaveAction } from "../attendance-actions";
 
 export function MyLeaveForm() {
@@ -43,7 +44,7 @@ export function MyLeaveForm() {
             <option value="URGENT">{t("leave.urgent")}</option>
           </select>
         </label>
-        <label className="block"><span className="label">{t("leave.reason")}</span><input className="input" value={reason} onChange={(e) => setReason(e.target.value)} /></label>
+        <label className="block"><span className="label">{t("leave.reason")}</span><AutoTextarea value={reason} onChange={(e) => setReason(e.target.value)} /></label>
         <label className="block"><span className="label">{t("leave.from")}</span><DateField className="input" value={start} onChange={(e) => setStart(e.target.value)} /></label>
         <label className="block"><span className="label">{t("leave.to")}</span><DateField className="input" value={end} onChange={(e) => setEnd(e.target.value)} /></label>
       </div>

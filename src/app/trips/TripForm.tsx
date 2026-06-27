@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { DateField } from "@/components/DateField";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { createTripAction, updateTripAction } from "./actions";
 import { PRODUCT_TYPES } from "@/lib/products/products-logic";
 import { HandlingFeeInput } from "@/components/HandlingFeeInput";
@@ -115,7 +116,7 @@ export function TripForm({
       <div className="sm:max-w-xs">
         <HandlingFeeInput fee={f.handlingFee} currency={f.handlingFeeCurrency} onFee={(v) => set("handlingFee", v)} onCurrency={(v) => set("handlingFeeCurrency", v)} />
       </div>
-      <div><label className="label">{t("trip.notes")}</label><textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+      <div><label className="label">{t("trip.notes")}</label><AutoTextarea value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : trip ? t("common.save") : t("trip.create")}</button>
     </div>
   );

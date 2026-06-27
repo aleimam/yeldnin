@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { approveRequestAction, rejectRequestAction } from "./actions";
 
 /** Approve / reject controls for a PENDING request (gated by order_requests.approve). */
@@ -34,13 +35,12 @@ export function RequestApprovalControls({ id }: { id: number }) {
       {error && <div className="alert alert-error">{error}</div>}
       {rejecting ? (
         <div className="space-y-2">
-          <input
-            className="input"
+          <AutoTextarea
             placeholder={t("req.rejectReason")}
             value={note}
             autoFocus
             onChange={(e) => setNote(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") reject(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) reject(); }}
           />
           <div className="flex gap-2">
             <button onClick={reject} disabled={pending} className="btn-primary btn-sm">{t("req.confirmReject")}</button>

@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { flagTransactionAction, clearFlagAction } from "./actions";
 
 /** Admin/manager review-flag controls (Red/Yellow + optional note). Operate users
@@ -32,7 +33,7 @@ export function FlagControls({ id, current, currentNote }: { id: number; current
     <div className="space-y-2">
       <h2 className="font-semibold text-ink">{t("exp.flag")}</h2>
       <p className="text-xs text-muted">{t("exp.flagHint")}</p>
-      <input className="input" placeholder={t("exp.flagNotePlaceholder")} value={note} onChange={(e) => setNote(e.target.value)} />
+      <AutoTextarea placeholder={t("exp.flagNotePlaceholder")} value={note} onChange={(e) => setNote(e.target.value)} />
       <div className="flex flex-wrap gap-2">
         <button type="button" disabled={pending} onClick={() => setFlag("RED")} aria-pressed={current === "RED"}
           className={`btn-sm border ${current === "RED" ? "border-red-600 bg-red-600 text-white" : "border-red-300 text-red-700 hover:bg-red-50"}`}>

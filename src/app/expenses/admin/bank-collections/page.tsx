@@ -4,6 +4,7 @@ import { getT } from "@/i18n/server";
 import { listAccounts } from "@/lib/expenses/expenses-service";
 import { saveBankCollectionAction } from "../actions";
 import { ActionForm } from "@/components/ActionForm";
+import { AutoTextarea } from "@/components/AutoTextarea";
 
 export default async function BankCollectionsPage() {
   const access = await requireCapability("expenses", "manageAdmin");
@@ -25,7 +26,7 @@ export default async function BankCollectionsPage() {
             </div>
           ))}
         </div>
-        <div><label className="label">{t("exp.note")}</label><input name="note" className="input" /></div>
+        <div><label className="label">{t("exp.note")}</label><AutoTextarea name="note" /></div>
       </ActionForm>
     </AppShell>
   );

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { formatBizDate } from "@/lib/format/dates";
 import { TrashIcon } from "@/components/icons/TrashIcon";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { createExpenseAction, updateExpenseAction, deleteExpenseAction } from "./actions";
 
 interface Row {
@@ -122,7 +123,7 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
             </div>
             <div className="sm:col-span-2">
               <label className="label">{t("xexp.note")}</label>
-              <input className="input" value={f.note} onChange={(e) => set("note", e.target.value)} />
+              <AutoTextarea value={f.note} onChange={(e) => set("note", e.target.value)} />
             </div>
             <div className="sm:col-span-3">
               <label className="label">{t("xexp.request")}</label>

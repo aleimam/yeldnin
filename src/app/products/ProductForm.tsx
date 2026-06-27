@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { Toggle } from "@/components/Toggle";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { PRODUCT_TYPES, type Scope } from "@/lib/products/products-logic";
 import { createProductAction, saveProductAction, archiveProductAction } from "./actions";
 
@@ -165,7 +166,7 @@ export function ProductForm({
       </div>
 
       <Field label={t("products.notes")}>
-        <textarea className="input" rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+        <AutoTextarea value={f.notes} onChange={(e) => set("notes", e.target.value)} />
       </Field>
 
       <div className="flex items-center gap-6">

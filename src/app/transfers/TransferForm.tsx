@@ -3,6 +3,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { createTransferAction, eligibleItemsAction } from "./actions";
 
 interface Endpoint {
@@ -137,7 +138,7 @@ export function TransferForm({ endpoints, couriers, initialFrom }: { endpoints: 
 
       <label className="block">
         <span className="label">{t("transfers.notes")}</span>
-        <input className="input" value={note} onChange={(e) => setNote(e.target.value)} />
+        <AutoTextarea value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
 
       <div>

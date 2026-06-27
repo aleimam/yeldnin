@@ -5,6 +5,7 @@ import { useT, useLocale } from "@/i18n/client";
 import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { DateField } from "@/components/DateField";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { CS_LEVELS, CS_CHANNELS, valueFor, weightedTotal, normalizedPct, localized, type ValueMap } from "@/lib/cs/cs-logic";
 import { createCsEvaluationAction, updateCsEvaluationAction } from "../actions";
 
@@ -184,7 +185,7 @@ export function EvalForm({
                 );
               })}
             </div>
-            <input className="input text-sm" placeholder={t("cs.note")} value={notes[q.id] ?? ""} onChange={(e) => setNotes((p) => ({ ...p, [q.id]: e.target.value }))} />
+            <AutoTextarea className="text-sm" placeholder={t("cs.note")} value={notes[q.id] ?? ""} onChange={(e) => setNotes((p) => ({ ...p, [q.id]: e.target.value }))} />
           </div>
         ))
       )}

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { Toggle } from "@/components/Toggle";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { PRODUCT_TYPES } from "@/lib/products/products-logic";
 import { createTravelerAction, saveTravelerAction, archiveTravelerAction } from "./actions";
 
@@ -95,7 +96,7 @@ export function TravelerForm({
         </div>
       </div>
 
-      <div><label className="label">{t("travelers.notes")}</label><textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+      <div><label className="label">{t("travelers.notes")}</label><AutoTextarea value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
 
       <div>
         <label className="label">{t("travelers.allowedTypes")}</label>

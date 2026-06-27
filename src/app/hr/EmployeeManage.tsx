@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { DateField } from "@/components/DateField";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { EMPLOYEE_PHOTO_KINDS } from "@/lib/hr/hr-logic";
 import { updateEmployeeAction, updateEmployeeIdentityAction, setLineManagerAction, addNoteAction, addEmployeePhotoAction } from "./actions";
 
@@ -120,7 +121,7 @@ export function EmployeeManage({
           <label className="block"><span className="label">{t("hr.birthDate")}</span><DateField className="input" value={d.birthDate} onChange={setField("birthDate")} /></label>
           <label className="block"><span className="label">{t("hr.hiringDate")}</span><DateField className="input" value={d.hiringDate} onChange={setField("hiringDate")} /></label>
         </div>
-        <label className="block"><span className="label">{t("hr.notes")}</span><textarea className="input" rows={2} value={d.notes} onChange={setField("notes")} /></label>
+        <label className="block"><span className="label">{t("hr.notes")}</span><AutoTextarea value={d.notes} onChange={setField("notes")} /></label>
         <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={pending} onClick={() => refresh(() => updateEmployeeAction(employeeId, {
           nationalIdNumber: d.nationalIdNumber || null, nationalIdExpiry: d.nationalIdExpiry || null,
           gradDegree: d.gradDegree || null, gradUniversity: d.gradUniversity || null, gradFaculty: d.gradFaculty || null,
@@ -142,7 +143,7 @@ export function EmployeeManage({
 
       <div className="space-y-2 border-t border-line pt-4">
         <h3 className="text-sm font-medium text-muted">{t("hr.addNote")}</h3>
-        <textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+        <AutoTextarea value={note} onChange={(e) => setNote(e.target.value)} />
         <PhotoUpload photos={notePhotos} onChange={setNotePhotos} />
         <button type="button" className="btn-secondary px-3 py-1.5 text-sm" disabled={pending || !note.trim()} onClick={() => refresh(async () => { await addNoteAction(employeeId, note, notePhotos.map((p) => p.id)); setNote(""); setNotePhotos([]); })}>{t("hr.addNote")}</button>
       </div>

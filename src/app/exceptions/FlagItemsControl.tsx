@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { EXCEPTION_POOLS } from "@/lib/exceptions/exception-logic";
 import { flagItemsAction } from "./actions";
 
@@ -92,7 +93,7 @@ export function FlagItemsControl({ items, single = false }: { items: Candidate[]
         </label>
         <label className="block">
           <span className="label">{t("exceptions.flagNote")}</span>
-          <input className="input" value={note} onChange={(e) => setNote(e.target.value)} />
+          <AutoTextarea value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
       </div>
 

@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { createHubAction, saveHubAction, archiveHubAction } from "./actions";
 
 export interface HubInitial {
@@ -61,7 +62,7 @@ export function HubForm({ mode, initial, countries }: { mode: "create" | "edit";
           </select>
         </div>
       </div>
-      <div><label className="label">{t("hubs.notes")}</label><textarea className="input" rows={2} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+      <div><label className="label">{t("hubs.notes")}</label><AutoTextarea value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       {mode === "edit" && (
         <label className="flex items-center gap-2 text-sm text-ink">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />

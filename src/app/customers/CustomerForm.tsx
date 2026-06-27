@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { CONTACT_CHANNELS } from "@/lib/customers/customers-logic";
 import { createCustomerAction, saveCustomerAction, archiveCustomerAction } from "./actions";
 
@@ -82,7 +83,7 @@ export function CustomerForm({
           </label>
         )}
       </div>
-      <div><label className="label">{t("customers.notes")}</label><textarea className="input" rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+      <div><label className="label">{t("customers.notes")}</label><AutoTextarea value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       <div className="flex items-center gap-4">
         <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : mode === "create" ? t("customers.create") : t("common.save")}</button>
         {mode === "edit" && <button onClick={archive} disabled={pending} className="text-sm text-red-600 hover:underline disabled:opacity-50">{t("customers.archive")}</button>}

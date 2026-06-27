@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT, useLocale } from "@/i18n/client";
 import { clampWeight, localized } from "@/lib/cs/cs-logic";
 import { TrashIcon } from "@/components/icons/TrashIcon";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { createCsQuestionAction, updateCsQuestionAction, archiveCsQuestionAction } from "../actions";
 
 type TypeOpt = { id: number; name: string; nameAr: string | null; scope: string };
@@ -71,11 +72,11 @@ export function QuestionPool({ questions, types }: { questions: Q[]; types: Type
           </div>
           <div>
             <label className="label">{t("cs.qQuestion")}</label>
-            <textarea className="input" rows={2} value={f.criteria} onChange={(e) => set("criteria", e.target.value)} />
+            <AutoTextarea value={f.criteria} onChange={(e) => set("criteria", e.target.value)} />
           </div>
           <div>
             <label className="label">{t("cs.qQuestionAr")}</label>
-            <textarea className="input" dir="rtl" rows={2} value={f.criteriaAr} onChange={(e) => set("criteriaAr", e.target.value)} />
+            <AutoTextarea dir="rtl" value={f.criteriaAr} onChange={(e) => set("criteriaAr", e.target.value)} />
           </div>
           <div>
             <label className="label">{t("cs.qTags")}</label>

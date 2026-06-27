@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { approveCsEvaluationAction, rejectCsEvaluationAction } from "./actions";
 
 /** Inline Approve / Reject (with reason) for a pending evaluation. Used on the
@@ -26,13 +27,13 @@ export function ReviewActions({ id }: { id: number }) {
         <button onClick={() => setRejecting(true)} disabled={pending} className="btn-secondary px-3 py-1.5 text-sm">{t("cs.reject")}</button>
       ) : (
         <span className="flex items-center gap-2">
-          <input
-            className="input h-9 w-48 text-sm"
+          <AutoTextarea
+            className="w-48 text-sm"
             placeholder={t("cs.rejectReason")}
             value={note}
             autoFocus
             onChange={(e) => setNote(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); start(async () => { await rejectCsEvaluationAction(id, note); router.refresh(); }); } }}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); start(async () => { await rejectCsEvaluationAction(id, note); router.refresh(); }); } }}
           />
           <button
             onClick={() => start(async () => { await rejectCsEvaluationAction(id, note); router.refresh(); })}

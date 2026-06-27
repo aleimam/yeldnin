@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { sendNotificationAction } from "./actions";
 
 type Mode = "all" | "users" | "teams";
@@ -57,7 +58,7 @@ export function SendForm({
       {msg && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{msg}</div>}
 
       <div><label className="label">{t("notifysend.msgTitle")}</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-      <div><label className="label">{t("notifysend.msgBody")}</label><textarea className="input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} /></div>
+      <div><label className="label">{t("notifysend.msgBody")}</label><AutoTextarea value={body} onChange={(e) => setBody(e.target.value)} /></div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className="label">{t("notifysend.link")}</label><input className="input" placeholder="/requests" value={link} onChange={(e) => setLink(e.target.value)} /></div>

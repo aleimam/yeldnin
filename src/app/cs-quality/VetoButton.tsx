@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { castVetoAction } from "./actions";
 
 /** A rep disputes ("vetoes") an approved evaluation of themselves, with a required
@@ -38,13 +39,12 @@ export function VetoButton({ evaluationId, remaining }: { evaluationId: number; 
   return (
     <div className="space-y-2 text-start">
       {error && <div className="alert alert-error">{error}</div>}
-      <input
-        className="input"
+      <AutoTextarea
         placeholder={t("cs.veto.notePlaceholder")}
         value={note}
         autoFocus
         onChange={(e) => setNote(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
+        onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit(); } }}
       />
       <div className="flex gap-2">
         <button type="button" onClick={submit} disabled={pending || !note.trim()} className="btn-primary btn-sm">{t("cs.veto.confirm")}</button>

@@ -6,6 +6,7 @@ import { useT } from "@/i18n/client";
 import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import type { Scope } from "@/lib/products/products-logic";
 import { HandlingFeeInput } from "@/components/HandlingFeeInput";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { FX_BASE } from "@/lib/fx/fx-logic";
 import { createPurchaseAction } from "./actions";
 
@@ -182,7 +183,7 @@ export function PurchaseForm({
         <HandlingFeeInput fee={handlingFee} currency={handlingFeeCurrency} onFee={setHandlingFee} onCurrency={setHandlingFeeCurrency} />
       </div>
 
-      <div><label className="label">{t("purchasing.notes")}</label><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+      <div><label className="label">{t("purchasing.notes")}</label><AutoTextarea value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
 
       <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : t("purchasing.create")}</button>
     </div>

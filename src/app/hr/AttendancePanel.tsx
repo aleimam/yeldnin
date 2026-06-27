@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { DateField } from "@/components/DateField";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { markAbsenceAction, clearAbsenceAction, setEmployeeAllowanceAction, markDutyAction, clearDutyAction } from "./attendance-actions";
 
 interface Bal {
@@ -71,7 +72,7 @@ export function AttendancePanel({
         <h3 className="text-sm font-medium text-muted">{t("leave.markAbsent")}</h3>
         <div className="flex flex-wrap items-end gap-2">
           <DateField className="input w-40" value={absDate} onChange={(e) => setAbsDate(e.target.value)} />
-          <input className="input w-48" placeholder={t("leave.note")} value={absNote} onChange={(e) => setAbsNote(e.target.value)} />
+          <AutoTextarea className="w-48" placeholder={t("leave.note")} value={absNote} onChange={(e) => setAbsNote(e.target.value)} />
           <button type="button" className="btn-secondary px-3 py-1.5 text-sm" disabled={pending || !absDate} onClick={() => refresh(async () => { await markAbsenceAction(employeeId, absDate, absNote || null); setAbsDate(""); setAbsNote(""); })}>{t("leave.markAbsent")}</button>
         </div>
         {absences.length > 0 && (
@@ -97,7 +98,7 @@ export function AttendancePanel({
           <select className="input w-40" value={dutyType} onChange={(e) => setDutyType(e.target.value)}>
             {dutyTypes.map((dt) => <option key={dt.id} value={dt.id}>{dt.label}</option>)}
           </select>
-          <input className="input w-44" placeholder={t("leave.note")} value={dutyNote} onChange={(e) => setDutyNote(e.target.value)} />
+          <AutoTextarea className="w-44" placeholder={t("leave.note")} value={dutyNote} onChange={(e) => setDutyNote(e.target.value)} />
           <button type="button" className="btn-secondary px-3 py-1.5 text-sm" disabled={pending || !dutyDate || !dutyType} onClick={() => refresh(async () => { await markDutyAction(employeeId, dutyDate, Number(dutyType), dutyNote || null); setDutyDate(""); setDutyNote(""); })}>{t("duty.add")}</button>
         </div>
         {duties.length > 0 && (

@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { RichTextEditor } from "@/components/documents/RichTextEditor";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { DOC_KINDS, type DocKind } from "@/lib/documents/documents-logic";
 import { createDocumentAction, updateDocumentContentAction, updateDocumentMetaAction } from "./actions";
 
@@ -149,7 +150,7 @@ export function DocumentForm({
 
       <div>
         <label className="label">{t("docs.description")}</label>
-        <textarea className="input min-h-[80px]" value={description} disabled={!canManageMeta} onChange={(e) => setDescription(e.target.value)} />
+        <AutoTextarea value={description} disabled={!canManageMeta} onChange={(e) => setDescription(e.target.value)} />
       </div>
 
       <div>

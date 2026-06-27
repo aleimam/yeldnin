@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { useUnsavedGuard } from "@/components/useUnsavedGuard";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { REQUEST_TYPES, requiresCustomer, allowsPhotos, expectedDeposit } from "@/lib/requests/request-logic";
 import type { Scope } from "@/lib/products/products-logic";
 import { createRequestAction, updateRequestAction } from "./actions";
@@ -203,7 +204,7 @@ export function RequestForm({
         </div>
       )}
 
-      <div><label className="label">{t("requests.notes")}</label><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+      <div><label className="label">{t("requests.notes")}</label><AutoTextarea value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
 
       {isSpecial && allowsPhotos(type) && (
         <div><label className="label">{t("requests.photos")}</label><PhotoUpload photos={photos} onChange={setPhotos} /></div>

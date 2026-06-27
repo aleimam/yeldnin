@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { HandlingFeeInput } from "@/components/HandlingFeeInput";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { FX_BASE } from "@/lib/fx/fx-logic";
 import { createPatchAction } from "./actions";
 
@@ -101,7 +102,7 @@ export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchase
       <div className="sm:max-w-xs">
         <HandlingFeeInput fee={handlingFee} currency={handlingFeeCurrency} onFee={setHandlingFee} onCurrency={setHandlingFeeCurrency} />
       </div>
-      <div><label className="label">{t("patches.notes")}</label><textarea className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
+      <div><label className="label">{t("patches.notes")}</label><AutoTextarea value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
       <div><label className="label">{t("patches.photos")}</label><PhotoUpload photos={photos} onChange={setPhotos} /></div>
 
       <button onClick={submit} disabled={pending} className="btn-primary">{pending ? "…" : t("patches.create")}</button>

@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { HandlingFeeInput } from "@/components/HandlingFeeInput";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { FX_BASE } from "@/lib/fx/fx-logic";
 import { updatePurchaseAction } from "./actions";
 
@@ -72,7 +73,7 @@ export function PurchaseEditForm({
       <HandlingFeeInput fee={handlingFee} currency={handlingFeeCurrency} onFee={setHandlingFee} onCurrency={setHandlingFeeCurrency} />
       <div>
         <label className="label">{t("purchasing.notes")}</label>
-        <textarea className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <AutoTextarea value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">

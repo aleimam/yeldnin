@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { checkSalesBreakdown } from "@/lib/expenses/expenses-logic";
 import { saveMonthlySalesAction } from "../actions";
 import { ActionForm } from "@/components/ActionForm";
+import { AutoTextarea } from "@/components/AutoTextarea";
 
 const FIELDS: [key: string, labelKey: string][] = [
   ["totalSales", "exp.totalSales"],
@@ -29,7 +30,7 @@ export default async function MonthlySalesPage() {
         {FIELDS.map(([k, lk]) => (
           <div key={k}><label className="label">{t(lk)}</label><input name={k} type="number" step="any" defaultValue="0" className="input" /></div>
         ))}
-        <div className="sm:col-span-2"><label className="label">{t("exp.note")}</label><input name="note" className="input" /></div>
+        <div className="sm:col-span-2"><label className="label">{t("exp.note")}</label><AutoTextarea name="note" /></div>
       </ActionForm>
 
       <div className="card overflow-x-auto">

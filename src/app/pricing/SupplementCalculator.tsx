@@ -4,6 +4,7 @@ import { useT } from "@/i18n/client";
 import { SHAPES, PACKAGING, SIZES } from "@/lib/pricing/pricing-logic";
 import { PhotoUpload, type UploadedPhoto } from "@/components/PhotoUpload";
 import { Toggle } from "@/components/Toggle";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { calcSupplementAction } from "./actions";
 
 type Errors = Record<string, string>;
@@ -142,7 +143,7 @@ export function SupplementCalculator({ suppliers }: { suppliers: SupplierOption[
         {/* Notes + Photos side by side on desktop */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t("pricer.f.notes")}>
-            <textarea className="input" rows={4} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+            <AutoTextarea value={f.notes} onChange={(e) => set("notes", e.target.value)} />
           </Field>
           <Field label={t("pricer.f.photos")}>
             <PhotoUpload photos={photos} onChange={setPhotos} />

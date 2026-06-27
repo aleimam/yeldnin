@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { COMPENSATION_TYPES } from "@/lib/issues/issues-logic";
+import { AutoTextarea } from "@/components/AutoTextarea";
 import { resolveIssueAction, reopenIssueAction, addCompensationAction } from "./actions";
 
 /** Resolve / reopen an issue. */
@@ -56,7 +57,7 @@ export function CompensationForm({ issueId }: { issueId: number }) {
         {type === "MONEY" && (
           <input type="number" step="any" className="input h-8 w-32 py-1" placeholder={t("issues.amountEgp")} value={amount} onChange={(e) => setAmount(e.target.value)} />
         )}
-        <input className="input h-8 flex-1 py-1" placeholder={t("issues.compNote")} value={note} onChange={(e) => setNote(e.target.value)} />
+        <AutoTextarea className="flex-1 py-1" placeholder={t("issues.compNote")} value={note} onChange={(e) => setNote(e.target.value)} />
         <button onClick={submit} disabled={pending} className="btn-primary px-3 py-1.5 text-sm">{pending ? "…" : t("issues.add")}</button>
       </div>
       {type === "PRODUCT" && <p className="text-xs text-muted">{t("issues.productCompHint")}</p>}
