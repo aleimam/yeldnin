@@ -15,6 +15,7 @@ interface Initial {
   contentHtml: string;
   assetId: string | null;
   reviewBy: string | null; // yyyy-mm-dd
+  creationDate: string | null; // yyyy-mm-dd
 }
 
 /**
@@ -43,6 +44,7 @@ export function DocumentForm({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [categoryId, setCategoryId] = useState<string>(initial?.categoryId != null ? String(initial.categoryId) : "");
   const [reviewBy, setReviewBy] = useState<string>(initial?.reviewBy ?? "");
+  const [creationDate, setCreationDate] = useState<string>(initial?.creationDate ?? "");
   const [contentHtml, setContentHtml] = useState(initial?.contentHtml ?? "");
   const [editorKey, setEditorKey] = useState(0); // bump to remount the editor with imported content
   const [importing, setImporting] = useState(false);
@@ -109,7 +111,7 @@ export function DocumentForm({
           if (!r.ok) { setError(r.error); return; }
         }
         if (canManageMeta) {
-          const r = await updateDocumentMetaAction(editId, { title: title.trim(), description: description.trim() || null, categoryId: catId, reviewBy: reviewBy || null });
+          const r = await updateDocumentMetaAction(editId, { title: title.trim(), description: description.trim() || null, categoryId: catId, reviewBy: reviewBy || null, creationDate: creationDate || null });
           if (!r.ok) { setError(r.error); return; }
         }
         router.push(`/documents/${editId}`);
@@ -122,6 +124,7 @@ export function DocumentForm({
           assetId: kind === "PDF" ? assetId : null,
           contentHtml: kind === "DOC" ? contentHtml : null,
           reviewBy: reviewBy || null,
+          creationDate: creationDate || null,
         });
         if (!r.ok || r.id == null) { setError(r.ok ? "Failed." : r.error); return; }
         router.push(`/documents/${r.id}`);
@@ -159,6 +162,12 @@ export function DocumentForm({
           <option value="">{t("docs.noCategory")}</option>
           {categories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
         </select>
+      </div>
+
+      <div>
+        <label className="label">{t("docs.creationDateField")}</label>
+        <input type="date" className="input" value={creationDate} disabled={!canManageMeta} onChange={(e) => setCreationDate(e.target.value)} />
+        <p className="mt-1 text-xs text-muted">{t("docs.creationDateHint")}</p>
       </div>
 
       <div>

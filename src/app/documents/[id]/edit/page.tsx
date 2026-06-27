@@ -31,6 +31,7 @@ export default async function EditDocumentPage({ params }: { params: Promise<{ i
           contentHtml: doc.contentHtml ?? "",
           assetId: doc.assetId ?? null,
           reviewBy: doc.reviewBy ? doc.reviewBy.toISOString().slice(0, 10) : null,
+          creationDate: (doc.creationDate ?? doc.createdAt).toISOString().slice(0, 10),
         }}
       />
     </AppShell>

@@ -720,6 +720,8 @@
   "docs.editor.fontDefault": "Default",
   "docs.editor.image": "Insert image",
   "docs.editor.placeholder": "Start writing…",
+  "docs.creationDateField": "Creation date",
+  "docs.creationDateHint": "The date this document was first created. Update dates are stamped automatically.",
   "docs.reviewByField": "Review-by date",
   "docs.reviewByHint": "Optional. The document is flagged for review once this date passes.",
   "docs.reviewDue": "Review due",

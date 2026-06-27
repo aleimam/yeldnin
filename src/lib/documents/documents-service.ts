@@ -137,6 +137,7 @@ export interface CreateDocInput {
   assetId?: string | null; // PDF
   contentHtml?: string | null; // DOC
   reviewBy?: string | null;
+  creationDate?: string | null; // the document's stated first-created date (defaults to now)
 }
 /** Append an immutable snapshot of a document's current content as a new version. */
 async function recordVersion(
@@ -162,6 +163,7 @@ export async function createDocument(input: CreateDocInput, ownerId: number) {
       description: clean(input.description),
       categoryId: input.categoryId ?? null,
       reviewBy: input.reviewBy ? new Date(input.reviewBy) : null,
+      creationDate: input.creationDate ? new Date(input.creationDate) : new Date(),
       status: "DRAFT",
       ownerId,
       assetId,
@@ -195,7 +197,7 @@ export async function updateDocumentContent(id: number, input: { contentHtml?: s
 /** Edit metadata (Manage). */
 export async function updateDocumentMeta(
   id: number,
-  input: { title?: string; description?: string | null; categoryId?: number | null; reviewBy?: string | null },
+  input: { title?: string; description?: string | null; categoryId?: number | null; reviewBy?: string | null; creationDate?: string | null },
   userId: number,
 ) {
   await prisma.document.update({
@@ -205,6 +207,7 @@ export async function updateDocumentMeta(
       description: clean(input.description),
       categoryId: input.categoryId ?? null,
       reviewBy: input.reviewBy ? new Date(input.reviewBy) : null,
+      creationDate: input.creationDate ? new Date(input.creationDate) : null,
       updatedById: userId,
     },
   });

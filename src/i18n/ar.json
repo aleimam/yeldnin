@@ -720,6 +720,8 @@
   "docs.editor.fontDefault": "افتراضي",
   "docs.editor.image": "إدراج صورة",
   "docs.editor.placeholder": "ابدأ الكتابة…",
+  "docs.creationDateField": "تاريخ الإنشاء",
+  "docs.creationDateHint": "تاريخ إنشاء هذه الوثيقة لأول مرة. تواريخ التحديث تُسجَّل تلقائيًا.",
   "docs.reviewByField": "تاريخ المراجعة",
   "docs.reviewByHint": "اختياري. تُعلَّم الوثيقة للمراجعة بمجرد مرور هذا التاريخ.",
   "docs.reviewDue": "تستحق المراجعة",

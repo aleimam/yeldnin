@@ -1810,11 +1810,12 @@ model Document {
   status      String   @default("DRAFT") // DRAFT (hidden from VIEW) | PUBLISHED
   ownerId     Int // creator — always MANAGE
   reviewBy    DateTime? // optional "due for review" date
+  creationDate DateTime? // the document's real first-created date (manual); display "Created". Falls back to createdAt.
   assetId     String? // PDF kind: the uploaded file
   contentHtml String? // DOC kind: sanitized rich-text HTML
   archivedAt  DateTime?
   createdById Int?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime @default(now()) // record-created audit timestamp (auto)
   updatedById Int?
   updatedAt   DateTime @updatedAt
 

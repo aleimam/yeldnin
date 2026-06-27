@@ -32,13 +32,14 @@ export async function createDocumentAction(p: {
   assetId?: string | null;
   contentHtml?: string | null;
   reviewBy?: string | null;
+  creationDate?: string | null;
 }): Promise<Res> {
   const access = await requireUser();
   if (!isDocKind(p.kind)) return { ok: false, error: "Invalid document type." };
   if (!p.title?.trim()) return { ok: false, error: "A title is required." };
   if (p.kind === "PDF" && !p.assetId) return { ok: false, error: "Upload a PDF file." };
   const doc = await createDocument(
-    { kind: p.kind, title: p.title, description: p.description ?? null, categoryId: p.categoryId ?? null, assetId: p.assetId ?? null, contentHtml: p.contentHtml ?? null, reviewBy: p.reviewBy ?? null },
+    { kind: p.kind, title: p.title, description: p.description ?? null, categoryId: p.categoryId ?? null, assetId: p.assetId ?? null, contentHtml: p.contentHtml ?? null, reviewBy: p.reviewBy ?? null, creationDate: p.creationDate ?? null },
     access.user.id,
   );
   await writeAudit(access.user.id, "documents", "document.create", "document", doc.id, { kind: p.kind });
@@ -71,7 +72,7 @@ export async function updateDocumentContentAction(id: number, contentHtml: strin
 }
 
 /** Edit metadata (Manage). */
-export async function updateDocumentMetaAction(id: number, meta: { title?: string; description?: string | null; categoryId?: number | null; reviewBy?: string | null }): Promise<Res> {
+export async function updateDocumentMetaAction(id: number, meta: { title?: string; description?: string | null; categoryId?: number | null; reviewBy?: string | null; creationDate?: string | null }): Promise<Res> {
   const g = await guard(id, "manage");
   if (!g.ok) return { ok: false, error: g.error };
   await updateDocumentMeta(id, meta, g.access.user.id);

@@ -59,7 +59,7 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
           {doc.description && <p className="mb-3 whitespace-pre-wrap text-sm text-ink">{doc.description}</p>}
           <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
             <div><span className="text-muted">{t("docs.category")}: </span><span className="text-ink">{doc.category?.name ?? "—"}</span></div>
-            <div><span className="text-muted">{t("docs.created")}: </span><span className="text-ink">{formatBizDate(doc.createdAt)}</span></div>
+            <div><span className="text-muted">{t("docs.created")}: </span><span className="text-ink">{formatBizDate(doc.creationDate ?? doc.createdAt)}</span></div>
             <div><span className="text-muted">{t("docs.updated")}: </span><span className="text-ink">{formatBizDate(doc.updatedAt)}</span></div>
             {doc.reviewBy && <div><span className="text-muted">{t("docs.reviewBy")}: </span><span className="text-ink">{formatBizDate(doc.reviewBy)}</span></div>}
           </div>
