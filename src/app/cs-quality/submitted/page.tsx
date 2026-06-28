@@ -51,7 +51,7 @@ export default async function CsSubmittedPage({ searchParams }: { searchParams: 
                 </td>
                 <td className="td" data-label={t("cs.status")}>{t(`cs.status.${e.status}`)}</td>
                 <td className="td text-end" data-label={t("cs.score")}>{e.total}</td>
-                <td className="td text-muted" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
+                <td className="td text-muted" data-datecol data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
                 <td className="td text-end"><Link href={`/cs-quality/evaluations/${e.id}`} className="text-brand hover:underline">{t("cs.viewEval")}</Link></td>
               </tr>
             ))}

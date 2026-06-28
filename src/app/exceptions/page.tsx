@@ -63,7 +63,7 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
                       <td className="td text-muted" data-label={t("exceptions.source")}>
                         {r.sourceContainerType ? `${t(`container.${r.sourceContainerType}`)} #${r.sourceContainerId}` : "—"}
                       </td>
-                      <td className="td text-muted" data-label={t("exceptions.flaggedAt")}>{r.flaggedAt ? formatBizDate(r.flaggedAt) : "—"}</td>
+                      <td className="td text-muted" data-datecol data-label={t("exceptions.flaggedAt")}>{r.flaggedAt ? formatBizDate(r.flaggedAt) : "—"}</td>
                       <td className="td text-muted" data-label={t("exceptions.note")}>{r.note ?? "—"}</td>
                       <td className="td" data-label={t("exceptions.issue")}>
                         {r.issueId ? <Link href={`/issues/${r.issueId}`} className="text-brand hover:underline">{r.issueUid ?? `#${r.issueId}`}</Link> : "—"}

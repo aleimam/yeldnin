@@ -62,7 +62,7 @@ export default async function TripsPage({ searchParams }: { searchParams: Promis
               <tr key={tr.id} className={`hover:bg-canvas/60 ${slaRowClass(sla.get(tr.id))}`}>
                 <td className="td" data-label={t("trip.traveler")}><Link href={`/trips/${tr.id}`} className="text-brand hover:underline">{tr.traveler.name}</Link></td>
                 <td className="td text-muted" data-label={t("trip.country")}>{tr.country}</td>
-                <td className="td text-muted" data-label={t("trip.lastReceiving")}>{formatBizDate(tr.lastReceivingDate)}</td>
+                <td className="td text-muted" data-datecol data-label={t("trip.lastReceiving")}>{formatBizDate(tr.lastReceivingDate)}</td>
                 <td className="td" data-label={t("trip.inventory")}><ItemCounts counts={inv.get(tr.id) ?? emptyCategoryCounts()} labels={labels} /></td>
                 <td className="td text-end text-muted" data-label={t("trip.inbound")}>{pending || "—"}</td>
                 <td className="td" data-label={t("trip.status")}>

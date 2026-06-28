@@ -46,7 +46,7 @@ export default async function ErrorLogPage({ searchParams }: { searchParams: Pro
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
               <tr key={r.id} className="align-top hover:bg-canvas/60">
-                <td className="td whitespace-nowrap text-muted" data-label={t("errlog.when")}>{new Date(r.createdAt).toLocaleString()}</td>
+                <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("errlog.when")}>{new Date(r.createdAt).toLocaleString()}</td>
                 <td className={`td font-medium ${LEVEL_TONE[r.level] ?? "text-ink"}`} data-label={t("errlog.level")}>{t(`errlog.lvl.${r.level}`)}</td>
                 <td className="td font-mono text-xs text-muted" data-label={t("errlog.source")}>{r.source ?? "—"}</td>
                 <td className="td" data-label={t("errlog.message")}>

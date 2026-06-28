@@ -155,7 +155,7 @@ export function ExpenseManager({ month, canManage, closed, petty, monthTotal, ca
           <tbody className="divide-y divide-line">
             {expenses.map((r) => (
               <tr key={r.id} className="hover:bg-canvas/60">
-                <td className="td whitespace-nowrap text-xs text-muted" data-label={t("xexp.date")}>{formatBizDate(r.date)}</td>
+                <td className="td whitespace-nowrap text-xs text-muted" data-datecol data-label={t("xexp.date")}>{formatBizDate(r.date)}</td>
                 <td className="td" data-label={t("xexp.category")}>{r.category}</td>
                 <td className="td text-end font-medium text-ink" data-label={t("xexp.amount")}>{egp(r.amount)}</td>
                 <td className="td text-muted" data-label={t("xexp.note")}>{r.note ?? "—"}</td>

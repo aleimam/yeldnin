@@ -114,7 +114,7 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
                   <tr key={a.userId}>
                     <td className="td" data-label={t("docs.ack.who")}>{a.name}</td>
                     <td className="td" data-label={t("docs.ack.status")}>{a.acknowledgedAt ? <span className="text-green-600">{t("docs.ack.acknowledged")}</span> : <span className="text-muted">{t("docs.ack.pending")}</span>}</td>
-                    <td className="td text-muted" data-label={t("docs.ack.when")}>{a.acknowledgedAt ? formatBizDate(a.acknowledgedAt) : "—"}</td>
+                    <td className="td text-muted" data-datecol data-label={t("docs.ack.when")}>{a.acknowledgedAt ? formatBizDate(a.acknowledgedAt) : "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -133,7 +133,7 @@ export default async function DocumentDetailPage({ params }: { params: Promise<{
                   <tr key={vr.id}>
                     <td className="td" data-label={t("docs.ver.no")}>v{vr.versionNo}{i === 0 && <span className="ms-2 text-xs text-green-600">{t("docs.ver.current")}</span>}</td>
                     <td className="td text-muted" data-label={t("docs.ver.editedBy")}>{vr.editedBy ?? "—"}</td>
-                    <td className="td text-muted" data-label={t("docs.ver.when")}>{formatBizDate(vr.createdAt)}</td>
+                    <td className="td text-muted" data-datecol data-label={t("docs.ver.when")}>{formatBizDate(vr.createdAt)}</td>
                     <td className="td text-end">{i !== 0 && <RestoreVersionButton id={doc.id} versionId={vr.id} />}</td>
                   </tr>
                 ))}

@@ -65,7 +65,7 @@ export default async function TravelerDetailPage({ params }: { params: Promise<{
                 {trips.map((tp) => (
                   <tr key={tp.id}>
                     <td className="td" data-label={t("trip.country")}><Link href={`/trips/${tp.id}`} className="text-brand hover:underline">{tp.country}</Link></td>
-                    <td className="td text-muted" data-label={t("trip.lastReceiving")}>{formatBizDate(tp.lastReceivingDate)}</td>
+                    <td className="td text-muted" data-datecol data-label={t("trip.lastReceiving")}>{formatBizDate(tp.lastReceivingDate)}</td>
                     <td className="td" data-label={t("trip.status")}>{t(`tripstatus.${tp.status}`)}</td>
                   </tr>
                 ))}

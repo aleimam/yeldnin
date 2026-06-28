@@ -72,12 +72,12 @@ export default async function TransactionsPage({
                     <span className={`inline-block h-2.5 w-2.5 rounded-full ${FLAG_DOT[r.flag] ?? "bg-muted"}`} title={t(r.flag === "RED" ? "exp.flagRed" : "exp.flagYellow")} />
                   )}
                 </td>
-                <td className="td whitespace-nowrap" data-label={t("exp.accruingDate")}>
+                <td className="td whitespace-nowrap" data-datecol data-label={t("exp.accruingDate")}>
                   <Link href={`/expenses/transactions/${r.id}`} className="text-brand hover:underline">
                     {formatBizDate(r.accruingDate ?? r.createdAt)}
                   </Link>
                 </td>
-                <td className="td whitespace-nowrap text-muted" data-label={t("exp.registered")}>{formatBizDate(r.createdAt)}</td>
+                <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("exp.registered")}>{formatBizDate(r.createdAt)}</td>
                 <td className="td" data-label={t("exp.category")}>
                   {categoryLabel(t, r.categoryNameSnapshot, locale, arMap)}
                   {r.attachments.length > 0 && <span className="ms-2 text-xs text-muted">📎{r.attachments.length}</span>}

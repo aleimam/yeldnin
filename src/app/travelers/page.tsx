@@ -58,7 +58,7 @@ export default async function TravelersPage({ searchParams }: { searchParams: Pr
                   {tr._count.photos > 0 && <span className="ms-2 text-xs text-muted">📎{tr._count.photos}</span>}
                 </td>
                 <td className="td text-muted" data-label={t("travelers.contact")}>{tr.contact ?? "—"}</td>
-                <td className="td text-muted" data-label={t("travelers.nextTrip")}>{tr.stats.nextTrip ? formatBizDate(tr.stats.nextTrip) : "—"}</td>
+                <td className="td text-muted" data-datecol data-label={t("travelers.nextTrip")}>{tr.stats.nextTrip ? formatBizDate(tr.stats.nextTrip) : "—"}</td>
                 <td className="td text-end text-muted" data-label={t("requests.items")}>{tr.stats.itemCount || "—"}</td>
                 <td className="td text-end text-muted" data-label={t("travelers.trips")}>{tr.stats.tripCount || "—"}</td>
                 <td className="td" data-label={t("travelers.maleSupport")}>{tr.carriesMaleSupport ? <span className="text-green-600">✓</span> : <span className="text-muted">—</span>}</td>

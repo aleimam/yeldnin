@@ -111,8 +111,8 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                     <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>{it.uid ?? it.id}</td>
                     <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link></td>
                     <td className="td" data-label={t("requests.status")}>{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
-                    {isSpecial && <td className="td text-muted" data-label={t("sla.promised")}>{s ? formatBizDate(s.promised) : "—"}</td>}
-                    {isSpecial && <td className="td text-muted" data-label={t("sla.expected")}>{s ? formatBizDate(s.expected) : "—"}</td>}
+                    {isSpecial && <td className="td text-muted" data-datecol data-label={t("sla.promised")}>{s ? formatBizDate(s.promised) : "—"}</td>}
+                    {isSpecial && <td className="td text-muted" data-datecol data-label={t("sla.expected")}>{s ? formatBizDate(s.expected) : "—"}</td>}
                     {isSpecial && <td className="td" data-label="SLA">{s ? <SlaBadge status={s.status} label={t(`sla.${s.status.toLowerCase()}`)} /> : "—"}</td>}
                   </tr>
                 );

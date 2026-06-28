@@ -81,8 +81,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
               <td className="td text-muted" data-label={t("docs.col.category")}>{d.categoryName ?? "—"}</td>
               <td className="td text-muted" data-label={t("docs.col.kind")}>{t(`docs.kind.${d.kind}`)}</td>
               <td className="td" data-label={t("docs.col.status")}><DocStatusBadge status={d.status} label={t(`docs.status.${d.status}`)} /></td>
-              <td className="td text-muted" data-label={t("docs.col.created")}>{formatBizDate(d.creationDate ?? d.createdAt)}</td>
-              <td className="td text-muted" data-label={t("docs.col.updated")}>{formatBizDate(d.updatedAt)}</td>
+              <td className="td text-muted" data-datecol data-label={t("docs.col.created")}>{formatBizDate(d.creationDate ?? d.createdAt)}</td>
+              <td className="td text-muted" data-datecol data-label={t("docs.col.updated")}>{formatBizDate(d.updatedAt)}</td>
             </tr>
           ))}
           {rows.length === 0 && (

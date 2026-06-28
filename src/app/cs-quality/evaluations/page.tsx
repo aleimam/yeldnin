@@ -71,7 +71,7 @@ export default async function CsAllEvaluationsPage({ searchParams }: { searchPar
                 </td>
                 <td className="td text-end" data-label={t("cs.score")}>{e.total}</td>
                 <td className="td text-end" data-label={t("cs.normalized")}>{e.normalized}%</td>
-                <td className="td text-muted whitespace-nowrap" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
+                <td className="td text-muted whitespace-nowrap" data-datecol data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
                 <td className="td" data-label={t("cs.review")}>{e.status === "PENDING" && <ReviewActions id={e.id} />}</td>
               </tr>
             ))}

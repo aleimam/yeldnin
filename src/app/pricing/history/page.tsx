@@ -37,7 +37,7 @@ export default async function HistoryPage() {
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
               <tr key={r.id} className={r.deletedAt ? "opacity-50" : "hover:bg-canvas/60"}>
-                <td className="td whitespace-nowrap text-muted" data-label={t("pricer.hist.date")}>
+                <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("pricer.hist.date")}>
                   <Link href={`/pricing/history/${r.id}`} className="hover:underline">
                     {new Date(r.createdAt).toLocaleString()}
                   </Link>

@@ -37,7 +37,7 @@ export function AuditTable({
         <tbody className="divide-y divide-line">
           {rows.map((r) => (
             <tr key={r.id} className="hover:bg-canvas/60">
-              <td className="td whitespace-nowrap text-muted" data-label={t("audit.date")}>{new Date(r.createdAt).toLocaleString()}</td>
+              <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("audit.date")}>{new Date(r.createdAt).toLocaleString()}</td>
               <td className="td" data-label={t("audit.user")}>{r.userId ? (names.get(r.userId) ?? `#${r.userId}`) : "—"}</td>
               <td className="td" data-label={t("audit.module")}>{moduleLabel(r.moduleKey)}</td>
               <td className="td font-mono text-xs" data-label={t("audit.action")}>{r.action}</td>

@@ -183,7 +183,9 @@
     padding: 0.25rem 0;
     text-align: start;
   }
-  table.table-cards td[data-label]::before {
+  /* In card mode the value stands alone (no column-name prefix) — except cells
+     tagged `data-datecol`, which keep their label so a date reads "Created · …". */
+  table.table-cards td[data-datecol]::before {
     content: attr(data-label);
     display: block;
     margin-bottom: 0.0625rem;

@@ -55,7 +55,7 @@ export default async function CsReviewPage({ searchParams }: { searchParams: Pro
                 <td className="td text-muted" data-label={t("cs.evaluator")}>{e.evaluator}</td>
                 <td className="td text-end" data-label={t("cs.score")}>{e.total}</td>
                 <td className="td text-end" data-label={t("cs.normalized")}>{e.normalized}%</td>
-                <td className="td text-muted" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
+                <td className="td text-muted" data-datecol data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
                 <td className="td" data-label={t("cs.review")}><ReviewActions id={e.id} /></td>
               </tr>
             ))}

@@ -36,7 +36,7 @@ export default async function CsVetoesPage() {
                 </td>
                 <td className="td" data-label={t("cs.salesRep")}>{v.rep}</td>
                 <td className="td text-muted" data-label={t("cs.veto.note")}>{v.note}</td>
-                <td className="td whitespace-nowrap text-muted" data-label={t("cs.date")}>{formatBizDate(v.createdAt)}</td>
+                <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("cs.date")}>{formatBizDate(v.createdAt)}</td>
                 <td className="td" data-label={t("cs.veto.decision")}><VetoResolveActions vetoId={v.id} /></td>
               </tr>
             ))}

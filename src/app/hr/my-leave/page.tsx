@@ -48,8 +48,8 @@ export default async function MyLeavePage() {
               {requests.map((r) => (
                 <tr key={r.id}>
                   <td className="td" data-label={t("leave.type")}>{t(`leave.${r.type === "ANNUAL" ? "annual" : "urgent"}`)}</td>
-                  <td className="td text-muted" data-label={t("leave.from")}>{formatBizDate(r.startDate)}</td>
-                  <td className="td text-muted" data-label={t("leave.to")}>{formatBizDate(r.endDate)}</td>
+                  <td className="td text-muted" data-datecol data-label={t("leave.from")}>{formatBizDate(r.startDate)}</td>
+                  <td className="td text-muted" data-datecol data-label={t("leave.to")}>{formatBizDate(r.endDate)}</td>
                   <td className="td text-end" data-label={t("leave.days")}>{r.days}</td>
                   <td className="td" data-label={t("leave.status")}>{t(`leavestatus.${r.status}`)}</td>
                 </tr>

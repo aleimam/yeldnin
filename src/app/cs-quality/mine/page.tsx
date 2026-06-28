@@ -71,7 +71,7 @@ export default async function CsMinePage() {
               )}
               <td className="td text-end" data-label={t("cs.score")}>{e.total}</td>
               <td className="td text-end" data-label={t("cs.normalized")}>{e.normalized}%</td>
-              <td className="td text-muted" data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
+              <td className="td text-muted" data-datecol data-label={t("cs.date")}>{formatBizDate(e.date)}</td>
               <td className="td text-end" data-label={t("cs.veto.veto")}>{vetoCell(e)}</td>
               <td className="td text-end"><Link href={`/cs-quality/evaluations/${e.id}`} className="text-brand hover:underline">{t("cs.viewEval")}</Link></td>
             </tr>
@@ -167,7 +167,7 @@ export default async function CsMinePage() {
                       <VetoStatusBadge status={v.status} label={t(`cs.veto.status.${v.status}`)} />
                       {v.resolutionNote && <span className="ms-1 block text-xs text-muted">{v.resolutionNote}</span>}
                     </td>
-                    <td className="td text-muted" data-label={t("cs.date")}>{formatBizDate(v.createdAt)}</td>
+                    <td className="td text-muted" data-datecol data-label={t("cs.date")}>{formatBizDate(v.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>

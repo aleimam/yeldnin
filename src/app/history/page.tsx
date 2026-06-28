@@ -45,7 +45,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           <tbody className="divide-y divide-line">
             {events.map((e) => (
               <tr key={e.id} className="hover:bg-canvas/60">
-                <td className="td whitespace-nowrap text-muted" data-label={t("history.when")}>{new Date(e.createdAt).toLocaleString()}</td>
+                <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("history.when")}>{new Date(e.createdAt).toLocaleString()}</td>
                 <td className="td font-mono text-xs" data-label={t("history.item")}>
                   <Link href={`/history/items/${e.itemId}`} className="text-brand hover:underline">{e.itemUid ?? e.itemId}</Link>
                 </td>

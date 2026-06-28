@@ -48,7 +48,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
                   <td className="td" data-label={t("transfers.to")}>{r.toName ?? `${r.toType} #${r.toId}`}</td>
                   <td className="td text-muted" data-label={t("transfers.country")}>{r.country}</td>
                   <td className="td" data-label={t("transfers.status")}>{t(`transferstatus.${r.status}`)}</td>
-                  <td className="td text-muted" data-label={t("transfers.date")}>{formatBizDate(r.createdAt)}</td>
+                  <td className="td text-muted" data-datecol data-label={t("transfers.date")}>{formatBizDate(r.createdAt)}</td>
                 </tr>
               ))}
               {rows.length === 0 && <tr><td className="td text-muted" colSpan={6}>{t("transfers.empty")}</td></tr>}
