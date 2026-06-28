@@ -12,7 +12,7 @@ export type PayslipStatus = (typeof PAYSLIP_STATUSES)[number];
 export const LINE_SOURCES = ["STRUCTURE", "DUTY", "TARGET", "ABSENCE", "ADHOC"] as const;
 export type LineSource = (typeof LINE_SOURCES)[number];
 /** Auto-derived sources are regenerated on every recompute; the rest are manual. */
-export const AUTO_SOURCES: readonly string[] = ["STRUCTURE", "DUTY", "ABSENCE"];
+export const AUTO_SOURCES: readonly string[] = ["STRUCTURE", "DUTY", "ABSENCE", "ENGAGEMENT"];
 export function isManualSource(source: string): boolean {
   return !AUTO_SOURCES.includes(source);
 }

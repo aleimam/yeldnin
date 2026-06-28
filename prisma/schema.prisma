@@ -1329,6 +1329,8 @@ model Employee {
   events      EmployeeEvent[]
   salaryLines SalaryStructureLine[]
   payslips    Payslip[]
+  engagementEligibles    EngagementEligible[]
+  engagementAchievements EngagementAchievement[]
 
   @@index([lineManagerId])
   @@index([positionId])
@@ -1966,4 +1968,110 @@ model ApiIntegration {
   createdAt       DateTime  @default(now())
   updatedById     Int?
   updatedAt       DateTime  @updatedAt
+}
+
+// ── HR Engagement ────────────────────────────────────────────────────────────
+// Staff engagement events (challenges/activities) that pay a bonus per achieved
+// criterion. Templates (with criteria + bonus) are reusable; each Event is a
+// dated instance with its own eligible employees and recorded achievements. An
+// employee's bonus = sum of the criteria they achieved; it flows onto the payslip
+// for the event's pay-month (source ENGAGEMENT), frozen when that payslip locks.
+
+model EngagementCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  nameAr      String?
+  sortOrder   Int       @default(0)
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedById Int?
+  updatedAt   DateTime  @updatedAt
+
+  templates EngagementTemplate[]
+}
+
+model EngagementTemplate {
+  id          Int                 @id @default(autoincrement())
+  name        String
+  nameAr      String?
+  categoryId  Int?
+  category    EngagementCategory? @relation(fields: [categoryId], references: [id])
+  description String?
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime            @default(now())
+  updatedById Int?
+  updatedAt   DateTime            @updatedAt
+
+  criteria EngagementCriterion[]
+  events   EngagementEvent[]
+
+  @@index([categoryId])
+}
+
+model EngagementCriterion {
+  id          Int                @id @default(autoincrement())
+  templateId  Int
+  template    EngagementTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  name        String
+  nameAr      String?
+  bonusAmount Float              @default(0) // EGP awarded for achieving it
+  sortOrder   Int                @default(0)
+  archivedAt  DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  achievements EngagementAchievement[]
+
+  @@index([templateId])
+}
+
+model EngagementEvent {
+  id          Int                @id @default(autoincrement())
+  uid         String?            @unique // ENG<YY><MM><seq3>
+  templateId  Int
+  template    EngagementTemplate @relation(fields: [templateId], references: [id])
+  title       String? // optional override; otherwise the template name
+  year        Int // pay-month year
+  month       Int // pay-month (1–12) — where the bonus lands on payroll
+  notes       String?
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime           @default(now())
+  updatedById Int?
+  updatedAt   DateTime           @updatedAt
+
+  eligibles    EngagementEligible[]
+  achievements EngagementAchievement[]
+
+  @@index([templateId])
+  @@index([year, month])
+}
+
+model EngagementEligible {
+  id         Int             @id @default(autoincrement())
+  eventId    Int
+  event      EngagementEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  employeeId Int
+  employee   Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, employeeId])
+  @@index([employeeId])
+}
+
+model EngagementAchievement {
+  id          Int                 @id @default(autoincrement())
+  eventId     Int
+  event       EngagementEvent     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  criterionId Int
+  criterion   EngagementCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  employeeId  Int
+  employee    Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  achievedAt  DateTime            @default(now())
+  byUserId    Int?
+
+  @@unique([eventId, criterionId, employeeId])
+  @@index([employeeId])
+  @@index([eventId])
 }

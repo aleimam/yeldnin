@@ -20,7 +20,7 @@ const monthEnd = (y: number, m: number) => new Date(Date.UTC(y, m, 0, 23, 59, 59
 
 interface BuildLine {
   kind: string; // EARNING | BONUS | PENALTY
-  source: string; // STRUCTURE | DUTY | TARGET | ABSENCE | ADHOC
+  source: string; // STRUCTURE | DUTY | TARGET | ABSENCE | ADHOC | ENGAGEMENT
   componentId: number | null;
   label: string;
   valuation: string | null;
@@ -77,6 +77,17 @@ async function buildAutoLines(employeeId: number, year: number, month: number) {
       if (!sline) continue; // employee not priced for this bonus
       lines.push({ kind: "BONUS", source: "DUTY", componentId, label: sline.component.name, valuation: sline.component.valuation, qty: n, rate: sline.amount, detail: `${n} day(s) × ${sline.amount}` });
     }
+  }
+
+  // Engagement bonuses (current month M): every criterion this employee achieved
+  // in an event whose pay-month is M pays its fixed bonus. Frozen when M's payslip
+  // locks (the line stores the amount); recomputed live for drafts.
+  const achievements = await prisma.engagementAchievement.findMany({
+    where: { employeeId, event: { year, month, archivedAt: null } },
+    select: { criterion: { select: { name: true, bonusAmount: true } }, event: { select: { title: true, template: { select: { name: true } } } } },
+  });
+  for (const a of achievements) {
+    lines.push({ kind: "BONUS", source: "ENGAGEMENT", componentId: null, label: a.criterion.name, valuation: "FIXED_EVENT", qty: null, rate: a.criterion.bonusAmount, detail: a.event.title || a.event.template.name });
   }
 
   // Structure penalties (current month M): recurring deductions, if any.

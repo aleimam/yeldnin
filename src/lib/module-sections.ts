@@ -71,6 +71,8 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "hr.attendance", icon: "🗓️", href: "/hr/attendance" },
     { labelKey: "leave.myLeave", icon: "🌴", href: "/hr/my-leave" },
     { labelKey: "salary.mySalary", icon: "💵", href: "/hr/my-salary" },
+    { labelKey: "eng.myTitle", icon: "🎯", href: "/hr/my-engagement" },
+    { labelKey: "eng.title", icon: "🎉", href: "/hr/engagement", capability: "manage" },
     { labelKey: "pay.title", icon: "💰", href: "/hr/payroll", capability: "manage" },
     { labelKey: "an.title", icon: "📊", href: "/hr/analytics", capability: "manage" },
     { labelKey: "pos.title", icon: "🗂️", href: "/hr/positions", capability: "manage" },

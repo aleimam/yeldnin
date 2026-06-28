@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { salaryAnalytics, bonusPenaltyAgg, companyActivity } from "@/lib/hr/hr-analytics-service";
+import { engagementAnalytics } from "@/lib/hr/engagement-service";
+import { getLocale } from "@/i18n/server";
 import { formatEgp as fmt } from "@/lib/format/money";
 
 export default async function HrAnalyticsPage() {
@@ -10,11 +12,14 @@ export default async function HrAnalyticsPage() {
   if (!access.isAdmin && !access.can("human_resources", "manage")) redirect("/hr");
   const t = await getT();
   const now = new Date();
-  const [salary, bp, activity] = await Promise.all([
+  const [salary, bp, activity, eng, locale] = await Promise.all([
     salaryAnalytics({ year: now.getUTCFullYear(), month: now.getUTCMonth() + 1 }),
     bonusPenaltyAgg(),
     companyActivity(40),
+    engagementAnalytics(),
+    getLocale(),
   ]);
+  const engName = (x: { templateName: string; templateNameAr: string | null }) => (locale === "ar" && x.templateNameAr ? x.templateNameAr : x.templateName);
   const trendMax = Math.max(1, ...salary.trend.map((m) => m.net));
   const teamMax = Math.max(1, ...salary.byTeam.map((tm) => tm.total));
 
@@ -84,6 +89,46 @@ export default async function HrAnalyticsPage() {
                     <span className="text-muted">{r.label}</span>
                     <span className="ms-auto font-medium text-ink">{fmt(r.amount)}</span>
                   </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Engagement */}
+        <div className="card space-y-4 p-5">
+          <h2 className="font-semibold text-ink">{t("eng.title")}</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-cards>
+              <thead className="border-b border-line bg-canvas">
+                <tr>
+                  <th className="th">{t("eng.event")}</th>
+                  <th className="th">{t("eng.payMonth")}</th>
+                  <th className="th text-end">{t("eng.eligible")}</th>
+                  <th className="th text-end">{t("eng.participated")}</th>
+                  <th className="th text-end">{t("eng.bonus")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {eng.rows.map((r) => (
+                  <tr key={r.id}>
+                    <td className="td" data-label={t("eng.event")}><a href={`/hr/engagement/${r.id}`} className="text-brand hover:underline">{r.title || engName(r)}</a></td>
+                    <td className="td text-muted" data-label={t("eng.payMonth")}>{r.year}-{String(r.month).padStart(2, "0")}</td>
+                    <td className="td text-end text-muted" data-label={t("eng.eligible")}>{r.eligible}</td>
+                    <td className="td text-end text-muted" data-label={t("eng.participated")}>{r.participants}</td>
+                    <td className="td text-end font-medium text-ink" data-label={t("eng.bonus")}>{fmt(r.bonus)}</td>
+                  </tr>
+                ))}
+                {eng.rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("eng.noEvents")}</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          {eng.top.length > 0 && (
+            <div>
+              <div className="label mb-1">{t("eng.topEarners")}</div>
+              <ul className="divide-y divide-line/60 text-sm">
+                {eng.top.map((e, i) => (
+                  <li key={i} className="flex items-center justify-between py-1.5"><span className="text-ink">{e.name}</span><span className="font-medium text-ink">{fmt(e.bonus)}</span></li>
                 ))}
               </ul>
             </div>
