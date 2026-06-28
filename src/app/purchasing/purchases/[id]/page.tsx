@@ -54,7 +54,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
                 {!onWebsite && (
                   <Link href={`/purchasing/purchases/${purchase.id}/edit`} className="btn-secondary px-3 py-1.5 text-sm">{t("common.edit")}</Link>
                 )}
-                <PurchaseActions id={purchase.id} status={purchase.status} hasOrdered={hasOrdered} locked={onWebsite} />
+                <PurchaseActions id={purchase.id} status={purchase.status} hasOrdered={hasOrdered} locked={onWebsite} items={items.map((it) => ({ status: it.status, exceptionFlag: it.exceptionFlag }))} />
               </div>
             )}
           </div>

@@ -1,10 +1,19 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
-import { moveItems, itemsInContainerHistory, createItems } from "@/lib/items/items-service";
+import { moveItems, itemsInContainerHistory, createItems, itemsProvenance } from "@/lib/items/items-service";
 import { statusIndex } from "@/lib/items/items-logic";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
-import { clampLinesToPool, nextPurchaseStatus, type PurchaseLineInput } from "./purchasing-logic";
+import {
+  clampLinesToPool,
+  nextPurchaseStatus,
+  prevPurchaseStatus,
+  PURCHASE_STATUSES,
+  PURCHASE_ITEM_STATUS,
+  isMovableFlag,
+  type PurchaseLineInput,
+  type PurchaseStatus,
+} from "./purchasing-logic";
 import { isTripPurchaseEligible } from "@/lib/trips/trip-logic";
 import { startTripShippingIfApproved } from "@/lib/trips/trip-service";
 import { markPatchDelivered, markPatchReceived } from "@/lib/patches/patch-service";
@@ -239,6 +248,83 @@ export async function advancePurchaseStatus(id: number, userId: number) {
     for (const p of patches) if (p.status === "DISPATCHED") await markPatchDelivered(p.id, userId);
   } else if (next === "RECEIVED") {
     for (const p of patches) if (p.status !== "RECEIVED") await markPatchReceived(p.id, userId);
+  }
+}
+
+/**
+ * Step a purchase's status BACK one level and reverse the cascade: the units that
+ * sit at the current level's status move back to the previous level's status (and
+ * container), and the purchase's patches follow. Units that have already left the
+ * hub (status past HUB) are in the operations pipeline now and are left untouched;
+ * pinned (flagged) units are skipped. Reverting all the way to NEW un-dispatches:
+ * the units return to the purchase as ORDERED and the emptied patches are archived.
+ */
+export async function reversePurchaseStatus(id: number, userId: number) {
+  const purchase = await prisma.purchase.findUnique({ where: { id } });
+  if (!purchase || (await purchaseOnWebsite(id))) return;
+  const prev = prevPurchaseStatus(purchase.status);
+  if (!prev) return;
+  const fromItem = PURCHASE_ITEM_STATUS[purchase.status as PurchaseStatus];
+  const toItem = PURCHASE_ITEM_STATUS[prev];
+
+  // Units of this purchase currently at the leaving status, not pinned by a flag.
+  // For RECEIVED→DELIVERED (fromItem = HUB) this skips units already past the hub.
+  const all = await itemsInContainerHistory("PURCHASE", id);
+  const affected = all.filter((it) => it.status === fromItem && isMovableFlag(it.exceptionFlag));
+
+  if (affected.length) {
+    const prov = await itemsProvenance(affected.map((i) => i.id));
+    // Group by the container the units should land in: back to the purchase when
+    // reverting to ORDERED, otherwise back into their own patch (or the purchase
+    // for office-received units that never had a patch).
+    const groups = new Map<string, { containerType: string | null; containerId: number | null; ids: number[] }>();
+    for (const it of affected) {
+      const patchId = prov.get(it.id)?.patch?.id ?? null;
+      const dest =
+        toItem === "ORDERED" || !patchId
+          ? { containerType: "PURCHASE", containerId: purchase.id }
+          : { containerType: "PATCH", containerId: patchId };
+      const key = `${dest.containerType}:${dest.containerId}`;
+      const g = groups.get(key) ?? { ...dest, ids: [] };
+      g.ids.push(it.id);
+      groups.set(key, g);
+    }
+    for (const g of groups.values()) {
+      await moveItems(g.ids, { status: toItem, containerType: g.containerType, containerId: g.containerId, action: "purchase-revert" }, userId);
+    }
+  }
+
+  // Bring the purchase's patches back in step with the new (lower) status.
+  const patches = await prisma.patch.findMany({ where: { purchaseId: id, archivedAt: null }, select: { id: true, deliveredAt: true } });
+  for (const p of patches) {
+    if (prev === "NEW") {
+      await prisma.patch.update({ where: { id: p.id }, data: { archivedAt: new Date(), updatedById: userId } });
+    } else if (prev === "DISPATCHED") {
+      await prisma.patch.update({ where: { id: p.id }, data: { status: "DISPATCHED", deliveredAt: null, receivedAt: null, updatedById: userId } });
+    } else if (prev === "DELIVERED") {
+      await prisma.patch.update({ where: { id: p.id }, data: { status: "DELIVERED", deliveredAt: p.deliveredAt ?? new Date(), receivedAt: null, updatedById: userId } });
+    }
+  }
+
+  await prisma.purchase.update({ where: { id }, data: { status: prev, updatedById: userId } });
+}
+
+/**
+ * Move a purchase to an adjacent status (one step forward or back) with its full
+ * cascade. Forward into DISPATCHED is rejected — dispatching needs a real patch
+ * (use Dispatch). Callers confirm with the operator first (the cascade is shown).
+ */
+export async function setPurchaseStatus(id: number, target: string, userId: number) {
+  const purchase = await prisma.purchase.findUnique({ where: { id }, select: { status: true } });
+  if (!purchase) return;
+  const ci = (PURCHASE_STATUSES as readonly string[]).indexOf(purchase.status);
+  const ti = (PURCHASE_STATUSES as readonly string[]).indexOf(target);
+  if (ci < 0 || ti < 0 || Math.abs(ti - ci) !== 1) return; // single adjacent step only
+  if (ti > ci) {
+    if (purchase.status === "NEW") return; // forward into DISPATCHED needs a dispatch
+    await advancePurchaseStatus(id, userId);
+  } else {
+    await reversePurchaseStatus(id, userId);
   }
 }
 

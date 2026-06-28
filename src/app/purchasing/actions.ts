@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireCapability, requireUser } from "@/lib/auth/access";
 import { productScopes, type Scope } from "@/lib/products/products-logic";
 import { validatePurchase } from "@/lib/purchasing/purchasing-logic";
-import { createPurchase, advancePurchaseStatus, receivePurchaseAtOffice, addGiftItems, updatePurchase } from "@/lib/purchasing/purchasing-service";
+import { createPurchase, setPurchaseStatus, receivePurchaseAtOffice, addGiftItems, updatePurchase } from "@/lib/purchasing/purchasing-service";
 import { writeAudit } from "@/lib/audit";
 
 export interface PurchasePayload {
@@ -60,11 +60,14 @@ async function requirePurchaseManage() {
   return access;
 }
 
-/** Purchasing/logistics advance a purchase's status forward (until on website). */
-export async function advancePurchaseStatusAction(id: number): Promise<void> {
+/**
+ * Purchasing/logistics move a purchase one step forward or back (target is the
+ * adjacent status). The cascade to patches and items is confirmed in the UI first.
+ */
+export async function setPurchaseStatusAction(id: number, target: string): Promise<void> {
   const access = await requirePurchaseManage();
-  await advancePurchaseStatus(id, access.user.id);
-  await writeAudit(access.user.id, "purchasing", "purchase.advance", "purchase", id);
+  await setPurchaseStatus(id, target, access.user.id);
+  await writeAudit(access.user.id, "purchasing", "purchase.setStatus", "purchase", id, { target });
   revalidatePath(`/purchasing/purchases/${id}`);
   revalidatePath("/purchasing/purchases");
 }
