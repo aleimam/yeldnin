@@ -116,8 +116,10 @@
   "xadm.noCategories": "No categories yet.",
   "xadm.deleteCatConfirm": "Delete this category?",
   "xadm.shares": "Staff profit shares",
-  "xadm.sharesHint": "Each XOONX staff member's share of the 25% staff pool. Must total 100% (or leave all at 0 for an equal split).",
-  "xadm.noStaff": "No XOONX staff yet (member-tier users with XOONX access).",
+  "xadm.sharesHint": "Only the partners listed here split the 25% staff pool — shares must total 100%. Adding or removing a partner does not change anyone's XOONX access.",
+  "xadm.noPartners": "No profit partners yet. Add one below.",
+  "xadm.addPartner": "Add a profit partner…",
+  "xadm.removePartner": "Remove partner",
   "xadm.total": "Total",
 
   "xoonx.reports": "Reports",

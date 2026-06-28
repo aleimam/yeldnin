@@ -160,23 +160,51 @@ export async function listXoonxStaff(): Promise<{ id: number; name: string }[]> 
       : u.fullName || u.name,
   }));
 }
-/** Each staff member's share % of the 25% pool (defaults to an equal split). */
+// XOONX *profit partners* are an explicit set — exactly the users with a
+// XoonxStaffShare row. This is deliberately decoupled from XOONX *access*
+// (module permission): someone can view/operate XOONX without sharing profit,
+// and a partner is only ever added on purpose via the admin shares editor.
+const localeName = (u: { name: string; nameAr: string | null; fullName: string | null; fullNameAr: string | null }, locale: string) =>
+  locale === "ar" ? (u.fullNameAr || u.nameAr || u.fullName || u.name) : (u.fullName || u.name);
+
+/** The configured profit partners and their share % of the 25% pool. */
 export async function getStaffShares(): Promise<{ id: number; name: string; sharePct: number }[]> {
-  const staff = await listXoonxStaff();
-  const shares = new Map((await prisma.xoonxStaffShare.findMany()).map((s) => [s.userId, s.sharePct]));
-  const anySet = staff.some((s) => shares.has(s.id));
-  if (!anySet && staff.length) {
-    const eq = round2(100 / staff.length);
-    return staff.map((s) => ({ ...s, sharePct: eq }));
-  }
-  return staff.map((s) => ({ ...s, sharePct: shares.get(s.id) ?? 0 }));
+  const rows = await prisma.xoonxStaffShare.findMany();
+  if (rows.length === 0) return [];
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({
+      where: { id: { in: rows.map((r) => r.userId) }, active: true, archivedAt: null },
+      select: { id: true, name: true, nameAr: true, fullName: true, fullNameAr: true },
+    }),
+  ]);
+  const shareById = new Map(rows.map((r) => [r.userId, r.sharePct]));
+  return users
+    .map((u) => ({ id: u.id, name: localeName(u, locale), sharePct: shareById.get(u.id) ?? 0 }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
+
+/** Users eligible to be *added* as a partner: XOONX staff who aren't partners yet. */
+export async function listXoonxPartnerCandidates(): Promise<{ id: number; name: string }[]> {
+  const [staff, rows] = await Promise.all([listXoonxStaff(), prisma.xoonxStaffShare.findMany({ select: { userId: true } })]);
+  const isPartner = new Set(rows.map((r) => r.userId));
+  return staff.filter((s) => !isPartner.has(s.id));
+}
+
+/**
+ * Persist the partner roster as the *exact* set provided: rows for users not in
+ * `shares` are removed, the rest upserted. Passing [] clears all partners.
+ */
 export async function setStaffShares(shares: { userId: number; sharePct: number }[], userId: number) {
   const err = validateStaffShares(shares);
   if (err) throw new Error(err);
-  for (const s of shares) {
-    await prisma.xoonxStaffShare.upsert({ where: { userId: s.userId }, update: { sharePct: s.sharePct }, create: { userId: s.userId, sharePct: s.sharePct } });
-  }
+  const keepIds = shares.map((s) => s.userId);
+  await prisma.$transaction([
+    prisma.xoonxStaffShare.deleteMany({ where: { userId: { notIn: keepIds } } }),
+    ...shares.map((s) =>
+      prisma.xoonxStaffShare.upsert({ where: { userId: s.userId }, update: { sharePct: s.sharePct }, create: { userId: s.userId, sharePct: s.sharePct } }),
+    ),
+  ]);
   await writeAudit(userId, XOONX, "split.set", "xoonxSplit", 0, { count: shares.length });
 }
 

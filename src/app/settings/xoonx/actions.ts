@@ -81,5 +81,6 @@ export async function setStaffSharesAction(shares: { userId: number; sharePct: n
     return fail(e);
   }
   revalidatePath("/settings/xoonx");
+  revalidatePath("/xoonx/reports");
   return { ok: true };
 }
