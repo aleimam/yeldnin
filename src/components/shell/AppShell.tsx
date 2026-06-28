@@ -38,6 +38,7 @@ export async function AppShell({
     ? []
     : sectionsFor(moduleKey)
         .filter((s) => {
+          if (s.adminOnly) return access.isAdmin;
           const mod = s.module ?? moduleKey; // sections may belong to a folded-in module
           return s.capability
             ? access.can(mod, s.capability)

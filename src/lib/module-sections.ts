@@ -13,6 +13,7 @@ export interface SectionDef {
   capability?: string; // capability key on this module (overrides minLevel)
   module?: string; // owning module for the gate (default: the sidebar's moduleKey)
   shortcut?: boolean; // a cross-link to another module's section (visual hint)
+  adminOnly?: boolean; // gate by admin tier (for admin-only pages surfaced in a module sidebar)
 }
 
 export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
@@ -77,7 +78,11 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   couriers: [{ labelKey: "couriers.title", icon: "🛵", href: "/couriers" }],
   issues: [{ labelKey: "issues.title", icon: "⚠️", href: "/issues" }],
   history: [{ labelKey: "history.title", icon: "🕐", href: "/history" }],
-  documents: [{ labelKey: "docs.all", icon: "📄", href: "/documents" }],
+  documents: [
+    { labelKey: "docs.all", icon: "📄", href: "/documents" },
+    { labelKey: "docs.letterhead.nav", icon: "📰", href: "/documents/letterhead", adminOnly: true },
+    { labelKey: "docs.categories", icon: "🏷️", href: "/documents/categories", adminOnly: true },
+  ],
   audit_log: [
     { labelKey: "audit.all", icon: "📜", href: "/audit" },
     { labelKey: "module.pricing.name", icon: "🧮", href: "/audit/pricing" },

@@ -66,6 +66,7 @@ export interface DocListRow {
   ownerId: number;
   level: DocLevel;
   reviewBy: Date | null;
+  creationDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -82,8 +83,22 @@ function toRow(d: DocWithRel, level: DocLevel): DocListRow {
   return {
     id: d.id, uid: d.uid, kind: d.kind, title: d.title, description: d.description,
     status: d.status, categoryName: d.category?.name ?? null, ownerId: d.ownerId,
-    level, reviewBy: d.reviewBy, createdAt: d.createdAt, updatedAt: d.updatedAt,
+    level, reviewBy: d.reviewBy, creationDate: d.creationDate, createdAt: d.createdAt, updatedAt: d.updatedAt,
   };
+}
+
+export type DocSortKey = "title" | "category" | "status" | "created" | "updated";
+function sortRows(rows: DocListRow[], key: DocSortKey, dir: "asc" | "desc"): DocListRow[] {
+  const created = (r: DocListRow) => (r.creationDate ?? r.createdAt).getTime();
+  const cmp: Record<DocSortKey, (a: DocListRow, b: DocListRow) => number> = {
+    title: (a, b) => a.title.localeCompare(b.title),
+    category: (a, b) => (a.categoryName ?? "").localeCompare(b.categoryName ?? ""),
+    status: (a, b) => a.status.localeCompare(b.status),
+    created: (a, b) => created(a) - created(b),
+    updated: (a, b) => a.updatedAt.getTime() - b.updatedAt.getTime(),
+  };
+  const sorted = [...rows].sort(cmp[key]);
+  return dir === "desc" ? sorted.reverse() : sorted;
 }
 
 interface Viewer { isAdmin: boolean; userId: number; userTeamKeys: string[] }
@@ -94,7 +109,7 @@ const levelOf = (d: { ownerId: number; permissions: { teamKey: string; level: st
  *  visibility are applied in JS (per-doc ACL), then the result is paginated. */
 export async function listDocumentsForUser(
   v: Viewer,
-  opts: { search?: string; categoryId?: number; status?: string; skip?: number; take?: number },
+  opts: { search?: string; categoryId?: number; status?: string; skip?: number; take?: number; sort?: DocSortKey; dir?: "asc" | "desc" },
 ): Promise<{ rows: DocListRow[]; total: number }> {
   const where = {
     archivedAt: null,
@@ -105,9 +120,10 @@ export async function listDocumentsForUser(
   const visible = (await fetchDocs(where))
     .map((d) => ({ d, level: levelOf(d, v) }))
     .filter(({ d, level }) => canViewDocument(d.status, level));
+  const all = sortRows(visible.map(({ d, level }) => toRow(d, level)), opts.sort ?? "updated", opts.dir ?? "desc");
   const skip = opts.skip ?? 0;
   const take = opts.take ?? 50;
-  return { rows: visible.slice(skip, skip + take).map(({ d, level }) => toRow(d, level)), total: visible.length };
+  return { rows: all.slice(skip, skip + take), total: all.length };
 }
 
 /** Full document + the viewer's level; null when they can't see it. */

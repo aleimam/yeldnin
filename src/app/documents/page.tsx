@@ -20,12 +20,28 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   const categoryId = sp.category ? Number(sp.category) || undefined : undefined;
   const status = isDocStatus(sp.status) ? sp.status : undefined;
+  const SORT_KEYS = ["title", "category", "status", "created", "updated"] as const;
+  const sort = (SORT_KEYS as readonly string[]).includes(sp.sort ?? "") ? (sp.sort as (typeof SORT_KEYS)[number]) : "updated";
+  const dir = sp.dir === "asc" ? "asc" : "desc";
 
   const [t, categories, { rows, total }] = await Promise.all([
     getT(),
     listDocCategories(),
-    listDocumentsForUser(v, { search: sp.q, categoryId, status, skip, take }),
+    listDocumentsForUser(v, { search: sp.q, categoryId, status, skip, take, sort, dir }),
   ]);
+
+  // Clickable column header → set sort key (toggling direction on re-click), resetting to page 1.
+  const sortHref = (key: string) => {
+    const p = new URLSearchParams();
+    if (sp.q) p.set("q", sp.q);
+    if (sp.category) p.set("category", sp.category);
+    if (sp.status) p.set("status", sp.status);
+    if (sp.perPage) p.set("perPage", sp.perPage);
+    p.set("sort", key);
+    p.set("dir", sort === key && dir === "desc" ? "asc" : "desc");
+    return `/documents?${p.toString()}`;
+  };
+  const arrow = (key: string) => (sort === key ? (dir === "desc" ? " ↓" : " ↑") : "");
 
   const actions = (
     <div className="flex items-center gap-2">
@@ -45,11 +61,12 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       <table className="w-full" data-cards>
         <thead>
           <tr className="border-b border-line">
-            <th className="th">{t("docs.col.title")}</th>
-            <th className="th">{t("docs.col.category")}</th>
+            <th className="th"><Link href={sortHref("title")} className="hover:text-brand">{t("docs.col.title")}{arrow("title")}</Link></th>
+            <th className="th"><Link href={sortHref("category")} className="hover:text-brand">{t("docs.col.category")}{arrow("category")}</Link></th>
             <th className="th">{t("docs.col.kind")}</th>
-            <th className="th">{t("docs.col.status")}</th>
-            <th className="th">{t("docs.col.updated")}</th>
+            <th className="th"><Link href={sortHref("status")} className="hover:text-brand">{t("docs.col.status")}{arrow("status")}</Link></th>
+            <th className="th"><Link href={sortHref("created")} className="hover:text-brand">{t("docs.col.created")}{arrow("created")}</Link></th>
+            <th className="th"><Link href={sortHref("updated")} className="hover:text-brand">{t("docs.col.updated")}{arrow("updated")}</Link></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
@@ -64,11 +81,12 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
               <td className="td text-muted" data-label={t("docs.col.category")}>{d.categoryName ?? "—"}</td>
               <td className="td text-muted" data-label={t("docs.col.kind")}>{t(`docs.kind.${d.kind}`)}</td>
               <td className="td" data-label={t("docs.col.status")}><DocStatusBadge status={d.status} label={t(`docs.status.${d.status}`)} /></td>
+              <td className="td text-muted" data-label={t("docs.col.created")}>{formatBizDate(d.creationDate ?? d.createdAt)}</td>
               <td className="td text-muted" data-label={t("docs.col.updated")}>{formatBizDate(d.updatedAt)}</td>
             </tr>
           ))}
           {rows.length === 0 && (
-            <tr><td className="td text-muted" colSpan={5}>{t("docs.empty")}</td></tr>
+            <tr><td className="td text-muted" colSpan={6}>{t("docs.empty")}</td></tr>
           )}
         </tbody>
       </table>

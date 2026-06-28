@@ -38,16 +38,24 @@ export async function vetoStatusByEval(evalIds: number[]): Promise<Map<number, s
 }
 
 /** Notify the CS approvers (cs_quality MANAGE + admins) that a veto was cast. */
-async function notifyVetoCast(veto: { id: number; evaluationId: number; evalUid: string | null }, actorId: number) {
+async function notifyVetoCast(veto: { id: number; evaluationId: number; evaluatorUserId: number }, actorId: number) {
   const recipients = (await moduleOperatorIds(["cs_quality"], "MANAGE")).filter((u) => u !== actorId);
   if (!recipients.length) return;
-  const users = await prisma.user.findMany({ where: { id: { in: recipients } }, select: { id: true, locale: true } });
-  const ref = veto.evalUid ?? `#${veto.evaluationId}`;
+  // The rep who vetoed (the actor) and the evaluator whose eval was vetoed — names
+  // resolved per recipient locale below.
+  const [users, rep, evaluator] = await Promise.all([
+    prisma.user.findMany({ where: { id: { in: recipients } }, select: { id: true, locale: true } }),
+    prisma.user.findUnique({ where: { id: actorId }, select: { name: true, nameAr: true } }),
+    prisma.user.findUnique({ where: { id: veto.evaluatorUserId }, select: { name: true, nameAr: true } }),
+  ]);
   await Promise.allSettled(
     users.map((u) => {
-      const tt = makeT(isLocale(u.locale) ? u.locale : DEFAULT_LOCALE);
+      const loc = isLocale(u.locale) ? u.locale : DEFAULT_LOCALE;
+      const tt = makeT(loc);
+      const repName = rep ? displayName(rep, loc) : "—";
+      const evaluatorName = evaluator ? displayName(evaluator, loc) : "—";
       return sendCustomNotification(
-        { title: tt("cs.veto.notif.castTitle"), body: tt("cs.veto.notif.castBody", { ref }), link: "/cs-quality/vetoes", type: "warning", target: { userIds: [u.id] } },
+        { title: tt("cs.veto.notif.castTitle"), body: tt("cs.veto.notif.castBody", { rep: repName, evaluator: evaluatorName }), link: "/cs-quality/vetoes", type: "warning", target: { userIds: [u.id] } },
         actorId,
       );
     }),
@@ -79,7 +87,7 @@ export async function castVeto(evaluationId: number, userId: number, note: strin
   if (!trimmed) throw new Error("A note is required to veto.");
   const ev = await prisma.csEvaluation.findFirst({
     where: { id: evaluationId, archivedAt: null },
-    select: { id: true, uid: true, subjectUserId: true, status: true },
+    select: { id: true, uid: true, subjectUserId: true, evaluatorUserId: true, status: true },
   });
   if (!ev) throw new Error("Evaluation not found.");
   if (ev.subjectUserId !== userId) throw new Error("You can only veto evaluations of yourself.");
@@ -91,7 +99,7 @@ export async function castVeto(evaluationId: number, userId: number, note: strin
 
   const veto = await prisma.csVeto.create({ data: { evaluationId, byUserId: userId, note: trimmed }, select: { id: true } });
   await writeAudit(userId, "cs_quality", "veto.cast", "csVeto", veto.id, { evaluationId });
-  await notifyVetoCast({ id: veto.id, evaluationId, evalUid: ev.uid }, userId).catch(() => {});
+  await notifyVetoCast({ id: veto.id, evaluationId, evaluatorUserId: ev.evaluatorUserId }, userId).catch(() => {});
   return veto;
 }
 
