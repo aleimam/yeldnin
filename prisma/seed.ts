@@ -423,6 +423,14 @@ async function main() {
     await prisma.inquiryDisposition.upsert({ where: { key: d.key }, update: {}, create: d });
   }
 
+  // External API integrations (admin-managed). Seed the VEEEY connection row once
+  // (disabled, empty) so the Settings → Integrations page has something to edit.
+  await prisma.apiIntegration.upsert({
+    where: { provider: "VEEEY" },
+    update: {},
+    create: { provider: "VEEEY", name: "Veeey storefront", enabled: false },
+  });
+
   console.log("Seed complete.");
 }
 

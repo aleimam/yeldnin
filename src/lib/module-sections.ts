@@ -150,6 +150,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     labelKey: "settings.group.xoonx",
     items: [{ labelKey: "settings.xoonx", icon: "🌐", href: "/settings/xoonx", module: "settings", capability: "manageModules", adminOnly: true }],
   },
+  {
+    labelKey: "settings.group.integrations",
+    items: [{ labelKey: "integ.title", icon: "🔌", href: "/settings/integrations", module: "settings", capability: "manageModules", adminOnly: true }],
+  },
 ];
 
 type CapFn = (moduleKey: string, capability: string) => boolean;

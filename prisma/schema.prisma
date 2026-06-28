@@ -1941,3 +1941,29 @@ model DocumentPermission {
   @@unique([documentId, teamKey])
   @@index([documentId])
 }
+
+// External API connection config (admin-managed in Settings → Integrations). One
+// row per provider (e.g. VEEEY, the storefront). Holds BOTH directions:
+//   • outbound — baseUrl + outboundSecret (the key we send when WE call them;
+//     stored encrypted at rest, never returned to the browser)
+//   • inbound  — inboundKeyHash (sha256 of the key we issued for THEM to call us;
+//     the plaintext is shown once at generation, only the hash is kept)
+// lastTest* records the most recent reachability check.
+model ApiIntegration {
+  id              Int       @id @default(autoincrement())
+  provider        String    @unique // "VEEEY"
+  name            String
+  enabled         Boolean   @default(false)
+  baseUrl         String?
+  outboundSecret  String? // encrypted (AES-256-GCM); never sent to the client
+  inboundKeyHash  String? // sha256 hex of the issued inbound key
+  inboundKeyHint  String? // display hint, e.g. "veeey_ab12…"
+  inboundKeyAt    DateTime?
+  lastTestAt      DateTime?
+  lastTestOk      Boolean?
+  lastTestMessage String?
+  createdById     Int?
+  createdAt       DateTime  @default(now())
+  updatedById     Int?
+  updatedAt       DateTime  @updatedAt
+}
