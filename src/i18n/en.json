@@ -497,6 +497,7 @@
   "cs.repScores": "Pharmacist scores",
   "cs.evaluatorActivity": "Evaluator activity",
   "cs.scoreRecord": "Monthly score record",
+  "cs.scoreRecordLegend": "Each month: calls avg · count + performance avg · count = overall · total | expected bonus",
   "cs.activityLegend": "Each month: approved of submitted | average score · comments written",
   "cs.actOf": "of",
   "cs.submittedCount": "Submitted",

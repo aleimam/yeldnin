@@ -299,13 +299,21 @@ export function monthsWindow(now: Date, n: number, back = 0): string[] {
   return Array.from({ length: n }, (_, i) => monthKey(shiftMonthUTC(end, -i)));
 }
 
+export interface MonthScoreCell {
+  callsAvg: number | null; // weighted calls block %
+  callsCount: number;
+  perfAvg: number | null; // performance block %
+  perfCount: number;
+  overall: number | null; // composite overall %
+  totalCount: number;
+}
 export interface MonthlyScoreRow {
   id: number;
   name: string;
-  scores: (number | null)[]; // overall composite % per month, aligned to the `months` argument
+  months: MonthScoreCell[]; // aligned to the `months` argument
 }
-/** Full per-rep overall-score record across the given months (APPROVED-only
- *  composite, same formula as the leaderboard). For the admin score lookup. */
+/** Full per-rep score record across the given months (APPROVED-only composite,
+ *  same formula as the leaderboard), broken into calls / performance / overall. */
 export async function monthlyScoreMatrix(months: string[]): Promise<MonthlyScoreRow[]> {
   const [evals, callTypes, cfg] = await Promise.all([
     prisma.csEvaluation.findMany({ where: { status: "APPROVED", archivedAt: null }, select: { subjectUserId: true, scope: true, typeName: true, normalized: true, callDate: true, createdAt: true } }),
@@ -320,7 +328,14 @@ export async function monthlyScoreMatrix(months: string[]): Promise<MonthlyScore
   }
   const names = await nameMap([...bySubject.keys()]);
   return [...bySubject.entries()]
-    .map(([id, list]) => ({ id, name: names.get(id) ?? `#${id}`, scores: months.map((mk) => compositeForMonth(list, mk, callTypes, cfg.split).overall) }))
+    .map(([id, list]) => ({
+      id,
+      name: names.get(id) ?? `#${id}`,
+      months: months.map((mk) => {
+        const c = compositeForMonth(list, mk, callTypes, cfg.split);
+        return { callsAvg: c.callsBlock, callsCount: c.callsCount, perfAvg: c.perfBlock, perfCount: c.perfCount, overall: c.overall, totalCount: c.callsCount + c.perfCount };
+      }),
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
