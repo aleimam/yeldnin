@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { createItems } from "@/lib/items/items-service";
+import { stageTally, type ProductStage } from "@/lib/items/items-logic";
 import { createCustomer } from "@/lib/customers/customers-service";
 import { getSla } from "@/lib/sla/sla-config-service";
 import { graceDays, sourceClass, promisedDate } from "@/lib/sla/sla-logic";
@@ -282,21 +283,39 @@ const REQUEST_ORDER_BY: Record<RequestSortKey, (dir: "asc" | "desc") => object> 
 
 /** Paginated + filtered + sortable requests (for the Requests page). Each row
  *  carries its creator + its request lines (product + count) for the popup. */
+/**
+ * Request ids that are FULFILLED — they have items and every item reached the
+ * WEBSITE terminal state. (No Item→Request relation exists, so derive it from the
+ * items table: requests seen with a website item but never with a non-website one.)
+ */
+async function fulfilledRequestIds(scopes: string[]): Promise<number[]> {
+  const [withWebsite, withOpen] = await Promise.all([
+    prisma.item.findMany({ where: { requestId: { not: null }, scope: { in: scopes }, status: "WEBSITE" }, select: { requestId: true }, distinct: ["requestId"] }),
+    prisma.item.findMany({ where: { requestId: { not: null }, scope: { in: scopes }, status: { not: "WEBSITE" } }, select: { requestId: true }, distinct: ["requestId"] }),
+  ]);
+  const open = new Set(withOpen.map((x) => x.requestId!));
+  return withWebsite.map((x) => x.requestId!).filter((id) => !open.has(id));
+}
+
 export async function listRequestsPaged(opts: {
   scopes: string[];
   search?: string;
   type?: string;
   status?: string;
+  onlyUnfulfilled?: boolean;
   sort?: RequestSortKey;
   dir?: "asc" | "desc";
   skip?: number;
   take?: number;
 }) {
+  // Unfulfilled = NOT fulfilled (covers requests with no items yet, too).
+  const notIn = opts.onlyUnfulfilled ? await fulfilledRequestIds(opts.scopes) : null;
   const where = {
     archivedAt: null,
     scope: { in: opts.scopes },
     ...(opts.type ? { type: opts.type } : {}),
     ...(opts.status ? { status: opts.status } : {}),
+    ...(notIn ? { id: { notIn } } : {}),
     ...(opts.search
       ? { OR: [{ uid: { contains: opts.search } }, { customer: { name: { contains: opts.search } } }] }
       : {}),
@@ -334,46 +353,47 @@ export interface RequestPoolRow {
   scope: string;
   productId: number;
   productName: string;
-  requested: number; // all items ever requested for this product (in scope)
-  ongoing: number; // still in motion = requested − delivered − errant
-  delivered: number; // reached the final WEBSITE state
-  errant: number; // flagged ERRANT
+  stages: Record<ProductStage, number>; // journey-stage tally (Requested … Problems)
+  total: number; // all units ever requested for this product (in scope)
+  outstanding: number; // units not yet on the website (i.e. not fulfilled)
 }
 /**
- * Per-product request pool: for every product that's been requested in scope,
- * how many requested units are ongoing / delivered (reached WEBSITE) / errant.
- * Mirrors the logistics purchasing pool, for the Sales view.
+ * Per-product request pool: for every product that's been requested in scope, the
+ * journey-stage breakdown of its requested units (same stages as the product page)
+ * plus how many are still outstanding (not on the website). `onlyUnfulfilled`
+ * keeps just the products that still have outstanding units.
  */
-export async function requestPool(scopes: string[], search?: string): Promise<RequestPoolRow[]> {
+export async function requestPool(
+  scopes: string[],
+  opts: { search?: string; onlyUnfulfilled?: boolean } = {},
+): Promise<RequestPoolRow[]> {
   if (!scopes.length) return [];
   const items = await prisma.item.findMany({
     where: { requestId: { not: null }, scope: { in: scopes } },
     select: { productId: true, scope: true, status: true, exceptionFlag: true },
   });
-  const rows = new Map<string, RequestPoolRow>();
+  const grouped = new Map<string, { scope: string; productId: number; items: { status: string; exceptionFlag: string | null }[] }>();
   for (const it of items) {
     const key = `${it.scope}:${it.productId}`;
-    let r = rows.get(key);
-    if (!r) {
-      r = { scope: it.scope, productId: it.productId, productName: "—", requested: 0, ongoing: 0, delivered: 0, errant: 0 };
-      rows.set(key, r);
-    }
-    r.requested++;
-    if (it.exceptionFlag === "ERRANT") r.errant++;
-    else if (it.status === "WEBSITE") r.delivered++;
-    else r.ongoing++;
+    let g = grouped.get(key);
+    if (!g) { g = { scope: it.scope, productId: it.productId, items: [] }; grouped.set(key, g); }
+    g.items.push({ status: it.status, exceptionFlag: it.exceptionFlag });
   }
-  if (rows.size) {
-    const products = await prisma.product.findMany({ where: { id: { in: [...new Set([...rows.values()].map((r) => r.productId))] } }, select: { id: true, name: true } });
-    const nameOf = new Map(products.map((p) => [p.id, p.name]));
-    for (const r of rows.values()) r.productName = nameOf.get(r.productId) ?? "—";
+  const nameOf = new Map<number, string>();
+  if (grouped.size) {
+    const products = await prisma.product.findMany({ where: { id: { in: [...new Set([...grouped.values()].map((g) => g.productId))] } }, select: { id: true, name: true } });
+    for (const p of products) nameOf.set(p.id, p.name);
   }
-  let list = [...rows.values()];
-  if (search) {
-    const q = search.toLowerCase();
+  let list: RequestPoolRow[] = [...grouped.values()].map((g) => {
+    const outstanding = g.items.filter((it) => it.status !== "WEBSITE").length;
+    return { scope: g.scope, productId: g.productId, productName: nameOf.get(g.productId) ?? "—", stages: stageTally(g.items), total: g.items.length, outstanding };
+  });
+  if (opts.onlyUnfulfilled) list = list.filter((r) => r.outstanding > 0);
+  if (opts.search) {
+    const q = opts.search.toLowerCase();
     list = list.filter((r) => r.productName.toLowerCase().includes(q));
   }
-  return list;
+  return list.sort((a, b) => b.total - a.total || a.productName.localeCompare(b.productName));
 }
 
 /** Lightweight (id + deliveredAt) for all in-scope requests — feeds the SLA

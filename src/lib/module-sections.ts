@@ -53,8 +53,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   // Products is a shortcut to the Sales-owned shared catalog (purchasing folks).
   logistics: [
     { labelKey: "requests.title", icon: "🧾", href: "/requests?m=logistics" },
-    { labelKey: "requests.pool", icon: "📊", href: "/requests/pool?m=logistics" },
-    { labelKey: "purchasing.pool", icon: "🪣", href: "/purchasing/pool", module: "purchasing" },
+    { labelKey: "purchasing.toBuy", icon: "🪣", href: "/purchasing/pool", module: "purchasing" },
     { labelKey: "purchasing.purchases", icon: "🛒", href: "/purchasing/purchases", module: "purchasing" },
     { labelKey: "patches.title", icon: "📮", href: "/patches" },
     { labelKey: "trip.title", icon: "✈️", href: "/trips" },

@@ -9,9 +9,9 @@ import { ListSearch } from "@/components/ListSearch";
 import { RequestsTabs } from "../RequestsTabs";
 import { RequestProductsTable } from "../RequestProductsTable";
 
-// Tab 3 — Request Pool: requested products that aren't fulfilled yet (still have
-// units off the website), with the per-product journey-stage breakdown.
-export default async function RequestPoolPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+// Tab 2 — Requested products: every product that's been requested (one row each),
+// with its journey-stage breakdown. Click a product to open its detail page.
+export default async function RequestedProductsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
   const visible = requestScopes(access, "VIEW");
   if (!visible.length) redirect("/");
@@ -20,13 +20,13 @@ export default async function RequestPoolPage({ searchParams }: { searchParams: 
   const moduleKey = ctx ?? primaryRequestModule(access);
   const ctxScopes = ctx ? moduleContextScopes(ctx) : null;
   const scopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
-  const [t, pool] = await Promise.all([getT(), requestPool(scopes, { search: sp.q, onlyUnfulfilled: true })]);
+  const [t, pool] = await Promise.all([getT(), requestPool(scopes, { search: sp.q })]);
 
   return (
-    <AppShell access={access} moduleKey={moduleKey} pageTitle={t("requests.pool")} backHref="/requests">
-      <RequestsTabs active="pool" m={ctx ?? ""} t={t} />
-      <ListSearch basePath="/requests/pool" value={sp.q ?? ""} placeholder={t("rpool.search")} extra={{ m: ctx ?? undefined }} />
-      <RequestProductsTable rows={pool} t={t} empty={t("rpool.emptyUnfulfilled")} />
+    <AppShell access={access} moduleKey={moduleKey} pageTitle={t("requests.products")} backHref="/requests">
+      <RequestsTabs active="products" m={ctx ?? ""} t={t} />
+      <ListSearch basePath="/requests/products" value={sp.q ?? ""} placeholder={t("rpool.search")} extra={{ m: ctx ?? undefined }} />
+      <RequestProductsTable rows={pool} t={t} empty={t("rpool.empty")} />
     </AppShell>
   );
 }

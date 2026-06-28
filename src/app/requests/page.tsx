@@ -39,7 +39,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
 
   const [t, { rows, total }, summary, slaInputs] = await Promise.all([
     getT(),
-    listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, sort, dir, skip, take }),
+    listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, onlyUnfulfilled: true, sort, dir, skip, take }),
     itemStatusSummary(scopes),
     listRequestSlaInputs({ scopes }),
   ]);

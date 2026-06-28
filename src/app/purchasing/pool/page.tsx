@@ -16,7 +16,7 @@ export default async function PoolPage() {
     <AppShell
       access={access}
       moduleKey="logistics"
-      pageTitle={t("purchasing.pool")}
+      pageTitle={t("purchasing.toBuy")}
       actions={canBuy && pool.length > 0 ? <Link href="/purchasing/purchases/new" className="btn-primary">+ {t("purchasing.new")}</Link> : null}
     >
       <div className="card overflow-x-auto">

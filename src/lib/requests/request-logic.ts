@@ -55,9 +55,9 @@ export function requestScopes(a: AccessLike, level: Level): Scope[] {
   const s = new Set<Scope>();
   if (ok("order_requests")) s.add("EGV");
   if (ok("xoonx")) s.add("XOONX");
-  // Logistics can VIEW requests (read-only) across the operational scopes — they
-  // fulfil them. They don't get OPERATE (creating/managing requests stays Sales).
-  if (level !== "OPERATE" && a.canModule("logistics", "VIEW")) {
+  // Logistics & Purchasing can VIEW requests (read-only) across the operational
+  // scopes — they fulfil/buy for them. No OPERATE (creating requests stays Sales).
+  if (level !== "OPERATE" && (a.canModule("logistics", "VIEW") || a.canModule("purchasing", "VIEW"))) {
     s.add("EGV");
     s.add("XOONX");
   }
