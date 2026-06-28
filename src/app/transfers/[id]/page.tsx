@@ -48,16 +48,15 @@ export default async function TransferDetailPage({ params }: { params: Promise<{
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("transfers.items")} ({items.length})</h2>
           <table className="w-full text-sm" data-cards>
-            <thead><tr className="border-b border-line"><th className="th">{t("requests.uid")}</th><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
+            <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
             <tbody className="divide-y divide-line">
               {items.map((it) => (
                 <tr key={it.id}>
-                  <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>{it.uid ?? it.id}</td>
                   <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link></td>
                   <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>
                 </tr>
               ))}
-              {items.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("transfers.noItems")}</td></tr>}
+              {items.length === 0 && <tr><td className="td text-muted" colSpan={2}>{t("transfers.noItems")}</td></tr>}
             </tbody>
           </table>
         </div>

@@ -143,19 +143,18 @@ export default async function XoonxReportsPage({ searchParams }: { searchParams:
           <h2 className="border-b border-line p-4 font-semibold text-ink">{t("xrep.orders")}</h2>
           <table className="w-full text-sm" data-cards>
             <thead className="border-b border-line bg-canvas">
-              <tr><th className="th">{t("requests.uid")}</th><th className="th">{t("xrep.product")}</th><th className="th text-end">{t("xrep.selling")}</th><th className="th text-end">{t("xrep.purchasing")}</th><th className="th text-end">{t("xrep.gross")}</th></tr>
+              <tr><th className="th">{t("xrep.product")}</th><th className="th text-end">{t("xrep.selling")}</th><th className="th text-end">{t("xrep.purchasing")}</th><th className="th text-end">{t("xrep.gross")}</th></tr>
             </thead>
             <tbody className="divide-y divide-line">
               {r.orders.map((o) => (
                 <tr key={o.requestId}>
-                  <td className="td font-mono text-xs" data-label={t("requests.uid")}><Link href={`/requests/${o.requestId}`} className="text-brand hover:underline">{o.uid}</Link></td>
-                  <td className="td" data-label={t("xrep.product")}>{o.product}</td>
+                  <td className="td" data-label={t("xrep.product")}><Link href={`/requests/${o.requestId}`} className="font-medium text-brand hover:underline">{o.product}</Link></td>
                   <td className="td text-end" data-label={t("xrep.selling")}>{egp(o.selling)}</td>
                   <td className="td text-end text-muted" data-label={t("xrep.purchasing")}>{egp(o.purchasing)}</td>
                   <td className="td text-end font-medium text-ink" data-label={t("xrep.gross")}>{egp(o.gross)}</td>
                 </tr>
               ))}
-              {r.orders.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("xrep.empty")}</td></tr>}
+              {r.orders.length === 0 && <tr><td className="td text-muted" colSpan={4}>{t("xrep.empty")}</td></tr>}
             </tbody>
           </table>
         </div>

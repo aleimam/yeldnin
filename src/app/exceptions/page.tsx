@@ -58,7 +58,6 @@ export default async function ExceptionsPage({ searchParams }: { searchParams: P
                     <tr key={r.id} className="hover:bg-canvas/60">
                       <td className="td" data-label={t("exceptions.item")}>
                         <Link href={`/history/items/${r.id}`} className="text-brand hover:underline">{r.productName}</Link>
-                        <span className="block font-mono text-[10px] text-muted">{r.uid ?? `#${r.id}`}</span>
                       </td>
                       <td className="td text-muted" data-label={t("exceptions.source")}>
                         {r.sourceContainerType ? `${t(`container.${r.sourceContainerType}`)} #${r.sourceContainerId}` : "—"}

@@ -52,7 +52,7 @@ export default async function PatchesPage({ searchParams }: { searchParams: Prom
                   <Link href={`/patches/${p.id}`} className="text-brand hover:underline">
                     {t("patch.friendly", { count: counts.get(p.id)?.total ?? 0, supplier: p.supplierName ?? "—", dest: p.destinationName ?? "—" })}
                   </Link>
-                  <div className="font-mono text-xs text-muted">{p.uid ?? p.id} · {p.country}</div>
+                  <div className="font-mono text-xs text-muted">{p.country}</div>
                 </td>
                 <td className="td" data-label={t("requests.items")}><ItemCounts counts={counts.get(p.id) ?? emptyCategoryCounts()} labels={labels} /></td>
                 <td className="td text-muted" data-label={t("patches.tracking")}>{p.tracking ?? "—"}</td>

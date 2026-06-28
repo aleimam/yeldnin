@@ -57,7 +57,7 @@ export default async function PurchasesPage({ searchParams }: { searchParams: Pr
                   <Link href={`/purchasing/purchases/${p.id}`} className="text-brand hover:underline">
                     {t("purchase.friendly", { count: counts.get(p.id)?.total ?? 0, supplier: p.supplierName ?? "—", dest: p.destinationName ?? "—" })}
                   </Link>
-                  <div className="font-mono text-xs text-muted">{p.uid ?? p.id} · {p.country}</div>
+                  <div className="font-mono text-xs text-muted">{p.country}</div>
                 </td>
                 <td className="td text-muted" data-label={t("requests.scope")}>{t(`scope.${p.scope}`)}</td>
                 <td className="td" data-label={t("requests.items")}><ItemCounts counts={counts.get(p.id) ?? emptyCategoryCounts()} labels={labels} /></td>

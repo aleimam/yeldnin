@@ -95,7 +95,6 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
           <table className="w-full text-sm" data-cards>
             <thead>
               <tr className="border-b border-line">
-                <th className="th">{t("requests.uid")}</th>
                 <th className="th">{t("requests.product")}</th>
                 <th className="th">{t("requests.status")}</th>
                 {isSpecial && <th className="th">{t("sla.promised")}</th>}
@@ -108,7 +107,6 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 const s = slaMap.get(it.id);
                 return (
                   <tr key={it.id}>
-                    <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>{it.uid ?? it.id}</td>
                     <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link></td>
                     <td className="td" data-label={t("requests.status")}>{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
                     {isSpecial && <td className="td text-muted" data-datecol data-label={t("sla.promised")}>{s ? formatBizDate(s.promised) : "—"}</td>}

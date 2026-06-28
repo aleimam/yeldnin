@@ -56,7 +56,6 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                     )}
                     {dn}
                   </Link>
-                  {u.uid && <span className="ms-9 block text-xs text-muted">{u.uid}</span>}
                 </td>
                 <td className="td text-muted" data-label={t("users.email")}>{u.email}</td>
                 <td className="td" data-label={t("users.tier")}>{t(`tier.${u.tier}`)}</td>

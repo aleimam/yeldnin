@@ -48,13 +48,13 @@ export default async function InquiriesPage({ searchParams }: { searchParams: Pr
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-ink">{r.uid ?? `#${r.id}`}</span>
+          <span className="text-sm font-medium text-ink">{t(`inq.kind.${r.unitKind}`)} #{r.unitId}</span>
           <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${pillTone(r.status)}`}>
             {t(statusLabelKey(r.status))}
           </span>
         </div>
         <div className="truncate text-xs text-muted">
-          {displayName(r.initiator, locale)} → {displayName(r.recipient, locale)} · {t(`inq.kind.${r.unitKind}`)} #{r.unitId}
+          {displayName(r.initiator, locale)} → {displayName(r.recipient, locale)}
         </div>
       </div>
       <div className="shrink-0 text-end text-[11px] text-muted">

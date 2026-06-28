@@ -30,7 +30,6 @@ export default async function CarriersPage({ searchParams }: { searchParams: Pro
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("carriers.uid")}</th>
               <th className="th">{t("carriers.name")}</th>
               <th className="th">{t("carriers.contact")}</th>
             </tr>
@@ -38,7 +37,6 @@ export default async function CarriersPage({ searchParams }: { searchParams: Pro
           <tbody className="divide-y divide-line">
             {rows.map((c) => (
               <tr key={c.id} className="hover:bg-canvas/60">
-                <td className="td font-mono text-xs text-muted" data-label={t("carriers.uid")}>{c.uid ?? c.id}</td>
                 <td className="td" data-label={t("carriers.name")}>
                   <Link href={`/carriers/${c.id}`} className="font-medium text-brand hover:underline">{c.name}</Link>
                   {!c.active && <span className="ms-2 rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t("carriers.inactive")}</span>}
@@ -46,7 +44,7 @@ export default async function CarriersPage({ searchParams }: { searchParams: Pro
                 <td className="td text-muted" data-label={t("carriers.contact")}>{c.contact ?? "—"}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("carriers.empty")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={2}>{t("carriers.empty")}</td></tr>}
           </tbody>
         </table>
       </div>

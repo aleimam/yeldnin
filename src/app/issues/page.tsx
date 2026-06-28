@@ -30,7 +30,6 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("issues.uid")}</th>
               <th className="th">{t("issues.titleField")}</th>
               <th className="th">{t("issues.status")}</th>
               <th className="th text-end">{t("issues.comps")}</th>
@@ -39,10 +38,9 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
           <tbody className="divide-y divide-line">
             {rows.map((i) => (
               <tr key={i.id} className={i.status === "SOLVED" ? "opacity-60" : "hover:bg-canvas/60"}>
-                <td className="td font-mono text-xs text-muted" data-label={t("issues.uid")}>
-                  <Link href={`/issues/${i.id}`} className="text-brand hover:underline">{i.uid ?? i.id}</Link>
+                <td className="td" data-label={t("issues.titleField")}>
+                  <Link href={`/issues/${i.id}`} className="font-medium text-brand hover:underline">{i.title}</Link>
                 </td>
-                <td className="td" data-label={t("issues.titleField")}>{i.title}</td>
                 <td className="td" data-label={t("issues.status")}>
                   {i.status === "OPEN" ? (
                     <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] text-red-700">{t("issues.open")}</span>
@@ -53,7 +51,7 @@ export default async function IssuesPage({ searchParams }: { searchParams: Promi
                 <td className="td text-end text-muted" data-label={t("issues.comps")}>{i._count.compensations}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={4}>{t("issues.empty")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("issues.empty")}</td></tr>}
           </tbody>
         </table>
       </div>

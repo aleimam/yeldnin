@@ -39,7 +39,6 @@ export default async function HubsPage({ searchParams }: { searchParams: Promise
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("hubs.uid")}</th>
               <th className="th">{t("hubs.name")}</th>
               <th className="th">{t("hubs.country")}</th>
               <th className="th">{t("trip.inventory")}</th>
@@ -51,7 +50,6 @@ export default async function HubsPage({ searchParams }: { searchParams: Promise
               const pending = inbound.get(h.id)?.count ?? 0;
               return (
               <tr key={h.id} className={`hover:bg-canvas/60 ${slaRowClass(sla.get(h.id))}`}>
-                <td className="td font-mono text-xs text-muted" data-label={t("hubs.uid")}>{h.uid ?? "—"}</td>
                 <td className="td" data-label={t("hubs.name")}>
                   <Link href={`/hubs/${h.id}`} className="font-medium text-brand hover:underline">{h.name}</Link>
                   {h._count.photos > 0 && <span className="ms-2 text-xs text-muted">📎{h._count.photos}</span>}
@@ -63,7 +61,7 @@ export default async function HubsPage({ searchParams }: { searchParams: Promise
               </tr>
               );
             })}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("hubs.empty")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={4}>{t("hubs.empty")}</td></tr>}
           </tbody>
         </table>
       </div>

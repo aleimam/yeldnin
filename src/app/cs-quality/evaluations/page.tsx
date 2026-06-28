@@ -43,7 +43,6 @@ export default async function CsAllEvaluationsPage({ searchParams }: { searchPar
         <table className="w-full text-sm" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("cs.uid")}</th>
               <th className="th">{t("cs.salesRep")}</th>
               <th className="th">{t("cs.scope")}</th>
               <th className="th">{t("cs.evaluator")}</th>
@@ -57,10 +56,9 @@ export default async function CsAllEvaluationsPage({ searchParams }: { searchPar
           <tbody className="divide-y divide-line">
             {rows.map((e) => (
               <tr key={e.id} className="hover:bg-canvas/60">
-                <td className="td" data-label={t("cs.uid")}>
-                  <Link href={`/cs-quality/evaluations/${e.id}`} className="font-medium text-brand hover:underline">{e.uid ?? `#${e.id}`}</Link>
+                <td className="td" data-label={t("cs.salesRep")}>
+                  <Link href={`/cs-quality/evaluations/${e.id}`} className="font-medium text-brand hover:underline">{e.subject}</Link>
                 </td>
-                <td className="td" data-label={t("cs.salesRep")}>{e.subject}</td>
                 <td className="td text-muted" data-label={t("cs.scope")}>
                   {t(`cs.scope.${e.scope}`)}{e.typeName ? ` · ${e.typeName}` : ""}
                   {(e.channel || e.contact) && <span className="block text-xs">{[e.channel ? t(`cs.channel.${e.channel}`) : null, e.contact].filter(Boolean).join(" · ")}</span>}
@@ -75,7 +73,7 @@ export default async function CsAllEvaluationsPage({ searchParams }: { searchPar
                 <td className="td" data-label={t("cs.review")}>{e.status === "PENDING" && <ReviewActions id={e.id} />}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={9}>{t("cs.noEvaluations")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={8}>{t("cs.noEvaluations")}</td></tr>}
           </tbody>
         </table>
       </div>

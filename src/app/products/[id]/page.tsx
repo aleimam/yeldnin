@@ -79,13 +79,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm text-muted">—</p>
           ) : (
             <table className="w-full text-sm" data-cards>
-              <thead><tr className="border-b border-line"><th className="th">{t("requests.uid")}</th><th className="th">{t("requests.type")}</th><th className="th">{t("requests.customer")}</th><th className="th text-end">{t("requests.count")}</th></tr></thead>
+              <thead><tr className="border-b border-line"><th className="th">{t("requests.customer")}</th><th className="th">{t("requests.type")}</th><th className="th text-end">{t("requests.count")}</th></tr></thead>
               <tbody className="divide-y divide-line">
                 {requests.map((r, i) => (
                   <tr key={`${r.id}-${i}`}>
-                    <td className="td font-mono text-xs" data-label={t("requests.uid")}><Link href={`/requests/${r.id}`} className="text-brand hover:underline">{r.uid ?? `#${r.id}`}</Link></td>
-                    <td className="td" data-label={t("requests.type")}>{t(`reqtype.${r.type}`)}</td>
-                    <td className="td text-muted" data-label={t("requests.customer")}>{r.customer ?? "—"}</td>
+                    <td className="td" data-label={t("requests.customer")}><Link href={`/requests/${r.id}`} className="font-medium text-brand hover:underline">{r.customer ?? t(`reqtype.${r.type}`)}</Link></td>
+                    <td className="td text-muted" data-label={t("requests.type")}>{t(`reqtype.${r.type}`)}</td>
                     <td className="td text-end" data-label={t("requests.count")}>{r.count}</td>
                   </tr>
                 ))}

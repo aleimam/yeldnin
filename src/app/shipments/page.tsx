@@ -21,7 +21,6 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("shipments.uid")}</th>
               <th className="th">{t("shipments.scope")}</th>
               <th className="th">{t("shipments.status")}</th>
             </tr>
@@ -29,14 +28,13 @@ export default async function ShipmentsPage({ searchParams }: { searchParams: Pr
           <tbody className="divide-y divide-line">
             {rows.map((s) => (
               <tr key={s.id} className="hover:bg-canvas/60">
-                <td className="td font-mono text-xs text-muted" data-label={t("shipments.uid")}>
-                  <Link href={`/shipments/${s.id}`} className="text-brand hover:underline">{s.uid ?? s.id}</Link>
+                <td className="td" data-label={t("shipments.scope")}>
+                  <Link href={`/shipments/${s.id}`} className="font-medium text-brand hover:underline">{t(`scope.${s.scope}`)}</Link>
                 </td>
-                <td className="td text-muted" data-label={t("shipments.scope")}>{t(`scope.${s.scope}`)}</td>
                 <td className="td" data-label={t("shipments.status")}>{t(`shipmentstatus.${s.status}`)}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("shipments.empty")}</td></tr>}
+            {rows.length === 0 && <tr><td className="td text-muted" colSpan={2}>{t("shipments.empty")}</td></tr>}
           </tbody>
         </table>
       </div>
