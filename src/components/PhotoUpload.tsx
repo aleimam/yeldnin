@@ -9,21 +9,38 @@ export interface UploadedPhoto {
   mime?: string;
 }
 
-async function uploadFile(file: File): Promise<UploadedPhoto> {
+// Keep in sync with MAX_UPLOAD_BYTES in assets-service (that file is server-only,
+// so the limit can't be imported into this client component).
+const MAX_UPLOAD_BYTES = 32 * 1024 * 1024; // 32 MB
+
+async function uploadFile(file: File, t: (k: string) => string): Promise<UploadedPhoto> {
   const fd = new FormData();
   // Compress images client-side (WebP, ≤1600px) before upload so every module's
-  // photo uploads stay small; non-images (PDFs) pass through untouched.
+  // photo uploads stay small; non-images (PDFs) pass through untouched. Note that
+  // compressImage falls back to the ORIGINAL file when the browser can't decode it
+  // (e.g. HEIC from an iPhone), so the post-compression size can still be large.
+  let toSend = file;
   if (file.type.startsWith("image/")) {
     const { blob } = await compressImage(file);
     const base = file.name.replace(/\.[^.]+$/, "") || "image";
-    fd.append("file", new File([blob], `${base}.webp`, { type: blob.type || "image/webp" }));
-  } else {
-    fd.append("file", file);
+    toSend = new File([blob], `${base}.webp`, { type: blob.type || "image/webp" });
   }
-  const res = await fetch("/api/upload", { method: "POST", body: fd });
+  // Pre-flight the size client-side: an oversize body is otherwise rejected by the
+  // reverse proxy mid-stream, which surfaces as a cryptic "Failed to fetch".
+  if (toSend.size > MAX_UPLOAD_BYTES) throw new Error(t("upload.tooLarge"));
+  fd.append("file", toSend);
+  let res: Response;
+  try {
+    res = await fetch("/api/upload", { method: "POST", body: fd });
+  } catch {
+    // fetch() rejects with a TypeError on a network failure or a proxy connection
+    // reset (e.g. the body exceeded the proxy's client_max_body_size) — neither
+    // reaches the app, so translate it into something the user can act on.
+    throw new Error(t("upload.network"));
+  }
   if (!res.ok) {
     const j = await res.json().catch(() => ({}));
-    throw new Error(j.error ?? "Upload failed.");
+    throw new Error(j.error ?? t("upload.failed"));
   }
   return res.json();
 }
@@ -59,10 +76,10 @@ export function PhotoUpload({
     setBusy(true);
     try {
       const added: UploadedPhoto[] = [];
-      for (const f of ok) added.push(await uploadFile(f));
+      for (const f of ok) added.push(await uploadFile(f, t));
       if (added.length) onChange([...photosRef.current, ...added]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed.");
+      setError(e instanceof Error ? e.message : t("upload.failed"));
     } finally {
       setBusy(false);
     }
