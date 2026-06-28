@@ -14,6 +14,8 @@ export function moduleContextScopes(moduleKey: string): Scope[] | null {
       return ["EGV"];
     case "xoonx":
       return ["XOONX"];
+    case "logistics":
+      return ["EGV", "XOONX"]; // logistics fulfils both operational scopes
     default:
       return null;
   }

@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
-import { listRequestsPaged, listRequestSlaInputs } from "@/lib/requests/request-service";
+import { listRequestsPaged, listRequestSlaInputs, requestCreatorNames, type RequestSortKey } from "@/lib/requests/request-service";
 import { itemStatusSummary, categoryCountsByRequest } from "@/lib/items/items-service";
 import { ITEM_BUCKETS, categoryLabels, emptyCategoryCounts } from "@/lib/items/items-logic";
 import { moduleContextScopes } from "@/lib/module-context";
@@ -13,10 +13,14 @@ import { worstSlaByRequest } from "@/lib/sla/sla-service";
 import { slaRowClass } from "@/lib/sla/sla-logic";
 import { SlaBadge } from "@/components/SlaBadge";
 import { ItemCounts } from "@/components/ItemCounts";
+import { CountPopover } from "@/components/CountPopover";
 import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
 import { Paginator } from "@/components/Paginator";
 import { RequestsFilters } from "./RequestsFilters";
+import { RequestsTabs } from "./RequestsTabs";
 import { RequestStatusBadge } from "./RequestStatusBadge";
+
+const SORT_KEYS = ["created", "customer", "type", "status", "scope"] as const;
 
 export default async function RequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireUser();
@@ -30,20 +34,19 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const canManage = requestScopes(access, "OPERATE").length > 0;
   const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
   const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
+  const sort = (SORT_KEYS as readonly string[]).includes(sp.sort ?? "") ? (sp.sort as RequestSortKey) : "created";
+  const dir = sp.dir === "asc" ? "asc" : "desc";
+
   const [t, { rows, total }, summary, slaInputs] = await Promise.all([
     getT(),
-    listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, skip, take }),
+    listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, sort, dir, skip, take }),
     itemStatusSummary(scopes),
     listRequestSlaInputs({ scopes }),
   ]);
-  // SLA over ALL in-scope requests (summary cards stay whole-scope), then reused
-  // for the current page's row tint.
-  const [slaByReq, counts] = await Promise.all([
-    worstSlaByRequest(
-      slaInputs.map((r) => r.id),
-      new Map(slaInputs.map((r) => [r.id, r.deliveredAt])),
-    ),
+  const [slaByReq, counts, creators] = await Promise.all([
+    worstSlaByRequest(slaInputs.map((r) => r.id), new Map(slaInputs.map((r) => [r.id, r.deliveredAt]))),
     categoryCountsByRequest(rows.map((r) => r.id)),
+    requestCreatorNames(rows.map((r) => r.createdById)),
   ]);
   const labels = categoryLabels(t);
   let slaRisk = 0;
@@ -53,6 +56,18 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     else if (s === "DELAYED") slaDelayed++;
   }
 
+  const sortHref = (key: string) => {
+    const p = new URLSearchParams();
+    for (const k of ["q", "type", "status", "m", "perPage"] as const) {
+      const v = sp[k];
+      if (v) p.set(k, v);
+    }
+    p.set("sort", key);
+    p.set("dir", sort === key && dir === "desc" ? "asc" : "desc");
+    return `/requests?${p.toString()}`;
+  };
+  const arrow = (key: string) => (sort === key ? (dir === "desc" ? " ↓" : " ↑") : "");
+
   return (
     <AppShell
       access={access}
@@ -60,6 +75,8 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       pageTitle={t("requests.title")}
       actions={canManage ? <Link href="/requests/new" className="btn-primary">+ {t("requests.new")}</Link> : null}
     >
+      <RequestsTabs active="list" m={ctx ?? ""} t={t} />
+
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {ITEM_BUCKETS.map((b) => (
           <div key={b} className="card p-3 text-center">
@@ -82,11 +99,11 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         <table className="w-full" data-cards>
           <thead className="border-b border-line bg-canvas">
             <tr>
-              <th className="th">{t("requests.uid")}</th>
-              <th className="th">{t("requests.type")}</th>
-              <th className="th">{t("req.status")}</th>
-              <th className="th">{t("requests.scope")}</th>
-              <th className="th">{t("requests.customer")}</th>
+              <th className="th"><Link href={sortHref("customer")} className="hover:text-brand">{t("requests.customer")}{arrow("customer")}</Link></th>
+              <th className="th"><Link href={sortHref("type")} className="hover:text-brand">{t("requests.type")}{arrow("type")}</Link></th>
+              <th className="th"><Link href={sortHref("status")} className="hover:text-brand">{t("req.status")}{arrow("status")}</Link></th>
+              <th className="th"><Link href={sortHref("scope")} className="hover:text-brand">{t("requests.scope")}{arrow("scope")}</Link></th>
+              <th className="th">{t("requests.createdBy")}</th>
               <th className="th">{t("requests.items")}</th>
               <th className="th">SLA</th>
             </tr>
@@ -94,16 +111,17 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
           <tbody className="divide-y divide-line">
             {rows.map((r) => {
               const st = slaByReq.get(r.id);
+              const lineItems = r.lines.map((l) => ({ name: l.product.name, count: l.count }));
               return (
                 <tr key={r.id} className={`hover:bg-canvas/60 ${slaRowClass(st)}`}>
-                  <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>
-                    <Link href={`/requests/${r.id}`} className="text-brand hover:underline">{r.uid ?? r.id}</Link>
+                  <td className="td" data-label={t("requests.customer")}>
+                    <Link href={`/requests/${r.id}`} className="font-medium text-brand hover:underline">{r.customer?.name ?? t(`reqtype.${r.type}`)}</Link>
                   </td>
                   <td className="td" data-label={t("requests.type")}>{t(`reqtype.${r.type}`)}</td>
                   <td className="td" data-label={t("req.status")}><RequestStatusBadge status={r.status} label={t(`reqstatus.${r.status}`)} /></td>
                   <td className="td text-muted" data-label={t("requests.scope")}>{t(`scope.${r.scope}`)}</td>
-                  <td className="td text-muted" data-label={t("requests.customer")}>{r.customer?.name ?? "—"}</td>
-                  <td className="td" data-label={t("requests.items")}><ItemCounts counts={counts.get(r.id) ?? emptyCategoryCounts()} labels={labels} /></td>
+                  <td className="td text-muted" data-label={t("requests.createdBy")}>{r.createdById ? creators.get(r.createdById) ?? "—" : "—"}</td>
+                  <td className="td" data-label={t("requests.items")}><CountPopover trigger={<ItemCounts counts={counts.get(r.id) ?? emptyCategoryCounts()} labels={labels} />} items={lineItems} empty={t("requests.empty")} /></td>
                   <td className="td" data-label="SLA">{st ? <SlaBadge status={st} label={t(`sla.${st.toLowerCase()}`)} /> : <span className="text-muted">—</span>}</td>
                 </tr>
               );

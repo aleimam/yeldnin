@@ -10,6 +10,8 @@ import { usesApprovalGate, requestLinesEditable } from "./request-logic";
 import { sendCustomNotification } from "@/lib/notify/notify-message-service";
 import { moduleOperatorIds } from "@/lib/notify/notify-service";
 import { makeT, isLocale, DEFAULT_LOCALE } from "@/i18n";
+import { getLocale } from "@/i18n/server";
+import { displayName } from "@/lib/users/users-logic";
 
 export interface CreateRequestInput {
   type: string;
@@ -269,12 +271,24 @@ export function listRequests(opts: { scopes: string[] }) {
   });
 }
 
-/** Paginated + filtered requests (for the Requests page). */
+export type RequestSortKey = "created" | "customer" | "type" | "status" | "scope";
+const REQUEST_ORDER_BY: Record<RequestSortKey, (dir: "asc" | "desc") => object> = {
+  created: (dir) => ({ createdAt: dir }),
+  customer: (dir) => ({ customer: { name: dir } }),
+  type: (dir) => ({ type: dir }),
+  status: (dir) => ({ status: dir }),
+  scope: (dir) => ({ scope: dir }),
+};
+
+/** Paginated + filtered + sortable requests (for the Requests page). Each row
+ *  carries its creator + its request lines (product + count) for the popup. */
 export async function listRequestsPaged(opts: {
   scopes: string[];
   search?: string;
   type?: string;
   status?: string;
+  sort?: RequestSortKey;
+  dir?: "asc" | "desc";
   skip?: number;
   take?: number;
 }) {
@@ -287,17 +301,79 @@ export async function listRequestsPaged(opts: {
       ? { OR: [{ uid: { contains: opts.search } }, { customer: { name: { contains: opts.search } } }] }
       : {}),
   };
+  const orderBy = REQUEST_ORDER_BY[opts.sort ?? "created"](opts.dir ?? "desc");
   const [rows, total] = await prisma.$transaction([
     prisma.request.findMany({
       where,
-      orderBy: { createdAt: "desc" },
-      include: { customer: { select: { name: true } }, _count: { select: { lines: true } } },
+      orderBy,
+      include: {
+        customer: { select: { name: true } },
+        _count: { select: { lines: true } },
+        lines: { select: { count: true, product: { select: { name: true } } } },
+      },
       skip: opts.skip ?? 0,
       take: opts.take ?? 50,
     }),
     prisma.request.count({ where }),
   ]);
   return { rows, total };
+}
+
+/** Display names for request creators (localized), keyed by userId. */
+export async function requestCreatorNames(ids: (number | null | undefined)[]): Promise<Map<number, string>> {
+  const clean = [...new Set(ids.filter((x): x is number => typeof x === "number"))];
+  if (!clean.length) return new Map();
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({ where: { id: { in: clean } }, select: { id: true, name: true, nameAr: true } }),
+  ]);
+  return new Map(users.map((u) => [u.id, displayName(u, locale)]));
+}
+
+export interface RequestPoolRow {
+  scope: string;
+  productId: number;
+  productName: string;
+  requested: number; // all items ever requested for this product (in scope)
+  ongoing: number; // still in motion = requested − delivered − errant
+  delivered: number; // reached the final WEBSITE state
+  errant: number; // flagged ERRANT
+}
+/**
+ * Per-product request pool: for every product that's been requested in scope,
+ * how many requested units are ongoing / delivered (reached WEBSITE) / errant.
+ * Mirrors the logistics purchasing pool, for the Sales view.
+ */
+export async function requestPool(scopes: string[], search?: string): Promise<RequestPoolRow[]> {
+  if (!scopes.length) return [];
+  const items = await prisma.item.findMany({
+    where: { requestId: { not: null }, scope: { in: scopes } },
+    select: { productId: true, scope: true, status: true, exceptionFlag: true },
+  });
+  const rows = new Map<string, RequestPoolRow>();
+  for (const it of items) {
+    const key = `${it.scope}:${it.productId}`;
+    let r = rows.get(key);
+    if (!r) {
+      r = { scope: it.scope, productId: it.productId, productName: "—", requested: 0, ongoing: 0, delivered: 0, errant: 0 };
+      rows.set(key, r);
+    }
+    r.requested++;
+    if (it.exceptionFlag === "ERRANT") r.errant++;
+    else if (it.status === "WEBSITE") r.delivered++;
+    else r.ongoing++;
+  }
+  if (rows.size) {
+    const products = await prisma.product.findMany({ where: { id: { in: [...new Set([...rows.values()].map((r) => r.productId))] } }, select: { id: true, name: true } });
+    const nameOf = new Map(products.map((p) => [p.id, p.name]));
+    for (const r of rows.values()) r.productName = nameOf.get(r.productId) ?? "—";
+  }
+  let list = [...rows.values()];
+  if (search) {
+    const q = search.toLowerCase();
+    list = list.filter((r) => r.productName.toLowerCase().includes(q));
+  }
+  return list;
 }
 
 /** Lightweight (id + deliveredAt) for all in-scope requests — feeds the SLA

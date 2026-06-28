@@ -6,8 +6,10 @@ describe("moduleContextScopes", () => {
     expect(moduleContextScopes("order_requests")).toEqual(["EGV"]);
     expect(moduleContextScopes("xoonx")).toEqual(["XOONX"]);
   });
-  it("does not restrict cross-scope modules", () => {
-    expect(moduleContextScopes("logistics")).toBeNull();
+  it("scopes Logistics → both operational scopes (it fulfils requests)", () => {
+    expect(moduleContextScopes("logistics")).toEqual(["EGV", "XOONX"]);
+  });
+  it("does not restrict other modules", () => {
     expect(moduleContextScopes("purchasing")).toBeNull();
     expect(moduleContextScopes("anything")).toBeNull();
   });

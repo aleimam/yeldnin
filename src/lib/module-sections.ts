@@ -52,6 +52,8 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   // gated by the (separate) `purchasing` permission; Patches…Hubs by `logistics`.
   // Products is a shortcut to the Sales-owned shared catalog (purchasing folks).
   logistics: [
+    { labelKey: "requests.title", icon: "🧾", href: "/requests?m=logistics" },
+    { labelKey: "requests.pool", icon: "📊", href: "/requests/pool?m=logistics" },
     { labelKey: "purchasing.pool", icon: "🪣", href: "/purchasing/pool", module: "purchasing" },
     { labelKey: "purchasing.purchases", icon: "🛒", href: "/purchasing/purchases", module: "purchasing" },
     { labelKey: "patches.title", icon: "📮", href: "/patches" },
