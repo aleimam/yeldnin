@@ -1204,6 +1204,8 @@
   "requests.customer": "العميل",
   "requests.products": "المنتجات",
   "requests.product": "المنتج",
+  "item.purchase": "الشراء",
+  "item.dispatch": "الإرسالية",
   "requests.count": "العدد",
   "requests.sell": "سعر البيع",
   "requests.buy": "سعر الشراء",

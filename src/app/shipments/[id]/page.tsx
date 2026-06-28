@@ -39,7 +39,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
               {items.map((it) => (
                 <tr key={it.id}>
                   <td className="td font-mono text-xs text-muted" data-label={t("shipments.uid")}>{it.uid ?? it.id}</td>
-                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
+                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link></td>
                   <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>
                 </tr>
               ))}

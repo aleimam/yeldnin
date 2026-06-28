@@ -7,6 +7,7 @@ import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { clampLinesToPool, nextPurchaseStatus, type PurchaseLineInput } from "./purchasing-logic";
 import { isTripPurchaseEligible } from "@/lib/trips/trip-logic";
 import { startTripShippingIfApproved } from "@/lib/trips/trip-service";
+import { markPatchDelivered, markPatchReceived } from "@/lib/patches/patch-service";
 import { parseTypes } from "@/lib/travelers/travelers-logic";
 import { formatBizDate } from "@/lib/format/dates";
 
@@ -229,6 +230,16 @@ export async function advancePurchaseStatus(id: number, userId: number) {
   const next = nextPurchaseStatus(purchase.status);
   if (!next || (await purchaseOnWebsite(id))) return;
   await prisma.purchase.update({ where: { id }, data: { status: next, updatedById: userId } });
+  // Cascade down the dispatch tree: advancing a purchase advances every patch that
+  // came from it, and each patch in turn moves its own items (skipping flagged ones).
+  // Items still ORDERED in the purchase (never dispatched) aren't on a patch — they
+  // stay put; use "Receive at office" to land those straight to the destination.
+  const patches = await prisma.patch.findMany({ where: { purchaseId: id }, select: { id: true, status: true } });
+  if (next === "DELIVERED") {
+    for (const p of patches) if (p.status === "DISPATCHED") await markPatchDelivered(p.id, userId);
+  } else if (next === "RECEIVED") {
+    for (const p of patches) if (p.status !== "RECEIVED") await markPatchReceived(p.id, userId);
+  }
 }
 
 /** Bypass patches: receive the purchase's ordered units straight to the destination hub/trip. */

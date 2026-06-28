@@ -142,6 +142,18 @@
   .td {
     @apply px-3 py-2 text-sm text-ink;
   }
+  /* Product-name cell: constrain width so long names wrap to multiple lines
+     instead of stretching the column (tables sit in overflow-x-auto cards, where
+     a bare max-width on the <td> is ignored — inline-block constrains reliably). */
+  .prodname {
+    display: inline-block;
+    max-width: 14rem;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+  @media (min-width: 640px) {
+    .prodname { max-width: 22rem; }
+  }
 
   /* A table the <AutoCards> detector marks as overflowing gets `table-cards`:
      it collapses to one card per row — each cell a small uppercase label above

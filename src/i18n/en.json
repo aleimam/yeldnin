@@ -1204,6 +1204,8 @@
   "requests.customer": "Customer",
   "requests.products": "Products",
   "requests.product": "Product",
+  "item.purchase": "Purchase",
+  "item.dispatch": "Dispatch",
   "requests.count": "Count",
   "requests.sell": "Selling price",
   "requests.buy": "Purchase price",

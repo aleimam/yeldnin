@@ -79,7 +79,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
             <tbody className="divide-y divide-line">
               {req.lines.map((l) => (
                 <tr key={l.id}>
-                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${l.product.id}`} className="text-brand hover:underline">{l.product.name}</Link></td>
+                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${l.product.id}`} className="prodname text-brand hover:underline">{l.product.name}</Link></td>
                   <td className="td text-end" data-label={t("requests.count")}>{l.count}</td>
                   {canSeeSelling && <td className="td text-end text-muted" data-label={t("requests.sell")}>{l.sellingPrice ?? "—"}</td>}
                   <td className="td text-end text-muted" data-label={t("requests.buy")}>{l.purchasePrice ?? "—"}</td>
@@ -109,7 +109,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
                 return (
                   <tr key={it.id}>
                     <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>{it.uid ?? it.id}</td>
-                    <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
+                    <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link></td>
                     <td className="td" data-label={t("requests.status")}>{wf.salesLabel(it.status as ItemStatus, it.isSpecialOrder, locale === "ar" ? "ar" : "en")}</td>
                     {isSpecial && <td className="td text-muted" data-label={t("sla.promised")}>{s ? formatBizDate(s.promised) : "—"}</td>}
                     {isSpecial && <td className="td text-muted" data-label={t("sla.expected")}>{s ? formatBizDate(s.expected) : "—"}</td>}

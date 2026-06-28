@@ -70,7 +70,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
                 <tr key={it.id}>
                   <td className="td font-mono text-xs text-muted" data-label={t("requests.uid")}>{it.uid ?? it.id}</td>
                   <td className="td" data-label={t("requests.product")}>
-                    <Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link>
+                    <Link href={`/products/${it.product.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link>
                     {it.isGift && <span className="ms-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">{t("purchasing.gift")}</span>}
                   </td>
                   <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>

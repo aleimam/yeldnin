@@ -8,7 +8,8 @@ import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getTrip } from "@/lib/trips/trip-service";
-import { currentContainerItems, inboundPendingItems } from "@/lib/items/items-service";
+import { currentContainerItems, inboundPendingItems, itemsProvenance } from "@/lib/items/items-service";
+import { InventoryTable } from "@/components/logistics/InventoryTable";
 import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { getTripMarks } from "@/lib/review/review-service";
 import { teamsUserCanMark, REVIEW_TEAMS } from "@/lib/review/review-logic";
@@ -38,6 +39,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
     getWorkflow(),
   ]);
   const loc = locale === "ar" ? "ar" : "en";
+  const prov = await itemsProvenance([...inventory, ...inbound].map((i) => i.id));
   const invWeight = inventory.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
   const inboundWeight = inbound.reduce((s, i) => s + (i.product.weightG ?? 0), 0);
   const totalCount = inventory.length + inbound.length;
@@ -90,19 +92,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("trip.inventory")} ({inventory.length} · {kg(invWeight)})</h2>
-          <table className="w-full text-sm" data-cards>
-            <thead><tr className="border-b border-line"><th className="th">{t("trip.uid")}</th><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
-            <tbody className="divide-y divide-line">
-              {inventory.map((it) => (
-                <tr key={it.id}>
-                  <td className="td font-mono text-xs text-muted" data-label={t("trip.uid")}>{it.uid ?? it.id}</td>
-                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
-                  <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>
-                </tr>
-              ))}
-              {inventory.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("trip.noItems")}</td></tr>}
-            </tbody>
-          </table>
+          <InventoryTable items={inventory} prov={prov} label={(s) => wf.label(s, loc)} t={t} emptyKey="trip.noItems" />
           {(canManage || canOps || access.isAdmin) && inventory.length > 0 && (
             <div className="mt-3">
               <FlagItemsControl items={inventory.map((it) => ({ id: it.id, label: `${it.product.name} ${it.uid ?? `#${it.id}`}` }))} />
@@ -112,19 +102,7 @@ export default async function TripDetailPage({ params }: { params: Promise<{ id:
 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("trip.inboundTitle")} ({inbound.length} · {kg(inboundWeight)})</h2>
-          <table className="w-full text-sm" data-cards>
-            <thead><tr className="border-b border-line"><th className="th">{t("trip.uid")}</th><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
-            <tbody className="divide-y divide-line">
-              {inbound.map((it) => (
-                <tr key={it.id}>
-                  <td className="td font-mono text-xs text-muted" data-label={t("trip.uid")}>{it.uid ?? it.id}</td>
-                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
-                  <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>
-                </tr>
-              ))}
-              {inbound.length === 0 && <tr><td className="td text-muted" colSpan={3}>{t("trip.noInbound")}</td></tr>}
-            </tbody>
-          </table>
+          <InventoryTable items={inbound} prov={prov} label={(s) => wf.label(s, loc)} t={t} emptyKey="trip.noInbound" />
         </div>
       </div>
     </AppShell>

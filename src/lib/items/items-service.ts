@@ -266,6 +266,58 @@ export function currentContainerItems(containerType: string, containerId: number
   });
 }
 
+export interface ItemProvenance {
+  purchase: { id: number; uid: string | null } | null;
+  patch: { id: number; uid: string | null } | null;
+}
+/**
+ * For a set of item ids, find the purchase and the dispatch (patch) each unit came
+ * through — derived from its container history (latest PATCH/PURCHASE event), so
+ * we can link an item back to its source even after it's moved into a hub/trip.
+ * The purchase is taken from the patch when possible (patch.purchaseId), else from
+ * a direct PURCHASE event. Batched: 3 queries regardless of item count.
+ */
+export async function itemsProvenance(itemIds: number[]): Promise<Map<number, ItemProvenance>> {
+  const result = new Map<number, ItemProvenance>();
+  if (!itemIds.length) return result;
+  const events = await prisma.itemEvent.findMany({
+    where: { itemId: { in: itemIds }, containerType: { in: ["PATCH", "PURCHASE"] } },
+    orderBy: { id: "desc" },
+    select: { itemId: true, containerType: true, containerId: true },
+  });
+  const patchByItem = new Map<number, number>();
+  const purchaseByItem = new Map<number, number>();
+  for (const e of events) {
+    if (e.containerId == null) continue;
+    if (e.containerType === "PATCH" && !patchByItem.has(e.itemId)) patchByItem.set(e.itemId, e.containerId);
+    if (e.containerType === "PURCHASE" && !purchaseByItem.has(e.itemId)) purchaseByItem.set(e.itemId, e.containerId);
+  }
+  const patchIds = [...new Set(patchByItem.values())];
+  const patches = patchIds.length
+    ? await prisma.patch.findMany({ where: { id: { in: patchIds } }, select: { id: true, uid: true, purchaseId: true } })
+    : [];
+  const patchMap = new Map(patches.map((p) => [p.id, p]));
+  const purchaseIds = new Set<number>();
+  for (const it of itemIds) {
+    const purchaseId = (patchByItem.has(it) ? patchMap.get(patchByItem.get(it)!)?.purchaseId : null) ?? purchaseByItem.get(it) ?? null;
+    if (purchaseId != null) purchaseIds.add(purchaseId);
+  }
+  const purchases = purchaseIds.size
+    ? await prisma.purchase.findMany({ where: { id: { in: [...purchaseIds] } }, select: { id: true, uid: true } })
+    : [];
+  const purchaseMap = new Map(purchases.map((p) => [p.id, p]));
+  for (const it of itemIds) {
+    const patch = patchByItem.has(it) ? patchMap.get(patchByItem.get(it)!) ?? null : null;
+    const purchaseId = (patch?.purchaseId ?? null) ?? purchaseByItem.get(it) ?? null;
+    const purchase = purchaseId != null ? purchaseMap.get(purchaseId) ?? null : null;
+    result.set(it, {
+      purchase: purchase ? { id: purchase.id, uid: purchase.uid } : null,
+      patch: patch ? { id: patch.id, uid: patch.uid } : null,
+    });
+  }
+  return result;
+}
+
 /** Items heading to a destination (TRIP/HUB) via a purchase or patch that haven't
  *  been received yet (pre-HUB), excluding LOST/DAMAGED/ERRANT — the detailed list
  *  behind {@link inboundPendingByDestination}. */
@@ -361,6 +413,9 @@ export async function advanceDueItems(now: Date = new Date()): Promise<number> {
   const candidates = await prisma.item.findMany({
     where: {
       exceptionFlag: null,
+      // Only special orders auto-advance. Non-special (restock) units may sit in a
+      // hub indefinitely — the system never advances their status automatically.
+      isSpecialOrder: true,
       OR: [
         { status: "HUB", transitAt: { lte: now } },
         { status: "TRANSIT", globalShippingAt: { lte: now } },

@@ -72,7 +72,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
               <tr key={p.id} className="hover:bg-canvas/60">
                 <td className="td font-mono text-xs text-muted" data-label={t("products.sku")}>{p.sku ?? "—"}</td>
                 <td className="td" data-label={t("products.name")}>
-                  <Link href={`/products/${p.id}`} className="font-medium text-brand hover:underline">
+                  <Link href={`/products/${p.id}`} className="prodname font-medium text-brand hover:underline">
                     {p.name}
                   </Link>
                   {p._count.photos > 0 && <span className="ms-2 text-xs text-muted">📎{p._count.photos}</span>}

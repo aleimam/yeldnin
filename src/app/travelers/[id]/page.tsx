@@ -89,7 +89,7 @@ export default async function TravelerDetailPage({ params }: { params: Promise<{
               <tbody className="divide-y divide-line">
                 {holding.map((it) => (
                   <tr key={it.id}>
-                    <td className="td" data-label={t("requests.product")}><Link href={`/history/items/${it.id}`} className="text-brand hover:underline">{it.product.name}</Link></td>
+                    <td className="td" data-label={t("requests.product")}><Link href={`/history/items/${it.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link></td>
                     <td className="td text-muted" data-label={t("transfers.country")}>{it.country ?? "—"}</td>
                     <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>
                   </tr>
