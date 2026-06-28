@@ -291,3 +291,87 @@ export async function evaluatorStats(): Promise<EvaluatorStat[]> {
     .map((g) => ({ id: g.evaluatorUserId, name: names.get(g.evaluatorUserId) ?? `#${g.evaluatorUserId}`, submitted: g._count, approved: approvedBy.get(g.evaluatorUserId) ?? 0 }))
     .sort((a, b) => b.submitted - a.submitted);
 }
+
+const shiftMonthUTC = (d: Date, by: number) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + by, 1));
+/** `n` "YYYY-MM" keys ending `back` months before `now`, most-recent first. */
+export function monthsWindow(now: Date, n: number, back = 0): string[] {
+  const end = shiftMonthUTC(now, -back);
+  return Array.from({ length: n }, (_, i) => monthKey(shiftMonthUTC(end, -i)));
+}
+
+export interface MonthlyScoreRow {
+  id: number;
+  name: string;
+  scores: (number | null)[]; // overall composite % per month, aligned to the `months` argument
+}
+/** Full per-rep overall-score record across the given months (APPROVED-only
+ *  composite, same formula as the leaderboard). For the admin score lookup. */
+export async function monthlyScoreMatrix(months: string[]): Promise<MonthlyScoreRow[]> {
+  const [evals, callTypes, cfg] = await Promise.all([
+    prisma.csEvaluation.findMany({ where: { status: "APPROVED", archivedAt: null }, select: { subjectUserId: true, scope: true, typeName: true, normalized: true, callDate: true, createdAt: true } }),
+    callTypeWeights(),
+    getCsConfig(),
+  ]);
+  const bySubject = new Map<number, MonthEval[]>();
+  for (const e of evals) {
+    const arr = bySubject.get(e.subjectUserId) ?? [];
+    arr.push(e);
+    bySubject.set(e.subjectUserId, arr);
+  }
+  const names = await nameMap([...bySubject.keys()]);
+  return [...bySubject.entries()]
+    .map(([id, list]) => ({ id, name: names.get(id) ?? `#${id}`, scores: months.map((mk) => compositeForMonth(list, mk, callTypes, cfg.split).overall) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export interface EvaluatorMonthStat {
+  submitted: number;
+  approved: number;
+  avgScore: number | null; // average normalized % of the month's submissions
+  comments: number; // non-empty criterion notes written that month
+}
+export interface EvaluatorActivityRow {
+  id: number;
+  name: string;
+  months: EvaluatorMonthStat[]; // aligned to the `months` argument
+}
+/** Per-evaluator activity across the given months: submitted/approved counts,
+ *  average score, and comment count — for the merged 6-month activity grid. */
+export async function evaluatorActivity(months: string[]): Promise<EvaluatorActivityRow[]> {
+  const ranges = months.map(monthRangeUTC).filter((r): r is { gte: Date; lt: Date } => r != null);
+  if (!ranges.length) return [];
+  const gte = new Date(Math.min(...ranges.map((r) => r.gte.getTime())));
+  const lt = new Date(Math.max(...ranges.map((r) => r.lt.getTime())));
+  const evals = await prisma.csEvaluation.findMany({
+    where: { archivedAt: null, OR: [{ createdAt: { gte, lt } }, { callDate: { gte, lt } }] },
+    select: { id: true, evaluatorUserId: true, scope: true, status: true, normalized: true, callDate: true, createdAt: true },
+  });
+  const answers = evals.length
+    ? await prisma.csEvaluationAnswer.findMany({ where: { evaluationId: { in: evals.map((e) => e.id) }, note: { not: null } }, select: { evaluationId: true, note: true } })
+    : [];
+  const commentsByEval = new Map<number, number>();
+  for (const a of answers) if (a.note && a.note.trim()) commentsByEval.set(a.evaluationId, (commentsByEval.get(a.evaluationId) ?? 0) + 1);
+  const byEval = new Map<number, typeof evals>();
+  for (const e of evals) {
+    const arr = byEval.get(e.evaluatorUserId) ?? [];
+    arr.push(e);
+    byEval.set(e.evaluatorUserId, arr);
+  }
+  const names = await nameMap([...byEval.keys()]);
+  return [...byEval.entries()]
+    .map(([id, list]) => ({
+      id,
+      name: names.get(id) ?? `#${id}`,
+      months: months.map((mk) => {
+        const inM = list.filter((e) => evalMonth(e) === mk);
+        const submitted = inM.length;
+        return {
+          submitted,
+          approved: inM.filter((e) => e.status === "APPROVED").length,
+          avgScore: submitted ? Math.round(inM.reduce((s, e) => s + e.normalized, 0) / submitted) : null,
+          comments: inM.reduce((s, e) => s + (commentsByEval.get(e.id) ?? 0), 0),
+        };
+      }),
+    }))
+    .sort((a, b) => b.months.reduce((s, m) => s + m.submitted, 0) - a.months.reduce((s, m) => s + m.submitted, 0));
+}
