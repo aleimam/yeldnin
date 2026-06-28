@@ -7,6 +7,7 @@ import { assetUrl } from "@/lib/assets/assets-service";
 import { formatBizDate } from "@/lib/format/dates";
 import { getEmployee, managerOptions, canManageEmployee } from "@/lib/hr/hr-service";
 import { listPositions } from "@/lib/hr/positions-service";
+import { listSalaryTypes, listEmployeeTypes } from "@/lib/hr/employment-types-service";
 import { leaveBalance, listAbsences, dutyDayTypes, listDuties } from "@/lib/hr/attendance-service";
 import { listStructure, eligibleComponents, listChanges } from "@/lib/hr/salary-service";
 import { payrollForEmployee } from "@/lib/hr/payroll-service";
@@ -27,7 +28,10 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
   const [t, locale] = await Promise.all([getT(), getLocale()]);
   const managers = canManage ? await managerOptions(emp.id) : [];
   const positions = canManage ? await listPositions() : [];
+  const salaryTypes = canManage ? await listSalaryTypes() : [];
+  const employeeTypes = canManage ? await listEmployeeTypes() : [];
   const posName = (p: { title: string; titleAr: string | null }) => (locale === "ar" && p.titleAr ? p.titleAr : p.title);
+  const typeName = (x: { name: string; nameAr: string | null } | null | undefined) => (x ? (locale === "ar" && x.nameAr ? x.nameAr : x.name) : null);
   const deptNames = emp.user?.teamMembers?.map((m) => m.team.name).join(", ") || null; // department(s) = team membership
   const hrYear = new Date().getUTCFullYear();
   const balance = canManage ? await leaveBalance(emp.id, hrYear) : null;
@@ -75,6 +79,10 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
             {detail(t("hr.university"), emp.gradUniversity)}
             {detail(t("hr.faculty"), emp.gradFaculty)}
             {detail(t("hr.birthDate"), emp.birthDate ? formatBizDate(emp.birthDate) : null)}
+            {detail(t("hr.salaryType"), typeName(emp.salaryType))}
+            {detail(t("hr.employeeType"), typeName(emp.employeeType))}
+            {detail(t("hr.bank"), emp.bank)}
+            {detail(t("hr.accountNo"), emp.accountNo)}
           </div>
           {emp.notes && <p className="mt-3 whitespace-pre-wrap text-sm text-ink">{emp.notes}</p>}
           {emp.photos.length > 0 && (
@@ -113,6 +121,10 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           gradFaculty: emp.gradFaculty ?? "",
           birthDate: emp.birthDate ? emp.birthDate.toISOString().slice(0, 10) : "",
           hiringDate: emp.hiringDate ? emp.hiringDate.toISOString().slice(0, 10) : "",
+          bank: emp.bank ?? "",
+          accountNo: emp.accountNo ?? "",
+          salaryTypeId: emp.salaryTypeId ? String(emp.salaryTypeId) : "",
+          employeeTypeId: emp.employeeTypeId ? String(emp.employeeTypeId) : "",
           notes: emp.notes ?? "",
           lineManagerId: emp.lineManagerId ? String(emp.lineManagerId) : "",
         }} identity={{
@@ -120,7 +132,9 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           email: emp.user?.email ?? "", uid: emp.user?.uid ?? "",
           primaryPhone: emp.user?.primaryPhone ?? "", secondaryPhone: emp.user?.secondaryPhone ?? "", yeldnPhone: emp.user?.yeldnPhone ?? "",
           positionId: emp.positionId ? String(emp.positionId) : "",
-        }} positions={positions.map((p) => ({ id: p.id, label: posName(p) }))} />}
+        }} positions={positions.map((p) => ({ id: p.id, label: posName(p) }))}
+        salaryTypes={salaryTypes.map((s) => ({ id: s.id, label: typeName(s) ?? s.name }))}
+        employeeTypes={employeeTypes.map((e) => ({ id: e.id, label: typeName(e) ?? e.name }))} />}
 
         {canManage && balance && (
           <AttendancePanel

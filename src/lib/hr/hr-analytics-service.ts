@@ -2,14 +2,23 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { round2, monthlyBaseEarnings } from "./salary-logic";
 import { generateDraft } from "./payroll-service";
+import { includedInPayroll } from "./hr-logic";
 import { average, median, sumByKey, recentMonths, monthLabel } from "./analytics-logic";
 
 const sum = (ns: number[]) => round2(ns.reduce((s, n) => s + n, 0));
 
-/** Active employees (not archived, user not deactivated) with display name. */
+/**
+ * Active employees who belong in payroll: not archived, user not deactivated, and
+ * an Employee Type that's payroll-eligible (untyped defaults to included). This is
+ * the single gate the payroll dashboard and the generate-all run share, so a
+ * non-payroll type (Shareholder, Third Party, …) is skipped by both.
+ */
 async function activeEmployees() {
-  const emps = await prisma.employee.findMany({ where: { archivedAt: null }, select: { id: true, userId: true, user: { select: { name: true, active: true } } } });
-  return emps.filter((e) => e.user?.active !== false);
+  const emps = await prisma.employee.findMany({
+    where: { archivedAt: null },
+    select: { id: true, userId: true, user: { select: { name: true, active: true } }, employeeType: { select: { payrollEligible: true } } },
+  });
+  return emps.filter((e) => e.user?.active !== false && includedInPayroll(e.employeeType));
 }
 
 /** Each employee's projected recurring monthly earnings (active FIXED_MONTHLY). */

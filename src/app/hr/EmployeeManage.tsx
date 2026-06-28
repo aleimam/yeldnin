@@ -16,6 +16,10 @@ interface Initial {
   gradFaculty: string;
   birthDate: string;
   hiringDate: string;
+  bank: string;
+  accountNo: string;
+  salaryTypeId: string;
+  employeeTypeId: string;
   notes: string;
   lineManagerId: string;
 }
@@ -39,12 +43,16 @@ export function EmployeeManage({
   initial,
   identity,
   positions,
+  salaryTypes,
+  employeeTypes,
 }: {
   employeeId: number;
   managers: { id: number; label: string }[];
   initial: Initial;
   identity: Identity;
   positions: { id: number; label: string }[];
+  salaryTypes: { id: number; label: string }[];
+  employeeTypes: { id: number; label: string }[];
 }) {
   const t = useT();
   const router = useRouter();
@@ -120,12 +128,31 @@ export function EmployeeManage({
           <label className="block"><span className="label">{t("hr.faculty")}</span><input className="input" value={d.gradFaculty} onChange={setField("gradFaculty")} /></label>
           <label className="block"><span className="label">{t("hr.birthDate")}</span><DateField className="input" value={d.birthDate} onChange={setField("birthDate")} /></label>
           <label className="block"><span className="label">{t("hr.hiringDate")}</span><DateField className="input" value={d.hiringDate} onChange={setField("hiringDate")} /></label>
+          <label className="block"><span className="label">{t("hr.bank")}</span><input className="input" value={d.bank} onChange={setField("bank")} /></label>
+          <label className="block"><span className="label">{t("hr.accountNo")}</span><input className="input" value={d.accountNo} onChange={setField("accountNo")} /></label>
+          <label className="block">
+            <span className="label">{t("hr.salaryType")}</span>
+            <select className="input" value={d.salaryTypeId} onChange={setField("salaryTypeId")}>
+              <option value="">{t("hr.noSalaryType")}</option>
+              {salaryTypes.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </label>
+          <label className="block">
+            <span className="label">{t("hr.employeeType")}</span>
+            <select className="input" value={d.employeeTypeId} onChange={setField("employeeTypeId")}>
+              <option value="">{t("hr.noEmployeeType")}</option>
+              {employeeTypes.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+            </select>
+          </label>
         </div>
         <label className="block"><span className="label">{t("hr.notes")}</span><AutoTextarea value={d.notes} onChange={setField("notes")} /></label>
         <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={pending} onClick={() => refresh(() => updateEmployeeAction(employeeId, {
           nationalIdNumber: d.nationalIdNumber || null, nationalIdExpiry: d.nationalIdExpiry || null,
           gradDegree: d.gradDegree || null, gradUniversity: d.gradUniversity || null, gradFaculty: d.gradFaculty || null,
-          birthDate: d.birthDate || null, hiringDate: d.hiringDate || null, notes: d.notes || null,
+          birthDate: d.birthDate || null, hiringDate: d.hiringDate || null,
+          bank: d.bank || null, accountNo: d.accountNo || null,
+          salaryTypeId: d.salaryTypeId ? Number(d.salaryTypeId) : null, employeeTypeId: d.employeeTypeId ? Number(d.employeeTypeId) : null,
+          notes: d.notes || null,
         }))}>{t("hr.save")}</button>
       </div>
 

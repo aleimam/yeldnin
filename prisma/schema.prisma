@@ -1312,6 +1312,12 @@ model Employee {
   reports           Employee[] @relation("EmployeeManager")
   positionId        Int?
   position          Position?  @relation(fields: [positionId], references: [id])
+  bank              String?
+  accountNo         String?
+  salaryTypeId      Int?
+  salaryType        SalaryType?   @relation(fields: [salaryTypeId], references: [id])
+  employeeTypeId    Int?
+  employeeType      EmployeeType? @relation(fields: [employeeTypeId], references: [id])
   notes             String?
   archivedAt        DateTime?
   createdById       Int?
@@ -1326,6 +1332,45 @@ model Employee {
 
   @@index([lineManagerId])
   @@index([positionId])
+  @@index([salaryTypeId])
+  @@index([employeeTypeId])
+}
+
+// Salary Type — admin-editable classification of how an employee is paid
+// (Fixed Salary, KPI, Profit Share, …). Purely a label; bonuses & allowances
+// work per-employee regardless of type. `code` is an internal seed key (hidden).
+model SalaryType {
+  id          Int        @id @default(autoincrement())
+  code        String?    @unique
+  name        String
+  nameAr      String?
+  sortOrder   Int        @default(0)
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime   @default(now())
+  updatedById Int?
+  updatedAt   DateTime   @updatedAt
+
+  employees Employee[]
+}
+
+// Employee Type — admin-editable list (Full-time Staff, Shareholder, Third
+// Party, …). `payrollEligible` decides whether employees of this type are
+// included in the system's payroll calculation. `code` is an internal seed key.
+model EmployeeType {
+  id              Int        @id @default(autoincrement())
+  code            String?    @unique
+  name            String
+  nameAr          String?
+  payrollEligible Boolean    @default(true)
+  sortOrder       Int        @default(0)
+  archivedAt      DateTime?
+  createdById     Int?
+  createdAt       DateTime   @default(now())
+  updatedById     Int?
+  updatedAt       DateTime   @updatedAt
+
+  employees Employee[]
 }
 
 model EmployeePhoto {

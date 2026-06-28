@@ -81,6 +81,10 @@ export interface EmployeeProfileInput {
   gradFaculty?: string | null;
   birthDate?: string | null;
   hiringDate?: string | null;
+  bank?: string | null;
+  accountNo?: string | null;
+  salaryTypeId?: number | null;
+  employeeTypeId?: number | null;
   notes?: string | null;
 }
 
@@ -96,6 +100,10 @@ export async function updateEmployee(id: number, input: EmployeeProfileInput, by
       gradFaculty: clean(input.gradFaculty),
       birthDate: input.birthDate ? new Date(input.birthDate) : null,
       hiringDate: input.hiringDate ? new Date(input.hiringDate) : null,
+      bank: clean(input.bank),
+      accountNo: clean(input.accountNo),
+      salaryTypeId: input.salaryTypeId ?? null,
+      employeeTypeId: input.employeeTypeId ?? null,
       notes: clean(input.notes),
       updatedById: byUserId,
     },
@@ -201,6 +209,8 @@ export function getEmployee(id: number) {
         },
       },
       position: { select: { id: true, title: true, titleAr: true } },
+      salaryType: { select: { id: true, name: true, nameAr: true } },
+      employeeType: { select: { id: true, name: true, nameAr: true } },
       lineManager: { select: { id: true, user: { select: { name: true } } } },
       reports: { include: { user: { select: { name: true } } }, orderBy: { id: "asc" } },
       photos: { orderBy: { id: "asc" } },

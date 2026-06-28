@@ -95,6 +95,15 @@ export function wouldCreateCycle(
   return false;
 }
 
+/**
+ * Is this employee included in the payroll run? Driven by their Employee Type's
+ * `payrollEligible` flag. Untyped employees default to INCLUDED so adding the
+ * field never silently drops anyone from payroll until they're classified.
+ */
+export function includedInPayroll(employeeType: { payrollEligible: boolean } | null | undefined): boolean {
+  return employeeType?.payrollEligible ?? true;
+}
+
 /** Validate the minimal new-employee inputs (name + email; rich fields optional). */
 export function validateNewEmployee(input: { name?: string; email?: string }): Record<string, string> {
   const e: Record<string, string> = {};

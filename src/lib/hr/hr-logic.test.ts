@@ -8,7 +8,17 @@ import {
   isAdminTier,
   serviceMonthsInYear,
   proratedAllowance,
+  includedInPayroll,
 } from "./hr-logic";
+
+describe("includedInPayroll", () => {
+  it("follows the employee type's flag, defaulting untyped to included", () => {
+    expect(includedInPayroll({ payrollEligible: true })).toBe(true);
+    expect(includedInPayroll({ payrollEligible: false })).toBe(false);
+    expect(includedInPayroll(null)).toBe(true);
+    expect(includedInPayroll(undefined)).toBe(true);
+  });
+});
 
 describe("hr-logic", () => {
   it("recognizes employee photo kinds", () => {

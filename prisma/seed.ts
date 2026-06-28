@@ -390,6 +390,29 @@ async function main() {
     }
   }
 
+  // HR salary types (admin-editable; label only). Seeded once, never overwritten.
+  const SALARY_TYPES = [
+    { code: "FIXED", name: "Fixed Salary", nameAr: "راتب ثابت", sortOrder: 1 },
+    { code: "KPI", name: "KPI", nameAr: "مؤشرات الأداء", sortOrder: 2 },
+    { code: "PROFIT", name: "Profit Share", nameAr: "حصة من الأرباح", sortOrder: 3 },
+  ];
+  for (const s of SALARY_TYPES) {
+    await prisma.salaryType.upsert({ where: { code: s.code }, update: {}, create: s });
+  }
+
+  // HR employee types (admin-editable). payrollEligible decides who the payroll
+  // run includes — only Staff are paid by us. Seeded once, never overwritten.
+  const EMPLOYEE_TYPES = [
+    { code: "STAFF_FT", name: "Full-time Staff", nameAr: "موظف دوام كامل", payrollEligible: true, sortOrder: 1 },
+    { code: "STAFF_PT", name: "Part-time Staff", nameAr: "موظف دوام جزئي", payrollEligible: true, sortOrder: 2 },
+    { code: "SHAREHOLDER", name: "Shareholder", nameAr: "مساهم", payrollEligible: false, sortOrder: 3 },
+    { code: "SISTER", name: "Sister Company", nameAr: "شركة شقيقة", payrollEligible: false, sortOrder: 4 },
+    { code: "THIRD_PARTY", name: "Third Party", nameAr: "طرف ثالث", payrollEligible: false, sortOrder: 5 },
+  ];
+  for (const e of EMPLOYEE_TYPES) {
+    await prisma.employeeType.upsert({ where: { code: e.code }, update: {}, create: e });
+  }
+
   // Inquiry close dispositions (admin-editable; seed the three defaults once).
   const DISPOSITIONS = [
     { key: "solved", label: "Solved", labelAr: "تم الحل", sortOrder: 1 },

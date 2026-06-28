@@ -5,24 +5,128 @@ import { useT } from "@/i18n/client";
 import { DateField } from "@/components/DateField";
 import { createComponentAction, archiveComponentAction, createDayTypeAction, updateDayTypeAction, archiveDayTypeAction, setDutyMappingAction } from "../attendance-actions";
 import { bulkRaiseAction } from "../salary-actions";
+import { createSalaryTypeAction, updateSalaryTypeAction, archiveSalaryTypeAction, createEmployeeTypeAction, updateEmployeeTypeAction, archiveEmployeeTypeAction } from "../employment-actions";
 import { VALUATIONS, CHANGE_TYPES } from "@/lib/hr/salary-logic";
 
 interface Component { id: number; code: string; name: string; nameAr: string | null; kind: string; valuation: string; defaultAmount: number | null; system: boolean }
 interface DayType { id: number; code: string; name: string; nameAr: string | null; dayClass: string; bonusComponentId: number | null; penaltyComponentId: number | null; system: boolean }
 interface Mapping { dutyEidDays: string; dutyEidVacation: string; dutyVacation: string; dutyWeekend: string }
 interface Team { id: number; name: string }
+interface SalaryType { id: number; name: string; nameAr: string | null }
+interface EmployeeType { id: number; name: string; nameAr: string | null; payrollEligible: boolean }
 
 const kindBadge: Record<string, string> = { EARNING: "bg-blue-100 text-blue-700", BONUS: "bg-green-100 text-green-700", PENALTY: "bg-red-100 text-red-700" };
 const kindKey: Record<string, string> = { EARNING: "comp.earning", BONUS: "comp.bonus", PENALTY: "comp.penalty" };
 
-export function SetupEditors({ components, dayTypes, mapping, teams }: { components: Component[]; dayTypes: DayType[]; mapping: Mapping; teams: Team[] }) {
+export function SetupEditors({ components, dayTypes, mapping, teams, salaryTypes, employeeTypes }: { components: Component[]; dayTypes: DayType[]; mapping: Mapping; teams: Team[]; salaryTypes: SalaryType[]; employeeTypes: EmployeeType[] }) {
   const dutyTypes = dayTypes.filter((d) => d.dayClass === "DUTY");
   return (
     <div className="space-y-6">
+      <SalaryTypesSection salaryTypes={salaryTypes} />
+      <EmployeeTypesSection employeeTypes={employeeTypes} />
       <ComponentsSection components={components} />
       <BulkRaiseSection components={components} teams={teams} />
       <DayTypesSection dayTypes={dayTypes} components={components} />
       <MappingSection mapping={mapping} dutyTypes={dutyTypes} />
+    </div>
+  );
+}
+
+function SalaryTypesSection({ salaryTypes }: { salaryTypes: SalaryType[] }) {
+  const t = useT();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [f, setF] = useState({ name: "", nameAr: "" });
+  const [err, setErr] = useState<string | null>(null);
+  const add = () => {
+    setErr(null);
+    start(async () => {
+      const r = await createSalaryTypeAction({ name: f.name, nameAr: f.nameAr || null });
+      if (!r.ok) { setErr(r.error); return; }
+      setF({ name: "", nameAr: "" });
+      router.refresh();
+    });
+  };
+  return (
+    <div className="card space-y-3 p-5">
+      <h2 className="font-semibold text-ink">{t("salarytype.title")}</h2>
+      <p className="text-sm text-muted">{t("salarytype.desc")}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input className="input" placeholder={t("comp.name")} value={f.name} onChange={(e) => setF((s) => ({ ...s, name: e.target.value }))} />
+        <input className="input" dir="rtl" placeholder={t("comp.nameAr")} value={f.nameAr} onChange={(e) => setF((s) => ({ ...s, nameAr: e.target.value }))} />
+      </div>
+      {err && <p className="text-sm text-red-600">{err}</p>}
+      <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={pending || !f.name.trim()} onClick={add}>{t("salarytype.add")}</button>
+      <div className="space-y-2">
+        {salaryTypes.map((s) => <SalaryTypeRow key={s.id} s={s} pending={pending} start={start} router={router} />)}
+        {salaryTypes.length === 0 && <p className="text-sm text-muted">—</p>}
+      </div>
+    </div>
+  );
+}
+
+function SalaryTypeRow({ s, pending, start, router }: { s: SalaryType; pending: boolean; start: (fn: () => void) => void; router: ReturnType<typeof useRouter> }) {
+  const t = useT();
+  const [name, setName] = useState(s.name);
+  const [nameAr, setNameAr] = useState(s.nameAr ?? "");
+  const save = () => start(async () => { await updateSalaryTypeAction(s.id, { name, nameAr: nameAr || null }); router.refresh(); });
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line p-2 text-sm">
+      <input className="input h-8 w-40 py-0" value={name} onChange={(e) => setName(e.target.value)} />
+      <input className="input h-8 w-40 py-0" dir="rtl" value={nameAr} onChange={(e) => setNameAr(e.target.value)} />
+      <button type="button" className="btn-secondary px-2 py-1 text-xs" disabled={pending || !name.trim()} onClick={save}>{t("hr.save")}</button>
+      <button type="button" className="ms-auto text-xs text-red-600 hover:underline" disabled={pending} onClick={() => start(async () => { await archiveSalaryTypeAction(s.id); router.refresh(); })}>{t("leave.archive")}</button>
+    </div>
+  );
+}
+
+function EmployeeTypesSection({ employeeTypes }: { employeeTypes: EmployeeType[] }) {
+  const t = useT();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [f, setF] = useState({ name: "", nameAr: "", payrollEligible: true });
+  const [err, setErr] = useState<string | null>(null);
+  const add = () => {
+    setErr(null);
+    start(async () => {
+      const r = await createEmployeeTypeAction({ name: f.name, nameAr: f.nameAr || null, payrollEligible: f.payrollEligible });
+      if (!r.ok) { setErr(r.error); return; }
+      setF({ name: "", nameAr: "", payrollEligible: true });
+      router.refresh();
+    });
+  };
+  return (
+    <div className="card space-y-3 p-5">
+      <h2 className="font-semibold text-ink">{t("emptype.title")}</h2>
+      <p className="text-sm text-muted">{t("emptype.desc")}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input className="input" placeholder={t("comp.name")} value={f.name} onChange={(e) => setF((s) => ({ ...s, name: e.target.value }))} />
+        <input className="input" dir="rtl" placeholder={t("comp.nameAr")} value={f.nameAr} onChange={(e) => setF((s) => ({ ...s, nameAr: e.target.value }))} />
+      </div>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.payrollEligible} onChange={(e) => setF((s) => ({ ...s, payrollEligible: e.target.checked }))} />{t("emptype.inPayroll")}</label>
+      {err && <p className="text-sm text-red-600">{err}</p>}
+      <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={pending || !f.name.trim()} onClick={add}>{t("emptype.add")}</button>
+      <div className="space-y-2">
+        {employeeTypes.map((e) => <EmployeeTypeRow key={e.id} e={e} pending={pending} start={start} router={router} />)}
+        {employeeTypes.length === 0 && <p className="text-sm text-muted">—</p>}
+      </div>
+    </div>
+  );
+}
+
+function EmployeeTypeRow({ e, pending, start, router }: { e: EmployeeType; pending: boolean; start: (fn: () => void) => void; router: ReturnType<typeof useRouter> }) {
+  const t = useT();
+  const [name, setName] = useState(e.name);
+  const [nameAr, setNameAr] = useState(e.nameAr ?? "");
+  const [payroll, setPayroll] = useState(e.payrollEligible);
+  const save = () => start(async () => { await updateEmployeeTypeAction(e.id, { name, nameAr: nameAr || null, payrollEligible: payroll }); router.refresh(); });
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line p-2 text-sm">
+      <input className="input h-8 w-36 py-0" value={name} onChange={(ev) => setName(ev.target.value)} />
+      <input className="input h-8 w-36 py-0" dir="rtl" value={nameAr} onChange={(ev) => setNameAr(ev.target.value)} />
+      <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={payroll} onChange={(ev) => setPayroll(ev.target.checked)} />{t("emptype.inPayroll")}</label>
+      <button type="button" className="btn-secondary px-2 py-1 text-xs" disabled={pending || !name.trim()} onClick={save}>{t("hr.save")}</button>
+      <button type="button" className="ms-auto text-xs text-red-600 hover:underline" disabled={pending} onClick={() => start(async () => { await archiveEmployeeTypeAction(e.id); router.refresh(); })}>{t("leave.archive")}</button>
     </div>
   );
 }
