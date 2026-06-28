@@ -44,7 +44,7 @@ export interface CreateTransferInput {
   toType: string;
   toId: number;
   itemIds: number[];
-  courierId?: number | null;
+  carrierId?: number | null;
   tracking?: string | null;
   notes?: string | null;
   photoAssetIds?: string[];
@@ -75,7 +75,7 @@ export async function createTransfer(input: CreateTransferInput, userId: number)
     throw new Error("Transfers must stay within the same country.");
   }
 
-  const courier = input.courierId ? await prisma.courier.findUnique({ where: { id: input.courierId }, select: { name: true } }) : null;
+  const carrier = input.carrierId ? await prisma.carrier.findUnique({ where: { id: input.carrierId }, select: { name: true } }) : null;
   const uid = await nextUid("TRF");
   const transfer = await prisma.transfer.create({
     data: {
@@ -87,8 +87,8 @@ export async function createTransfer(input: CreateTransferInput, userId: number)
       toType: input.toType,
       toId: input.toId,
       toName: to.name,
-      courierId: input.courierId ?? null,
-      courier: courier?.name ?? null,
+      carrierId: input.carrierId ?? null,
+      carrier: carrier?.name ?? null,
       tracking: input.tracking?.trim() || null,
       notes: input.notes?.trim() || null,
       createdById: userId,
@@ -212,7 +212,7 @@ export async function listTransfersPaged(opts: { search?: string; skip?: number;
             { toName: { contains: opts.search } },
             { country: { contains: opts.search } },
             { tracking: { contains: opts.search } },
-            { courier: { contains: opts.search } },
+            { carrier: { contains: opts.search } },
           ],
         }
       : {}),

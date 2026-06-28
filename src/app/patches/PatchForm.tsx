@@ -14,7 +14,7 @@ export interface PatchPurchaseOption {
   items: { id: number; productName: string }[];
 }
 
-export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchases: PatchPurchaseOption[]; couriers: { id: number; name: string }[]; initialPurchaseId?: string }) {
+export function PatchForm({ purchases, carriers, initialPurchaseId }: { purchases: PatchPurchaseOption[]; carriers: { id: number; name: string }[]; initialPurchaseId?: string }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -29,7 +29,7 @@ export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchase
   const selected = purchases.find((p) => String(p.id) === purchaseId);
   const [itemIds, setItemIds] = useState<number[]>(selected ? selected.items.map((i) => i.id) : []);
   const [tracking, setTracking] = useState("");
-  const [courierId, setCourierId] = useState("");
+  const [carrierId, setCarrierId] = useState("");
   const [notes, setNotes] = useState("");
   const [handlingFee, setHandlingFee] = useState("");
   const [handlingFeeCurrency, setHandlingFeeCurrency] = useState(FX_BASE);
@@ -49,7 +49,7 @@ export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchase
         purchaseId: Number(purchaseId),
         itemIds,
         tracking: tracking || undefined,
-        courierId: courierId ? Number(courierId) : null,
+        carrierId: carrierId ? Number(carrierId) : null,
         notes: notes || undefined,
         handlingFee: handlingFee ? Number(handlingFee) : null,
         handlingFeeCurrency: handlingFee ? handlingFeeCurrency : null,
@@ -92,10 +92,10 @@ export function PatchForm({ purchases, couriers, initialPurchaseId }: { purchase
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className="label">{t("patches.tracking")}</label><input className="input" value={tracking} onChange={(e) => setTracking(e.target.value)} /></div>
         <div>
-          <label className="label">{t("patches.courier")}</label>
-          <select className="input" value={courierId} onChange={(e) => setCourierId(e.target.value)}>
+          <label className="label">{t("patches.carrier")}</label>
+          <select className="input" value={carrierId} onChange={(e) => setCarrierId(e.target.value)}>
             <option value="">{t("pricer.f.choose")}</option>
-            {couriers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {carriers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
       </div>

@@ -12,12 +12,12 @@ interface Endpoint {
   label: string;
   country: string | null;
 }
-interface Courier {
+interface Carrier {
   id: number;
   name: string;
 }
 
-export function TransferForm({ endpoints, couriers, initialFrom }: { endpoints: Endpoint[]; couriers: Courier[]; initialFrom: string }) {
+export function TransferForm({ endpoints, carriers, initialFrom }: { endpoints: Endpoint[]; carriers: Carrier[]; initialFrom: string }) {
   const t = useT();
   const router = useRouter();
   const [from, setFrom] = useState(initialFrom); // "TYPE:id"
@@ -25,7 +25,7 @@ export function TransferForm({ endpoints, couriers, initialFrom }: { endpoints: 
   const [items, setItems] = useState<{ id: number; label: string }[]>([]);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [loadingItems, setLoadingItems] = useState(false);
-  const [courierId, setCourierId] = useState("");
+  const [carrierId, setCarrierId] = useState("");
   const [tracking, setTracking] = useState("");
   const [note, setNote] = useState("");
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
@@ -66,7 +66,7 @@ export function TransferForm({ endpoints, couriers, initialFrom }: { endpoints: 
         toType,
         toId: Number(toId),
         itemIds,
-        courierId: courierId ? Number(courierId) : null,
+        carrierId: carrierId ? Number(carrierId) : null,
         tracking: tracking || null,
         notes: note || null,
         photoAssetIds: photos.map((p) => p.id),
@@ -122,10 +122,10 @@ export function TransferForm({ endpoints, couriers, initialFrom }: { endpoints: 
 
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="label">{t("transfers.courier")}</span>
-          <select className="input" value={courierId} onChange={(e) => setCourierId(e.target.value)}>
+          <span className="label">{t("transfers.carrier")}</span>
+          <select className="input" value={carrierId} onChange={(e) => setCarrierId(e.target.value)}>
             <option value="">—</option>
-            {couriers.map((c) => (
+            {carriers.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>

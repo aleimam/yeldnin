@@ -3,16 +3,16 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { SCOPES } from "@/lib/products/products-logic";
 import { listPurchasesWithOrdered, getPurchaseOrderedItems } from "@/lib/patches/patch-service";
-import { listCouriersForPicker } from "@/lib/couriers/couriers-service";
+import { listCarriersForPicker } from "@/lib/carriers/carriers-service";
 import { PatchForm } from "../PatchForm";
 
 export default async function NewPatchPage({ searchParams }: { searchParams: Promise<{ purchase?: string }> }) {
   const access = await requireCapability("logistics", "operate");
   const sp = await searchParams;
-  const [t, purchases, couriers] = await Promise.all([
+  const [t, purchases, carriers] = await Promise.all([
     getT(),
     listPurchasesWithOrdered([...SCOPES]),
-    listCouriersForPicker(),
+    listCarriersForPicker(),
   ]);
   const withItems = await Promise.all(
     purchases.map(async (p) => ({
@@ -24,7 +24,7 @@ export default async function NewPatchPage({ searchParams }: { searchParams: Pro
 
   return (
     <AppShell access={access} moduleKey="logistics" pageTitle={t("patches.new")} backHref="/patches">
-      <PatchForm purchases={withItems} couriers={couriers} initialPurchaseId={sp.purchase} />
+      <PatchForm purchases={withItems} carriers={carriers} initialPurchaseId={sp.purchase} />
     </AppShell>
   );
 }

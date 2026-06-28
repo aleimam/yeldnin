@@ -38,6 +38,7 @@ export const UID_PREFIX_TYPE: Record<string, string> = {
   TRV: "traveler",
   HUB: "hub",
   CUR: "courier",
+  CAR: "carrier",
 };
 
 /** The 3-letter prefix of a UID (e.g. "ITM"), or null. */

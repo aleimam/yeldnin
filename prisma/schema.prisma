@@ -674,11 +674,28 @@ model Compensation {
 // Shipment (Operations) — created by splitting a picked-up Trip by scope/size.
 // Its contents are the Items pointing at it (containerType=SHIPMENT). Scope
 // drives who can see it (EGV→EGV+admin, XOONX→XOONX+admin, PERSONAL→admin).
-// Courier (Couriers) — a delivery partner. Referenced by Patches (and later
-// the customer-delivery Orders). Master data.
+// Courier (Couriers) — last-mile delivery PEOPLE who deliver our orders to
+// customers. Master data for the (future) customer-delivery flow. Distinct from
+// Carrier below; the two never mix.
 model Courier {
   id          Int       @id @default(autoincrement())
   uid         String?   @unique // CUR<YY><MM><seq3>
+  name        String
+  contact     String?
+  active      Boolean   @default(true)
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime  @default(now())
+  updatedById Int?
+  updatedAt   DateTime  @updatedAt
+}
+
+// Carrier (Carriers) — a shipping COMPANY that moves dispatches/transfers from
+// suppliers to our hubs/trips. Logistics master data; referenced by Patches and
+// Transfers (name snapshot kept on each). Distinct from Courier (last-mile).
+model Carrier {
+  id          Int       @id @default(autoincrement())
+  uid         String?   @unique // CAR<YY><MM><seq3>
   name        String
   contact     String?
   active      Boolean   @default(true)
@@ -899,8 +916,8 @@ model Patch {
   destinationId   Int?
   destinationName String?
   tracking        String?
-  courierId       Int? // → Courier (the partner); courier holds the name snapshot
-  courier         String? // courier name snapshot (or free text)
+  carrierId       Int? // → Carrier (the shipping company); carrier holds the name snapshot
+  carrier         String? // carrier name snapshot (or free text)
   status          String    @default("DISPATCHED") // DISPATCHED | DELIVERED | RECEIVED
   dispatchedAt    DateTime  @default(now())
   deliveredAt     DateTime?
@@ -947,8 +964,8 @@ model Transfer {
   toId         Int
   toName       String?
   tracking     String?
-  courierId    Int? // → Courier (the partner)
-  courier      String? // courier name snapshot (or free text)
+  carrierId    Int? // → Carrier (the shipping company)
+  carrier      String? // carrier name snapshot (or free text)
   status       String    @default("NEW") // NEW | LEFT_ORIGIN | DELIVERED | RECEIVED
   leftOriginAt DateTime?
   deliveredAt  DateTime?

@@ -202,6 +202,22 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
     });
   }
 
+  if (can("logistics")) {
+    defs.push({
+      type: "carrier",
+      labelKey: "carriers.title",
+      run: async () => {
+        const rows = await prisma.carrier.findMany({
+          where: { archivedAt: null, ...clause(parsed, ["name", "contact", "uid"]) },
+          select: { id: true, uid: true, name: true, contact: true },
+          take: perType,
+          orderBy: { updatedAt: "desc" },
+        });
+        return rows.map((r) => ({ type: "carrier", id: r.id, uid: r.uid, title: r.name, subtitle: r.contact, href: `/carriers/${r.id}` }));
+      },
+    });
+  }
+
   if (can("issues")) {
     defs.push({
       type: "issue",

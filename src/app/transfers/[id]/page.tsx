@@ -29,7 +29,7 @@ export default async function TransferDetailPage({ params }: { params: Promise<{
               <div><span className="text-muted">{t("transfers.to")}: </span><span className="text-ink">{transfer.toName ?? `${transfer.toType} #${transfer.toId}`}</span></div>
               <div><span className="text-muted">{t("transfers.country")}: </span><span className="text-ink">{transfer.country}</span></div>
               <div><span className="text-muted">{t("transfers.status")}: </span><span className="text-ink">{t(`transferstatus.${transfer.status}`)}</span></div>
-              {transfer.courier && <div><span className="text-muted">{t("transfers.courier")}: </span><span className="text-ink">{transfer.courier}</span></div>}
+              {transfer.carrier && <div><span className="text-muted">{t("transfers.carrier")}: </span><span className="text-ink">{transfer.carrier}</span></div>}
               {transfer.tracking && <div><span className="text-muted">{t("transfers.tracking")}: </span><span className="text-ink">{transfer.tracking}</span></div>}
             </div>
             {canManage && <TransferAdvanceButton id={transfer.id} status={transfer.status} />}

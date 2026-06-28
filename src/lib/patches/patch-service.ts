@@ -34,7 +34,7 @@ export interface CreatePatchInput {
   purchaseId: number;
   itemIds: number[];
   tracking?: string | null;
-  courierId?: number | null;
+  carrierId?: number | null;
   notes?: string | null;
   handlingFee?: number | null;
   handlingFeeCurrency?: string | null;
@@ -51,10 +51,10 @@ export async function createPatch(input: CreatePatchInput, photoAssetIds: string
   });
   if (!items.length) throw new Error("No dispatchable items selected.");
 
-  let courierName: string | null = null;
-  if (input.courierId) {
-    const c = await prisma.courier.findUnique({ where: { id: input.courierId }, select: { name: true } });
-    courierName = c?.name ?? null;
+  let carrierName: string | null = null;
+  if (input.carrierId) {
+    const c = await prisma.carrier.findUnique({ where: { id: input.carrierId }, select: { name: true } });
+    carrierName = c?.name ?? null;
   }
 
   const uid = await nextUid("PAT");
@@ -69,8 +69,8 @@ export async function createPatch(input: CreatePatchInput, photoAssetIds: string
       destinationId: purchase.destinationId,
       destinationName: purchase.destinationName,
       tracking: clean(input.tracking),
-      courierId: input.courierId ?? null,
-      courier: courierName,
+      carrierId: input.carrierId ?? null,
+      carrier: carrierName,
       notes: clean(input.notes),
       handlingFee: input.handlingFee ?? null,
       handlingFeeCurrency: input.handlingFeeCurrency ?? null,
@@ -134,7 +134,7 @@ export async function listPatchesPaged(opts: { scopes: string[]; search?: string
             { destinationName: { contains: opts.search } },
             { country: { contains: opts.search } },
             { tracking: { contains: opts.search } },
-            { courier: { contains: opts.search } },
+            { carrier: { contains: opts.search } },
           ],
         }
       : {}),
