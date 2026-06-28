@@ -10,7 +10,69 @@ import {
   tallyCategories,
   PRE_RECEIPT_STATUSES,
   HOLD_FLAGS,
+  itemStage,
+  productStageStats,
+  stageTally,
 } from "./items-logic";
+
+describe("itemStage", () => {
+  it("maps each status to its journey stage; a flag wins", () => {
+    expect(itemStage("REQUESTED", null)).toBe("requested");
+    expect(itemStage("ORDERED", null)).toBe("purchased");
+    expect(itemStage("SHIPPED", null)).toBe("purchased");
+    expect(itemStage("DELIVERED", null)).toBe("purchased");
+    expect(itemStage("HUB", null)).toBe("hubs");
+    expect(itemStage("TRANSIT", null)).toBe("globalShipping");
+    expect(itemStage("GLOBAL_SHIPPING", null)).toBe("globalShipping");
+    expect(itemStage("CUSTOMS", null)).toBe("inEgypt");
+    expect(itemStage("OUT_FOR_DELIVERY", null)).toBe("inEgypt"); // not Stock
+    expect(itemStage("OFFICE", null)).toBe("stock");
+    expect(itemStage("PHOTOS_SENT", null)).toBe("stock");
+    expect(itemStage("WEBSITE", null)).toBe("stock");
+    expect(itemStage("HUB", "LOST")).toBe("problems"); // flag overrides status
+  });
+});
+
+describe("productStageStats", () => {
+  it("partitions items into stages with group sub-counts (sums to total)", () => {
+    const items = [
+      { status: "REQUESTED", exceptionFlag: null },
+      { status: "ORDERED", exceptionFlag: null },
+      { status: "DELIVERED", exceptionFlag: null },
+      { status: "HUB", exceptionFlag: null },
+      { status: "TRANSIT", exceptionFlag: null },
+      { status: "GLOBAL_SHIPPING", exceptionFlag: null },
+      { status: "CUSTOMS", exceptionFlag: null },
+      { status: "OUT_FOR_DELIVERY", exceptionFlag: null },
+      { status: "WEBSITE", exceptionFlag: null },
+      { status: "HUB", exceptionFlag: "DAMAGED" }, // → problems
+    ];
+    const s = productStageStats(items);
+    expect(s.requested).toBe(1);
+    expect(s.purchased).toBe(2); // ORDERED + DELIVERED
+    expect(s.hubs).toBe(1);
+    expect(s.globalShipping).toEqual({ transit: 1, globalShipping: 1, total: 2 });
+    expect(s.inEgypt).toEqual({ customs: 1, outForDelivery: 1, total: 2 });
+    expect(s.stock).toBe(1);
+    expect(s.problems).toBe(1);
+    expect(s.total).toBe(10);
+    const sum = s.requested + s.purchased + s.hubs + s.globalShipping.total + s.inEgypt.total + s.stock + s.problems;
+    expect(sum).toBe(s.total);
+  });
+});
+
+describe("stageTally", () => {
+  it("counts items per top-level stage", () => {
+    const t = stageTally([
+      { status: "REQUESTED", exceptionFlag: null },
+      { status: "CUSTOMS", exceptionFlag: null },
+      { status: "OUT_FOR_DELIVERY", exceptionFlag: null },
+    ]);
+    expect(t.requested).toBe(1);
+    expect(t.inEgypt).toBe(2);
+    expect(t.stock).toBe(0);
+  });
+});
 
 describe("status progression", () => {
   it("advances along the canonical line and stops at the end", () => {

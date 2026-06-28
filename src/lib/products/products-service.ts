@@ -4,7 +4,7 @@ import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import type { Scope, ProductType } from "./products-logic";
 import type { ProductImportRow } from "./products-import-logic";
-import { itemBucket, ITEM_BUCKETS, type ItemBucket } from "@/lib/items/items-logic";
+import { productStageStats, stageTally } from "@/lib/items/items-logic";
 
 export interface ProductInput {
   name: string;
@@ -148,10 +148,18 @@ export async function productDetail(id: number) {
 
   const items = await prisma.item.findMany({
     where: { productId: id },
-    select: { status: true, exceptionFlag: true },
+    select: { status: true, exceptionFlag: true, requestId: true },
   });
-  const buckets = Object.fromEntries(ITEM_BUCKETS.map((b) => [b, 0])) as Record<ItemBucket, number>;
-  for (const it of items) buckets[itemBucket(it.status, it.exceptionFlag ?? undefined)] += 1;
+  const stageStats = productStageStats(items);
+  // Per-request stage tally (this product's units only) → "where are this
+  // request's units" without exposing any hub/trip name.
+  const itemsByRequest = new Map<number, { status: string; exceptionFlag: string | null }[]>();
+  for (const it of items) {
+    if (it.requestId == null) continue;
+    const arr = itemsByRequest.get(it.requestId) ?? [];
+    arr.push({ status: it.status, exceptionFlag: it.exceptionFlag });
+    itemsByRequest.set(it.requestId, arr);
+  }
 
   const lines = await prisma.requestLine.findMany({
     where: { productId: id, request: { archivedAt: null } },
@@ -171,6 +179,7 @@ export async function productDetail(id: number) {
     count: l.count,
     sellingPrice: l.sellingPrice,
     createdAt: l.request.createdAt,
+    stages: stageTally(itemsByRequest.get(l.request.id) ?? []),
   }));
 
   // Containers the product's units have ever been in (from item event history).
@@ -206,7 +215,7 @@ export async function productDetail(id: number) {
     .map((g) => ({ type: g.type, id: g.id, label: labelOf.get(`${g.type}:${g.id}`) ?? `#${g.id}`, href: CONTAINER_HREF[g.type]?.(g.id) ?? null, items: g.items.size }))
     .sort((a, b) => (CONTAINER_ORDER.indexOf(a.type) - CONTAINER_ORDER.indexOf(b.type)) || a.id - b.id);
 
-  return { product, totalItems: items.length, buckets, requests, containers };
+  return { product, totalItems: items.length, stageStats, requests, containers };
 }
 
 export function listSuppliersForPicker() {

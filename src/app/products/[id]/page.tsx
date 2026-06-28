@@ -6,7 +6,7 @@ import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { productScopes, primaryProductModule, canSeeSellingPrice } from "@/lib/products/products-logic";
 import { productDetail } from "@/lib/products/products-service";
-import { ITEM_BUCKETS } from "@/lib/items/items-logic";
+import { PRODUCT_STAGES } from "@/lib/items/items-logic";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -15,8 +15,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const data = await productDetail(Number(id));
   if (!data || !visible.includes(data.product.scope as never)) notFound();
-  const { product, buckets, requests, totalItems } = data;
-  // Sales-only members never see Trip containers/links.
+  const { product, stageStats, requests } = data;
+  // The Containers card exposes hub/trip names, so it's Logistics-access only.
+  const showContainers = access.isAdmin || access.canModule("logistics", "VIEW");
   const containers = access.hidesTripTraveler ? data.containers.filter((c) => c.type !== "TRIP") : data.containers;
   const t = await getT();
   const canEdit = productScopes(access, "OPERATE").includes(product.scope as never);
@@ -59,16 +60,40 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
 
-        {/* Statistics */}
+        {/* Item statistics — sales-facing journey stages (no hub/trip names) */}
         <div className="card p-5">
-          <h2 className="mb-3 font-semibold text-ink">{t("products.stats")} ({totalItems})</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {ITEM_BUCKETS.map((b) => (
-              <div key={b} className="rounded-lg bg-canvas p-3 text-center">
-                <div className={`text-2xl font-bold ${b === "problems" && buckets[b] > 0 ? "text-red-600" : "text-ink"}`}>{buckets[b]}</div>
-                <div className="text-xs text-muted">{t(`rdash.${b}`)}</div>
-              </div>
-            ))}
+          <h2 className="mb-3 font-semibold text-ink">{t("products.stats")} ({stageStats.total})</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-lg bg-canvas p-3 text-center">
+              <div className="text-2xl font-bold text-ink">{stageStats.requested}</div>
+              <div className="text-xs text-muted">{t("pstage.requested")}</div>
+            </div>
+            <div className="rounded-lg bg-canvas p-3 text-center">
+              <div className="text-2xl font-bold text-ink">{stageStats.purchased}</div>
+              <div className="text-xs text-muted">{t("pstage.purchased")}</div>
+            </div>
+            <div className="rounded-lg bg-canvas p-3 text-center">
+              <div className="text-2xl font-bold text-ink">{stageStats.hubs}</div>
+              <div className="text-xs text-muted">{t("pstage.hubs")}</div>
+            </div>
+            <div className="rounded-lg bg-canvas p-3 text-center">
+              <div className="text-2xl font-bold text-ink">{stageStats.globalShipping.total}</div>
+              <div className="text-xs text-muted">{t("pstage.globalShipping")}</div>
+              <div className="mt-1 text-[11px] text-muted">{t("pstage.transit")} {stageStats.globalShipping.transit} · {t("pstage.globalShipping")} {stageStats.globalShipping.globalShipping}</div>
+            </div>
+            <div className="rounded-lg bg-canvas p-3 text-center">
+              <div className="text-2xl font-bold text-ink">{stageStats.inEgypt.total}</div>
+              <div className="text-xs text-muted">{t("pstage.inEgypt")}</div>
+              <div className="mt-1 text-[11px] text-muted">{t("pstage.customs")} {stageStats.inEgypt.customs} · {t("pstage.outForDelivery")} {stageStats.inEgypt.outForDelivery}</div>
+            </div>
+            <div className="rounded-lg bg-canvas p-3 text-center">
+              <div className="text-2xl font-bold text-ink">{stageStats.stock}</div>
+              <div className="text-xs text-muted">{t("pstage.stock")}</div>
+            </div>
+            <div className="rounded-lg bg-canvas p-3 text-center">
+              <div className={`text-2xl font-bold ${stageStats.problems > 0 ? "text-red-600" : "text-ink"}`}>{stageStats.problems}</div>
+              <div className="text-xs text-muted">{t("pstage.problems")}</div>
+            </div>
           </div>
         </div>
 
@@ -79,12 +104,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm text-muted">—</p>
           ) : (
             <table className="w-full text-sm" data-cards>
-              <thead><tr className="border-b border-line"><th className="th">{t("requests.customer")}</th><th className="th">{t("requests.type")}</th><th className="th text-end">{t("requests.count")}</th></tr></thead>
+              <thead><tr className="border-b border-line"><th className="th">{t("requests.customer")}</th><th className="th">{t("requests.type")}</th><th className="th">{t("products.unitStages")}</th><th className="th text-end">{t("requests.count")}</th></tr></thead>
               <tbody className="divide-y divide-line">
                 {requests.map((r, i) => (
                   <tr key={`${r.id}-${i}`}>
                     <td className="td" data-label={t("requests.customer")}><Link href={`/requests/${r.id}`} className="font-medium text-brand hover:underline">{r.customer ?? t(`reqtype.${r.type}`)}</Link></td>
                     <td className="td text-muted" data-label={t("requests.type")}>{t(`reqtype.${r.type}`)}</td>
+                    <td className="td text-muted" data-label={t("products.unitStages")}>
+                      {PRODUCT_STAGES.filter((s) => r.stages[s] > 0).map((s) => `${t(`pstage.${s}`)} ${r.stages[s]}`).join(" · ") || "—"}
+                    </td>
                     <td className="td text-end" data-label={t("requests.count")}>{r.count}</td>
                   </tr>
                 ))}
@@ -93,7 +121,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
 
-        {/* Containers the product's units have passed through */}
+        {/* Containers — Logistics-access only (exposes hub/trip names) */}
+        {showContainers && (
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("products.containers")} ({containers.length})</h2>
           {containers.length === 0 ? (
@@ -112,6 +141,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </ul>
           )}
         </div>
+        )}
       </div>
     </AppShell>
   );

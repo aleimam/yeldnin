@@ -88,6 +88,79 @@ export function itemBucket(status: string, exceptionFlag: string | null | undefi
   }
 }
 
+/**
+ * Sales-facing journey stages for the Product page's item statistics. A partition
+ * (every item lands in exactly one): a flag wins → problems; otherwise by status.
+ * "Purchased" folds Ordered/Shipped/Delivered (bought, en route to our hub);
+ * Out-for-delivery sits under "In Egypt" (not Stock); Stock is the final three.
+ */
+export const PRODUCT_STAGES = ["requested", "purchased", "hubs", "globalShipping", "inEgypt", "stock", "problems"] as const;
+export type ProductStage = (typeof PRODUCT_STAGES)[number];
+
+export function itemStage(status: string, exceptionFlag?: string | null): ProductStage {
+  if (exceptionFlag) return "problems";
+  switch (status) {
+    case "REQUESTED": return "requested";
+    case "ORDERED":
+    case "SHIPPED":
+    case "DELIVERED": return "purchased";
+    case "HUB": return "hubs";
+    case "TRANSIT":
+    case "GLOBAL_SHIPPING": return "globalShipping";
+    case "CUSTOMS":
+    case "OUT_FOR_DELIVERY": return "inEgypt";
+    case "OFFICE":
+    case "PHOTOS_SENT":
+    case "WEBSITE": return "stock";
+    default: return "stock";
+  }
+}
+
+export interface ProductStageStats {
+  requested: number;
+  purchased: number;
+  hubs: number;
+  globalShipping: { transit: number; globalShipping: number; total: number };
+  inEgypt: { customs: number; outForDelivery: number; total: number };
+  stock: number;
+  problems: number;
+  total: number;
+}
+
+/** Full breakdown for the Product stats panel — top-level stages plus the two
+ *  group sub-counts (Global Shipping → Transit/Global Shipping; In Egypt →
+ *  Customs/Out-for-delivery). Sums to total. */
+export function productStageStats(items: { status: string; exceptionFlag?: string | null }[]): ProductStageStats {
+  const s: ProductStageStats = {
+    requested: 0, purchased: 0, hubs: 0,
+    globalShipping: { transit: 0, globalShipping: 0, total: 0 },
+    inEgypt: { customs: 0, outForDelivery: 0, total: 0 },
+    stock: 0, problems: 0, total: 0,
+  };
+  for (const it of items) {
+    s.total++;
+    if (it.exceptionFlag) { s.problems++; continue; }
+    switch (it.status) {
+      case "REQUESTED": s.requested++; break;
+      case "ORDERED": case "SHIPPED": case "DELIVERED": s.purchased++; break;
+      case "HUB": s.hubs++; break;
+      case "TRANSIT": s.globalShipping.transit++; s.globalShipping.total++; break;
+      case "GLOBAL_SHIPPING": s.globalShipping.globalShipping++; s.globalShipping.total++; break;
+      case "CUSTOMS": s.inEgypt.customs++; s.inEgypt.total++; break;
+      case "OUT_FOR_DELIVERY": s.inEgypt.outForDelivery++; s.inEgypt.total++; break;
+      default: s.stock++; break; // OFFICE | PHOTOS_SENT | WEBSITE (+ any future tail)
+    }
+  }
+  return s;
+}
+
+/** Top-level stage tally (no sub-counts) — for the per-request status summary. */
+export function stageTally(items: { status: string; exceptionFlag?: string | null }[]): Record<ProductStage, number> {
+  const out = Object.fromEntries(PRODUCT_STAGES.map((s) => [s, 0])) as Record<ProductStage, number>;
+  for (const it of items) out[itemStage(it.status, it.exceptionFlag)]++;
+  return out;
+}
+
 /** Pool an item currently sits in: its exception flag wins, else its container. */
 export function poolKey(item: { exceptionFlag?: string | null; containerType?: string | null }): string {
   if (item.exceptionFlag) return `EXC:${item.exceptionFlag}`;
