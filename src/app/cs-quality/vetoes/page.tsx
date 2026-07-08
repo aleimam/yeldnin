@@ -123,7 +123,9 @@ export default async function CsVetoesPage() {
                     <th className="th">{t("cs.veto.evaluation")}</th>
                     <th className="th">{t("cs.salesRep")}</th>
                     <th className="th">{t("cs.veto.evaluator")}</th>
+                    <th className="th">{t("cs.veto.note")}</th>
                     <th className="th">{t("cs.veto.result")}</th>
+                    <th className="th">{t("cs.veto.decisionComment")}</th>
                     <th className="th">{t("cs.veto.resolvedOn")}</th>
                   </tr>
                 </thead>
@@ -133,17 +135,18 @@ export default async function CsVetoesPage() {
                       <td className="td" data-label={t("cs.veto.evaluation")}>{evalRef({ ...v, deleted: v.status === "UPHELD" })}</td>
                       <td className="td" data-label={t("cs.salesRep")}>{v.rep}</td>
                       <td className="td text-muted" data-label={t("cs.veto.evaluator")}>{v.evaluator}</td>
+                      <td className="td text-muted" data-label={t("cs.veto.note")}>{v.note}</td>
                       <td className="td" data-label={t("cs.veto.result")}>
                         <VetoStatusBadge status={v.status} label={t(`cs.veto.status.${v.status}`)} />
-                        {v.resolutionNote && <span className="ms-1 block text-xs text-muted">{v.resolutionNote}</span>}
                       </td>
+                      <td className="td text-muted" data-label={t("cs.veto.decisionComment")}>{v.resolutionNote || "—"}</td>
                       <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("cs.veto.resolvedOn")}>
                         {v.resolvedAt ? formatBizDate(v.resolvedAt) : "—"}
                         {v.resolver && <span className="block text-xs text-muted">{t("cs.veto.resolvedBy", { name: v.resolver })}</span>}
                       </td>
                     </tr>
                   ))}
-                  {resolved.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("cs.veto.historyEmpty")}</td></tr>}
+                  {resolved.length === 0 && <tr><td className="td text-muted" colSpan={7}>{t("cs.veto.historyEmpty")}</td></tr>}
                 </tbody>
               </table>
             </div>

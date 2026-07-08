@@ -537,6 +537,7 @@
   "cs.veto.historyEmpty": "لا توجد اعتراضات مُنجَزة بعد.",
   "cs.veto.resolvedOn": "تاريخ القرار",
   "cs.veto.resolvedBy": "بواسطة {name}",
+  "cs.veto.decisionComment": "تعليق القرار",
   "cs.allEvaluations": "كل التقييمات",
   "cs.allEvaluators": "كل المُقيّمين",
   "cs.allReviewees": "كل المُقيَّمين",

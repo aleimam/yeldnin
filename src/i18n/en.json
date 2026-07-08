@@ -537,6 +537,7 @@
   "cs.veto.historyEmpty": "No resolved vetoes yet.",
   "cs.veto.resolvedOn": "Resolved",
   "cs.veto.resolvedBy": "by {name}",
+  "cs.veto.decisionComment": "Decision comment",
   "cs.allEvaluations": "All evaluations",
   "cs.allEvaluators": "All evaluators",
   "cs.allReviewees": "All reviewees",
