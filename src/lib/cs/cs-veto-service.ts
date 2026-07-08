@@ -193,3 +193,105 @@ export async function listPendingVetoes(): Promise<PendingVetoRow[]> {
 export function pendingVetoCount(): Promise<number> {
   return prisma.csVeto.count({ where: { status: "PENDING" } });
 }
+
+export interface RelatedVetoRow {
+  id: number;
+  evaluationId: number;
+  evalUid: string | null;
+  scope: string;
+  typeName: string | null;
+  role: "CAST" | "EVALUATOR"; // my relation to this veto
+  counterparty: string; // the other person (evaluator if I cast; the rep if I evaluated)
+  note: string;
+  status: string;
+  resolutionNote: string | null;
+  createdAt: Date;
+  resolvedAt: Date | null;
+}
+
+/** Vetoes related to a user — both the ones they cast (as the disputed rep) and
+ *  those raised against evaluations they authored (as the evaluator). Newest first. */
+export async function listMyRelatedVetoes(userId: number): Promise<RelatedVetoRow[]> {
+  const rows = await prisma.csVeto.findMany({
+    where: { OR: [{ byUserId: userId }, { evaluation: { evaluatorUserId: userId } }] },
+    orderBy: { createdAt: "desc" },
+    include: { evaluation: { select: { uid: true, scope: true, typeName: true, evaluatorUserId: true } } },
+  });
+  // The counterparty is whoever I'm NOT: the evaluator for vetoes I cast, the rep for vetoes on my evals.
+  const otherIds = [...new Set(rows.map((v) => (v.byUserId === userId ? v.evaluation.evaluatorUserId : v.byUserId)))];
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({ where: { id: { in: otherIds } }, select: { id: true, name: true, nameAr: true } }),
+  ]);
+  const nameOf = new Map(users.map((u) => [u.id, displayName(u, locale)]));
+  return rows.map((v) => {
+    const cast = v.byUserId === userId;
+    const otherId = cast ? v.evaluation.evaluatorUserId : v.byUserId;
+    return {
+      id: v.id,
+      evaluationId: v.evaluationId,
+      evalUid: v.evaluation.uid,
+      scope: v.evaluation.scope,
+      typeName: v.evaluation.typeName,
+      role: cast ? "CAST" : "EVALUATOR",
+      counterparty: nameOf.get(otherId) ?? `#${otherId}`,
+      note: v.note,
+      status: v.status,
+      resolutionNote: v.resolutionNote,
+      createdAt: v.createdAt,
+      resolvedAt: v.resolvedAt,
+    };
+  });
+}
+
+export interface ResolvedVetoRow {
+  id: number;
+  evaluationId: number;
+  evalUid: string | null;
+  scope: string;
+  typeName: string | null;
+  rep: string;
+  evaluator: string;
+  resolver: string | null;
+  note: string;
+  status: string; // REJECTED | UPHELD
+  resolutionNote: string | null;
+  createdAt: Date;
+  resolvedAt: Date | null;
+}
+
+/** Manager history: every resolved veto (kept or deleted) with the rep, the
+ *  evaluator, the resolver and the outcome. Most recently resolved first. */
+export async function listResolvedVetoes(): Promise<ResolvedVetoRow[]> {
+  const rows = await prisma.csVeto.findMany({
+    where: { status: { in: ["REJECTED", "UPHELD"] } },
+    orderBy: [{ resolvedAt: "desc" }, { createdAt: "desc" }],
+    include: { evaluation: { select: { uid: true, scope: true, typeName: true, evaluatorUserId: true } } },
+  });
+  const ids = new Set<number>();
+  for (const v of rows) {
+    ids.add(v.byUserId);
+    ids.add(v.evaluation.evaluatorUserId);
+    if (v.resolvedById) ids.add(v.resolvedById);
+  }
+  const [locale, users] = await Promise.all([
+    getLocale(),
+    prisma.user.findMany({ where: { id: { in: [...ids] } }, select: { id: true, name: true, nameAr: true } }),
+  ]);
+  const nameOf = new Map(users.map((u) => [u.id, displayName(u, locale)]));
+  return rows.map((v) => ({
+    id: v.id,
+    evaluationId: v.evaluationId,
+    evalUid: v.evaluation.uid,
+    scope: v.evaluation.scope,
+    typeName: v.evaluation.typeName,
+    rep: nameOf.get(v.byUserId) ?? `#${v.byUserId}`,
+    evaluator: nameOf.get(v.evaluation.evaluatorUserId) ?? `#${v.evaluation.evaluatorUserId}`,
+    resolver: v.resolvedById ? nameOf.get(v.resolvedById) ?? `#${v.resolvedById}` : null,
+    note: v.note,
+    status: v.status,
+    resolutionNote: v.resolutionNote,
+    createdAt: v.createdAt,
+    resolvedAt: v.resolvedAt,
+  }));
+}
