@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { sendCustomNotification } from "@/lib/notify/notify-message-service";
 import { publish } from "@/lib/chat/bus";
-import { validateInquiryText, shouldMarkAnswered } from "./inquiry-logic";
+import { validateInquiryText, shouldMarkAnswered, canViewUnit, unitNeedsScope, type UnitViewAccess } from "./inquiry-logic";
 
 const USER_SELECT = { id: true, name: true, nameAr: true, avatarUrl: true } as const;
 
@@ -50,6 +50,25 @@ async function isInitiatorSide(userId: number, inq: Pick<Sides, "initiatorId" | 
   if (userId === inq.initiatorId) return true;
   if (inq.initiatorTeamId == null) return false;
   return !!(await prisma.teamMember.findFirst({ where: { userId, teamId: inq.initiatorTeamId }, select: { id: true } }));
+}
+
+// ─── unit visibility (server-action authorization) ───────────────────────────
+
+/**
+ * May `access` VIEW this unit? Loads the record's scope for scope-bound kinds
+ * (REQUEST/PURCHASE) and defers to the pure canViewUnit gate. Gates the
+ * directly-POST-able inquiry actions so they can't reach an off-scope unit.
+ */
+export async function canViewInquiryUnit(access: UnitViewAccess, unitKind: string, unitId: number): Promise<boolean> {
+  let recordScope: string | null | undefined;
+  if (unitNeedsScope(unitKind)) {
+    const row =
+      unitKind === "REQUEST"
+        ? await prisma.request.findUnique({ where: { id: unitId }, select: { scope: true } })
+        : await prisma.purchase.findUnique({ where: { id: unitId }, select: { scope: true } });
+    recordScope = row?.scope ?? null;
+  }
+  return canViewUnit(access, unitKind, recordScope);
 }
 
 // ─── actors on a unit (the inquiry recipient pool) ────────────────────────────

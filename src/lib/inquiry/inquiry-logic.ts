@@ -2,6 +2,8 @@
 // An inquiry is a question about a unit, routed to a user who acted on it. The
 // first reply from the recipient side flips OPEN → ANSWERED; anyone on the
 // initiator's team CLOSES it with a disposition.
+import { requestScopes } from "@/lib/requests/request-logic";
+import { productScopes, type AccessLike, type Scope } from "@/lib/products/products-logic";
 
 export const INQUIRY_STATUSES = ["OPEN", "ANSWERED", "CLOSED"] as const;
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
@@ -62,4 +64,51 @@ export function validateInquiryText(input: { body?: string; attachmentCount?: nu
 /** i18n key for a status badge. */
 export function statusLabelKey(status: string): string {
   return `inq.status.${isInquiryStatus(status) ? status : "OPEN"}`;
+}
+
+// ─── unit visibility (server-action authorization) ────────────────────────────
+
+/** Minimal access shape needed to authorize which units a user may reach. */
+export type UnitViewAccess = AccessLike & { hidesTripTraveler: boolean };
+
+/** Whether a unit kind's visibility depends on the record's own EGV/XOONX scope
+ *  (so the caller must load that scope before deciding). */
+export function unitNeedsScope(unitKind: string): boolean {
+  return unitKind === "REQUEST" || unitKind === "PURCHASE";
+}
+
+/**
+ * May this user VIEW a unit of the given kind? Mirrors the access gate on each
+ * unit's detail page, so the inquiry server actions (directly POST-able) can't
+ * be used to reach a unit the caller could never open — e.g. a Sales user
+ * enumerating actors on a XOONX request, a Trip, or a Traveler. For scope-bound
+ * kinds (REQUEST/PURCHASE) pass the record's scope (null = record missing →
+ * denied). Unknown kinds are denied; admins pass everything.
+ */
+export function canViewUnit(access: UnitViewAccess, unitKind: string, recordScope?: string | null): boolean {
+  if (access.isAdmin) return true;
+  const logistics = access.canModule("logistics", "VIEW");
+  const operations = access.canModule("operations", "VIEW");
+  switch (unitKind) {
+    case "REQUEST":
+      return recordScope != null && requestScopes(access, "VIEW").includes(recordScope as Scope);
+    case "PURCHASE":
+      return recordScope != null && access.canModule("purchasing", "VIEW") && productScopes(access, "VIEW").includes(recordScope as Scope);
+    case "ITEM":
+      return access.canModule("history", "VIEW");
+    case "HUB":
+    case "PATCH":
+    case "TRANSFER":
+      return logistics;
+    case "SHIPMENT":
+      return operations;
+    case "ORDER": // back-office supplier order — never a Sales/XOONX unit
+      return logistics || access.canModule("purchasing", "VIEW");
+    case "TRAVELER":
+      return logistics && !access.hidesTripTraveler;
+    case "TRIP":
+      return (logistics || operations) && !access.hidesTripTraveler;
+    default:
+      return false;
+  }
 }

@@ -8,7 +8,21 @@ import {
   validateInquiryText,
   statusLabelKey,
   INQUIRY_MAX_BODY,
+  canViewUnit,
+  unitNeedsScope,
+  type UnitViewAccess,
 } from "./inquiry-logic";
+
+// Build a mock access: `mods` maps module → granted level; admins bypass.
+const acc = (mods: Record<string, "VIEW" | "OPERATE" | "MANAGE">, opts: { isAdmin?: boolean; hidesTripTraveler?: boolean } = {}): UnitViewAccess => {
+  const RANK = { NONE: 0, VIEW: 1, OPERATE: 2, MANAGE: 3 } as const;
+  return {
+    isAdmin: opts.isAdmin ?? false,
+    hidesTripTraveler: opts.hidesTripTraveler ?? false,
+    canModule: (k, min = "VIEW") => (opts.isAdmin ? true : RANK[mods[k] ?? "NONE"] >= RANK[min]),
+    can: (k, _cap) => (opts.isAdmin ? true : (mods[k] ?? "NONE") !== "NONE"),
+  };
+};
 
 describe("inquiry-logic", () => {
   it("validates status + unit-kind enums", () => {
@@ -53,5 +67,55 @@ describe("inquiry-logic", () => {
   it("statusLabelKey maps to i18n keys, falling back to OPEN", () => {
     expect(statusLabelKey("CLOSED")).toBe("inq.status.CLOSED");
     expect(statusLabelKey("garbage")).toBe("inq.status.OPEN");
+  });
+});
+
+describe("canViewUnit (inquiry unit authorization)", () => {
+  it("REQUEST is scope-gated: Sales→EGV only, XOONX→XOONX only", () => {
+    const sales = acc({ order_requests: "OPERATE" });
+    const xoonx = acc({ xoonx: "OPERATE" });
+    expect(canViewUnit(sales, "REQUEST", "EGV")).toBe(true);
+    expect(canViewUnit(sales, "REQUEST", "XOONX")).toBe(false); // the leak this fix closes
+    expect(canViewUnit(xoonx, "REQUEST", "XOONX")).toBe(true);
+    expect(canViewUnit(xoonx, "REQUEST", "EGV")).toBe(false);
+  });
+  it("REQUEST with a missing record (null scope) is denied", () => {
+    expect(canViewUnit(acc({ order_requests: "OPERATE" }), "REQUEST", null)).toBe(false);
+  });
+  it("Trip/Traveler need logistics/operations and are barred for a Sales-only member", () => {
+    const salesOnly = acc({ order_requests: "OPERATE" }, { hidesTripTraveler: true });
+    const logi = acc({ logistics: "VIEW" });
+    const ops = acc({ operations: "VIEW" });
+    expect(canViewUnit(salesOnly, "TRIP", null)).toBe(false);
+    expect(canViewUnit(salesOnly, "TRAVELER", null)).toBe(false);
+    expect(canViewUnit(logi, "TRIP", null)).toBe(true);
+    expect(canViewUnit(ops, "TRIP", null)).toBe(true); // trip is logistics OR operations
+    expect(canViewUnit(logi, "TRAVELER", null)).toBe(true);
+    expect(canViewUnit(ops, "TRAVELER", null)).toBe(false); // traveler is logistics-only
+  });
+  it("container kinds map to their module; ITEM→history", () => {
+    expect(canViewUnit(acc({ logistics: "VIEW" }), "HUB", null)).toBe(true);
+    expect(canViewUnit(acc({ logistics: "VIEW" }), "TRANSFER", null)).toBe(true);
+    expect(canViewUnit(acc({ operations: "VIEW" }), "SHIPMENT", null)).toBe(true);
+    expect(canViewUnit(acc({ history: "VIEW" }), "ITEM", null)).toBe(true);
+    expect(canViewUnit(acc({ order_requests: "MANAGE" }), "ITEM", null)).toBe(false);
+  });
+  it("PURCHASE needs purchasing VIEW + a matching product scope", () => {
+    const purch = acc({ purchasing: "VIEW" });
+    expect(canViewUnit(purch, "PURCHASE", "EGV")).toBe(true);
+    expect(canViewUnit(purch, "PURCHASE", "XOONX")).toBe(true); // purchasing is cross-scope
+    expect(canViewUnit(acc({ order_requests: "MANAGE" }), "PURCHASE", "EGV")).toBe(false);
+  });
+  it("unknown kinds are denied; admins pass everything", () => {
+    expect(canViewUnit(acc({ logistics: "MANAGE" }), "WIDGET", null)).toBe(false);
+    expect(canViewUnit(acc({}, { isAdmin: true }), "TRIP", null)).toBe(true);
+    expect(canViewUnit(acc({}, { isAdmin: true }), "REQUEST", "XOONX")).toBe(true);
+    expect(canViewUnit(acc({}, { isAdmin: true }), "WIDGET", null)).toBe(true);
+  });
+  it("unitNeedsScope flags only the scope-bound kinds", () => {
+    expect(unitNeedsScope("REQUEST")).toBe(true);
+    expect(unitNeedsScope("PURCHASE")).toBe(true);
+    expect(unitNeedsScope("TRIP")).toBe(false);
+    expect(unitNeedsScope("ITEM")).toBe(false);
   });
 });

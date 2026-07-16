@@ -9,9 +9,19 @@ async function requireMe(): Promise<{ id: number; isAdmin: boolean }> {
   return { id: access.user.id, isAdmin: access.isAdmin };
 }
 
+/** Full access with the user asserted — needed to authorize unit visibility. */
+async function requireAccess() {
+  const access = await getAccess();
+  if (!access.user) throw new Error("Unauthorized");
+  return access;
+}
+
 export async function listUnitActorsAction(unitKind: string, unitId: number) {
-  const me = await requireMe();
-  return inq.listUnitActors(unitKind, unitId, me.id);
+  const access = await requireAccess();
+  // These actions are directly POST-able — a caller who can't VIEW the unit must
+  // not enumerate the users who acted on it (a XOONX request, a Trip, etc.).
+  if (!(await inq.canViewInquiryUnit(access, unitKind, unitId))) return [];
+  return inq.listUnitActors(unitKind, unitId, access.user!.id);
 }
 
 export async function createInquiryAction(input: {
@@ -21,8 +31,12 @@ export async function createInquiryAction(input: {
   body?: string;
   attachments?: { assetId: string }[];
 }) {
-  const me = await requireMe();
-  return inq.createInquiry(me.id, input);
+  const access = await requireAccess();
+  // Can't open an inquiry against a unit you couldn't view in the first place.
+  if (!(await inq.canViewInquiryUnit(access, input.unitKind, input.unitId))) {
+    return { ok: false as const, error: "inq.err.forbidden" };
+  }
+  return inq.createInquiry(access.user!.id, input);
 }
 
 export async function replyInquiryAction(
