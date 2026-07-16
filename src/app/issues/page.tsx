@@ -1,22 +1,28 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { listIssuesPaged } from "@/lib/issues/issues-service";
+import { issueVisibility } from "@/lib/issues/issues-logic";
 import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
 import { Paginator } from "@/components/Paginator";
 import { ListSearch } from "@/components/ListSearch";
 
 export default async function IssuesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const access = await requireModule("issues", "VIEW");
+  // Issue visibility is domain-scoped and Sales is barred (blueprint). A user
+  // with no qualifying domain sees nothing — bounce them out entirely.
+  const vis = issueVisibility(access);
+  if (!vis) redirect("/");
   const canManage = access.can("issues", "operate");
   const sp = await searchParams;
   const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
   const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
   const [t, { rows, total }] = await Promise.all([
     getT(),
-    listIssuesPaged({ status: sp.status, search: sp.q, skip, take }),
+    listIssuesPaged({ scopeFilter: vis, status: sp.status, search: sp.q, skip, take }),
   ]);
   return (
     <AppShell

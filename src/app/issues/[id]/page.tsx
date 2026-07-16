@@ -1,17 +1,22 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
 import { getIssue } from "@/lib/issues/issues-service";
+import { issueVisibility, issueVisible } from "@/lib/issues/issues-logic";
 import { IssueResolveButton, CompensationForm } from "../IssueActions";
 import { IssueSettleButton } from "@/app/exceptions/IssueSettleButton";
 
 export default async function IssueDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("issues", "VIEW");
+  const vis = issueVisibility(access);
+  if (!vis) redirect("/");
   const { id } = await params;
   const issue = await getIssue(Number(id));
-  if (!issue) notFound();
+  // Domain-scoped: an off-scope issue is invisible (XOONX never sees EGV or
+  // unscoped back-office issues, Sales never sees any).
+  if (!issue || !issueVisible(vis, issue.scope)) notFound();
   const canManage = access.can("issues", "operate");
   const canSettle = access.isAdmin || access.can("logistics", "operate") || access.can("operations", "operate");
   const t = await getT();

@@ -56,9 +56,12 @@ export function listIssues(opts: { status?: string } = {}) {
   });
 }
 
-/** Paginated issues list (optional status filter + free-text search over uid/title/note). */
-export async function listIssuesPaged(opts: { status?: string; search?: string; skip?: number; take?: number }) {
+/** Paginated issues list. Scope-filtered per the viewer's issueVisibility:
+ *  "all" imposes no scope where; an array restricts to those scopes (excluding
+ *  unscoped back-office issues). Plus optional status filter + free-text search. */
+export async function listIssuesPaged(opts: { scopeFilter: "all" | string[]; status?: string; search?: string; skip?: number; take?: number }) {
   const where = {
+    ...(opts.scopeFilter === "all" ? {} : { scope: { in: opts.scopeFilter } }),
     ...(opts.status ? { status: opts.status } : {}),
     ...(opts.search
       ? {
@@ -87,6 +90,11 @@ export function getIssue(id: number) {
     where: { id },
     include: { photos: true, items: true, compensations: { orderBy: { createdAt: "desc" } } },
   });
+}
+
+/** Just an issue's scope — feeds the visibility check on the mutation actions. */
+export function getIssueScope(id: number) {
+  return prisma.issue.findUnique({ where: { id }, select: { scope: true } });
 }
 export async function resolveIssue(id: number, userId: number) {
   return prisma.issue.update({ where: { id }, data: { status: "SOLVED", resolvedAt: new Date(), updatedById: userId } });

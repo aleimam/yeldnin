@@ -1,9 +1,16 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireCapability } from "@/lib/auth/access";
-import { validateIssue, validateCompensation } from "@/lib/issues/issues-logic";
-import { createIssue, resolveIssue, reopenIssue, addCompensation } from "@/lib/issues/issues-service";
+import { requireCapability, type Access } from "@/lib/auth/access";
+import { validateIssue, validateCompensation, issueVisibility, issueVisible } from "@/lib/issues/issues-logic";
+import { createIssue, resolveIssue, reopenIssue, addCompensation, getIssueScope } from "@/lib/issues/issues-service";
 import { writeAudit } from "@/lib/audit";
+
+/** Reject acting on an issue the caller can't see (these actions are directly
+ *  POST-able, so a scoped handler must not mutate an off-scope issue by id). */
+async function assertIssueVisible(access: Access, issueId: number): Promise<void> {
+  const iss = await getIssueScope(issueId);
+  if (!iss || !issueVisible(issueVisibility(access), iss.scope)) throw new Error("Forbidden");
+}
 
 export interface IssuePayload {
   title: string;
@@ -25,6 +32,7 @@ export async function createIssueAction(p: IssuePayload): Promise<IssueResult> {
 
 export async function resolveIssueAction(id: number): Promise<void> {
   const access = await requireCapability("issues", "operate");
+  await assertIssueVisible(access, id);
   await resolveIssue(id, access.user.id);
   await writeAudit(access.user.id, "issues", "issue.resolve", "issue", id);
   revalidatePath(`/issues/${id}`);
@@ -32,6 +40,7 @@ export async function resolveIssueAction(id: number): Promise<void> {
 }
 export async function reopenIssueAction(id: number): Promise<void> {
   const access = await requireCapability("issues", "operate");
+  await assertIssueVisible(access, id);
   await reopenIssue(id, access.user.id);
   await writeAudit(access.user.id, "issues", "issue.reopen", "issue", id);
   revalidatePath(`/issues/${id}`);
@@ -47,6 +56,7 @@ export async function addCompensationAction(p: {
   const access = await requireCapability("issues", "operate");
   const errs = validateCompensation(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
+  await assertIssueVisible(access, p.issueId);
   await addCompensation(p.issueId, { type: p.type, amountEgp: p.amountEgp ?? null, note: p.note ?? null }, access.user.id);
   await writeAudit(access.user.id, "issues", "compensation.add", "issue", p.issueId, { type: p.type });
   revalidatePath(`/issues/${p.issueId}`);

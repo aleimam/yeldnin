@@ -1,3 +1,11 @@
+// ⚠ Scope boundary: this is the **Operations** cash ledger — company-wide and
+// intentionally scope-less (it has no EGV/XOONX dimension). It is gated solely by
+// the `expenses` module (Operations / Finance / Admin). It is NOT XOONX finance:
+// XOONX has its own scope-isolated `XoonxExpense` under `/xoonx/expenses` (the
+// `xoonx.operate` "create requests & expenses" capability points there, never
+// here). Because these rows carry no scope there is nothing to golden-rule
+// filter — so the `expenses` module must simply never be granted to a Sales or
+// XOONX user, who would otherwise see the whole company ledger.
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
