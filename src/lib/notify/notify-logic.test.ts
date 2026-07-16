@@ -6,6 +6,7 @@ import {
   itemsFlaggedPayload,
   unitUpdatePayload,
   isModuleOperator,
+  modulesForScope,
 } from "./notify-logic";
 
 const t = makeT("en");
@@ -71,5 +72,24 @@ describe("isModuleOperator (notification audience)", () => {
 
   it("no relevant perms → excluded", () => {
     expect(isModuleOperator("MEMBER", [], ["issues"])).toBe(false);
+  });
+});
+
+describe("modulesForScope (golden-rule notification filter)", () => {
+  it("drops the other line's scope-bound module for a scoped record", () => {
+    // An EGV record must not reach XOONX operators, and vice-versa.
+    expect(modulesForScope(["order_requests", "xoonx"], "EGV")).toEqual(["order_requests"]);
+    expect(modulesForScope(["order_requests", "xoonx"], "XOONX")).toEqual(["xoonx"]);
+  });
+  it("keeps cross-scope modules for either scope", () => {
+    expect(modulesForScope(["purchasing", "logistics", "operations"], "EGV")).toEqual(["purchasing", "logistics", "operations"]);
+    expect(modulesForScope(["xoonx", "purchasing"], "XOONX")).toEqual(["xoonx", "purchasing"]);
+  });
+  it("PERSONAL scope drops both business-line modules (admin-only records)", () => {
+    expect(modulesForScope(["order_requests", "xoonx", "logistics"], "PERSONAL")).toEqual(["logistics"]);
+  });
+  it("no scope → list unchanged (non-scoped event)", () => {
+    expect(modulesForScope(["order_requests", "xoonx"], null)).toEqual(["order_requests", "xoonx"]);
+    expect(modulesForScope(["issues"], undefined)).toEqual(["issues"]);
   });
 });

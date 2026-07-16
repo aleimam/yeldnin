@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { isAdminTier, type Tier, type Level } from "@/lib/auth/access-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
-import { isModuleOperator, unitUpdatePayload, splitCsv, type PushPayload } from "./notify-logic";
+import { isModuleOperator, unitUpdatePayload, splitCsv, modulesForScope, type PushPayload } from "./notify-logic";
 import { getNotifyRules } from "./notify-config-service";
 import { makeT, isLocale, type Locale, type TFunction } from "@/i18n";
 
@@ -128,17 +128,22 @@ export async function moduleOperatorIds(moduleKeys: string[], min: Level = "OPER
  * admins (if notifyAdmins) + operators of the configured modules (or
  * ctx.fallbackModules when none are set) + the order creator (if
  * notifyOrderCreator and ctx provides one). Empty when the event is disabled.
+ *
+ * When the event concerns a scoped record, pass ctx.scope: scope-bound modules
+ * that don't match are dropped, so a scoped notification can never reach the
+ * other business line's operators — the golden rule holds even if an admin
+ * configured the rule with both `order_requests` and `xoonx`.
  */
 export async function resolveRecipients(
   event: string,
-  ctx?: { orderCreatorId?: number | null; fallbackModules?: string[] },
+  ctx?: { orderCreatorId?: number | null; fallbackModules?: string[]; scope?: string | null },
 ): Promise<number[]> {
   const rule = (await getNotifyRules())[event];
   if (!rule || !rule.enabled) return [];
   const ids = new Set<number>();
   if (rule.notifyAdmins) for (const id of await adminUserIds()) ids.add(id);
   const mods = splitCsv(rule.moduleKeys);
-  const useMods = mods.length ? mods : ctx?.fallbackModules ?? [];
+  const useMods = modulesForScope(mods.length ? mods : ctx?.fallbackModules ?? [], ctx?.scope);
   if (useMods.length) for (const id of await moduleOperatorIds(useMods)) ids.add(id);
   if (rule.notifyOrderCreator && ctx?.orderCreatorId) ids.add(ctx.orderCreatorId);
   return [...ids];
@@ -160,13 +165,20 @@ export async function notifyUnitMilestones(
   const relevant = transitions.filter((t) => notable.has(t.toStatus));
   if (relevant.length === 0) return;
 
-  const base = await resolveRecipients("unit.milestone"); // admins + module ops; creator added per order
   const ids = [...new Set(relevant.map((t) => t.requestId))];
   const [requests, wf] = await Promise.all([
-    prisma.request.findMany({ where: { id: { in: ids } }, select: { id: true, uid: true, createdById: true } }),
+    prisma.request.findMany({ where: { id: { in: ids } }, select: { id: true, uid: true, createdById: true, scope: true } }),
     getWorkflow(),
   ]);
   const byId = new Map(requests.map((r) => [r.id, r]));
+  // Module-operator recipients are scope-bound (golden rule), so resolve the base
+  // set once per distinct scope and reuse it; the order creator is added per order.
+  const baseByScope = new Map<string, number[]>();
+  const baseFor = async (scope: string): Promise<number[]> => {
+    let b = baseByScope.get(scope);
+    if (!b) { b = await resolveRecipients("unit.milestone", { scope }); baseByScope.set(scope, b); }
+    return b;
+  };
   const seen = new Set<string>();
   for (const tr of relevant) {
     const key = `${tr.requestId}:${tr.toStatus}`;
@@ -174,7 +186,7 @@ export async function notifyUnitMilestones(
     seen.add(key);
     const r = byId.get(tr.requestId);
     if (!r) continue;
-    const recipients = new Set(base);
+    const recipients = new Set(await baseFor(r.scope));
     if (rule.notifyOrderCreator && r.createdById) recipients.add(r.createdById);
     const final = [...recipients].filter((id) => id !== actorId);
     if (final.length === 0) continue;

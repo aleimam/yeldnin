@@ -108,6 +108,28 @@ export function splitCsv(csv: string | null | undefined): string[] {
 }
 
 /**
+ * Modules whose operators belong to a single business line. A scoped record must
+ * never notify the *other* line's operators (the golden rule): Sales
+ * (`order_requests`) only hears about EGV, XOONX only about XOONX. Every other
+ * module (purchasing, logistics, operations, issues, …) is cross-scope.
+ */
+export const SCOPE_BOUND_MODULE: Record<string, string> = { order_requests: "EGV", xoonx: "XOONX" };
+
+/**
+ * Drop scope-bound modules that don't match the record's scope, so resolving a
+ * scoped event's recipients can't reach the other business line's operators —
+ * even if an admin configured the rule with both modules. A null/absent scope
+ * (a non-scoped event) leaves the list unchanged.
+ */
+export function modulesForScope(modules: string[], scope?: string | null): string[] {
+  if (!scope) return modules;
+  return modules.filter((m) => {
+    const bound = SCOPE_BOUND_MODULE[m];
+    return !bound || bound === scope;
+  });
+}
+
+/**
  * Should this user receive an alert scoped to `moduleKeys`? Admin tiers always
  * do; otherwise the user needs at least `min` (default OPERATE) on one of the
  * modules — i.e. an operator who can actually act on it, not a passive viewer.

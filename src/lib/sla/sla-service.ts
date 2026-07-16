@@ -153,7 +153,7 @@ export async function runSlaAlerts(now: Date = new Date()): Promise<number> {
     const status = compute(it as ItemRow, td, req.deliveredAt ?? null, now, sla).status;
     if ((status === "RISK" || status === "DELAYED") && arank(status) > arank(it.slaAlertedStatus)) {
       const modules = it.scope === "XOONX" ? ["xoonx"] : ["order_requests"];
-      await sendLocalizedToUsers(await resolveRecipients("sla.alert", { fallbackModules: modules }), (t) => slaAlertPayload(t, { uid: req.uid, status, requestId: req.id })).catch(() => {});
+      await sendLocalizedToUsers(await resolveRecipients("sla.alert", { fallbackModules: modules, scope: it.scope }), (t) => slaAlertPayload(t, { uid: req.uid, status, requestId: req.id })).catch(() => {});
       await prisma.item.update({ where: { id: it.id }, data: { slaAlertedStatus: status } });
       alerted++;
     } else if (status === "HEALTHY" && it.slaAlertedStatus) {
