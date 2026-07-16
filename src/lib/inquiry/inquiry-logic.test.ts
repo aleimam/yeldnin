@@ -16,11 +16,12 @@ import {
 // Build a mock access: `mods` maps module → granted level; admins bypass.
 const acc = (mods: Record<string, "VIEW" | "OPERATE" | "MANAGE">, opts: { isAdmin?: boolean; hidesTripTraveler?: boolean } = {}): UnitViewAccess => {
   const RANK = { NONE: 0, VIEW: 1, OPERATE: 2, MANAGE: 3 } as const;
+  const lvl = (k: string): keyof typeof RANK => mods[k] ?? "NONE";
   return {
     isAdmin: opts.isAdmin ?? false,
     hidesTripTraveler: opts.hidesTripTraveler ?? false,
-    canModule: (k, min = "VIEW") => (opts.isAdmin ? true : RANK[mods[k] ?? "NONE"] >= RANK[min]),
-    can: (k, _cap) => (opts.isAdmin ? true : (mods[k] ?? "NONE") !== "NONE"),
+    canModule: (k, min = "VIEW") => (opts.isAdmin ? true : RANK[lvl(k)] >= RANK[min]),
+    can: (k, _cap) => (opts.isAdmin ? true : lvl(k) !== "NONE"),
   };
 };
 
