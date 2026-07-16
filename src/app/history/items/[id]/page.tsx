@@ -4,6 +4,8 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { getItemWithEvents } from "@/lib/history/history-service";
+import { historyScopes } from "@/lib/history/history-logic";
+import type { Scope } from "@/lib/products/products-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
@@ -13,7 +15,8 @@ export default async function ItemHistoryPage({ params }: { params: Promise<{ id
   const access = await requireModule("history", "VIEW");
   const { id } = await params;
   const item = await getItemWithEvents(Number(id));
-  if (!item) notFound();
+  // Golden rule: an in-history user only sees items in their scopes.
+  if (!item || !historyScopes(access).includes(item.scope as Scope)) notFound();
   const [t, locale, wf] = await Promise.all([getT(), getLocale(), getWorkflow()]);
   const loc = locale === "ar" ? "ar" : "en";
   const canFlag = access.isAdmin || access.can("logistics", "operate") || access.can("operations", "operate");

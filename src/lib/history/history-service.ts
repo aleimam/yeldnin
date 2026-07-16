@@ -39,11 +39,15 @@ export async function listRecentEvents(take = 100) {
 }
 
 /** Paginated + searchable item movements (for the History page). Search matches
- *  the item UID or its product name. */
-export async function listRecentEventsPaged(opts: { search?: string; skip?: number; take?: number }) {
-  const where = opts.search
-    ? { item: { OR: [{ uid: { contains: opts.search } }, { product: { name: { contains: opts.search } } }] } }
-    : {};
+ *  the item UID or its product name. Scope-filtered: only events on items in the
+ *  viewer's `scopes` (golden rule) — an empty set returns nothing. */
+export async function listRecentEventsPaged(opts: { scopes: string[]; search?: string; skip?: number; take?: number }) {
+  const where = {
+    item: {
+      scope: { in: opts.scopes },
+      ...(opts.search ? { OR: [{ uid: { contains: opts.search } }, { product: { name: { contains: opts.search } } }] } : {}),
+    },
+  };
   const [events, total] = await prisma.$transaction([
     fetchEvents({ where, orderBy: { createdAt: "desc" }, skip: opts.skip ?? 0, take: opts.take ?? 50 }),
     prisma.itemEvent.count({ where }),
@@ -51,7 +55,8 @@ export async function listRecentEventsPaged(opts: { search?: string; skip?: numb
   return { rows: await enrichEvents(events), total };
 }
 
-/** One item with its full event timeline (ascending). */
+/** One item with its full event timeline (ascending). Includes `scope` so the
+ *  caller can enforce scope visibility (the item page 404s off-scope items). */
 export function getItemWithEvents(id: number) {
   return prisma.item.findUnique({
     where: { id },
@@ -59,7 +64,9 @@ export function getItemWithEvents(id: number) {
   });
 }
 
-export async function findItemIdByUid(uid: string): Promise<number | null> {
-  const it = await prisma.item.findUnique({ where: { uid: uid.trim() }, select: { id: true } });
+/** Resolve an item UID to its id, but only within the viewer's `scopes` — so the
+ *  History search can't confirm an off-scope item's existence. */
+export async function findItemIdByUid(uid: string, scopes: string[]): Promise<number | null> {
+  const it = await prisma.item.findFirst({ where: { uid: uid.trim(), scope: { in: scopes } }, select: { id: true } });
   return it?.id ?? null;
 }

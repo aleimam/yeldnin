@@ -4,6 +4,7 @@ import { requireModule } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { listRecentEventsPaged } from "@/lib/history/history-service";
+import { historyScopes } from "@/lib/history/history-logic";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { pageWindow, PER_PAGE_COOKIE } from "@/lib/pagination";
@@ -19,7 +20,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   const [t, locale, { rows: events, total }, wf] = await Promise.all([
     getT(),
     getLocale(),
-    listRecentEventsPaged({ search: sp.q, skip, take }),
+    listRecentEventsPaged({ scopes: historyScopes(access), search: sp.q, skip, take }),
     getWorkflow(),
   ]);
   const loc = locale === "ar" ? "ar" : "en";
