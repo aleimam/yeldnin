@@ -4,6 +4,8 @@ import { readAsset } from "@/lib/assets/assets-service";
 import { getAccess } from "@/lib/auth/access";
 import { canManageEmployee, getEmployeeByUserId } from "@/lib/hr/hr-service";
 import { getPlatformSettings } from "@/lib/settings/settings-service";
+import { productScopes, type Scope } from "@/lib/products/products-logic";
+import { requestScopes } from "@/lib/requests/request-logic";
 
 export async function GET(
   _req: Request,
@@ -24,16 +26,22 @@ export async function GET(
     const access = await getAccess();
     if (!access.user) return new NextResponse("Unauthorized", { status: 401 });
 
-    // Per-object gate for the two sensitive asset types the audit flagged: expense
-    // receipts (→ Expenses VIEW) and HR documents like national-ID scans (→ the
-    // owning employee, their manager/HR, or admin). Asset ids are unguessable cuids;
-    // other photos (product/CS/avatars) stay logged-in-only.
-    const [expenseAtt, empPhoto, eventPhoto, chatAtt, inqAtt] = await Promise.all([
+    // Per-object gates. Expense receipts (→ Expenses VIEW) and HR documents like
+    // national-ID scans (→ the owning employee, their manager/HR, or admin) are
+    // gated by object. Product & request photos carry the EGV/XOONX scope, so they
+    // follow the golden rule — gated by the same scope check as their detail pages,
+    // since Sales/XOONX hold those modules and could otherwise cross-fetch with a
+    // leaked id. Asset ids are unguessable cuids; other photos (pricing/CS/avatars,
+    // which aren't EGV/XOONX-scoped, and logistics-domain photos whose modules
+    // Sales/XOONX lack) stay logged-in-only.
+    const [expenseAtt, empPhoto, eventPhoto, chatAtt, inqAtt, productPhoto, requestPhoto] = await Promise.all([
       prisma.expenseAttachment.findFirst({ where: { assetId: id }, select: { id: true } }),
       prisma.employeePhoto.findFirst({ where: { assetId: id }, select: { employeeId: true } }),
       prisma.employeeEventPhoto.findFirst({ where: { assetId: id }, select: { event: { select: { employeeId: true } } } }),
       prisma.chatAttachment.findFirst({ where: { assetId: id }, select: { message: { select: { conversation: { select: { userAId: true, userBId: true } } } } } }),
       prisma.inquiryAttachment.findFirst({ where: { assetId: id }, select: { message: { select: { inquiry: { select: { initiatorId: true, recipientUserId: true, initiatorTeamId: true, recipientTeamId: true } } } } } }),
+      prisma.productPhoto.findFirst({ where: { assetId: id }, select: { product: { select: { scope: true } } } }),
+      prisma.requestPhoto.findFirst({ where: { assetId: id }, select: { request: { select: { scope: true } } } }),
     ]);
     if (expenseAtt && !access.canModule("expenses", "VIEW")) {
       return new NextResponse("Forbidden", { status: 403 });
@@ -64,6 +72,15 @@ export async function GET(
         }
       }
       if (!ok) return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    // Product / request photos: only viewers whose scope covers the owning
+    // record — the same gate as the product/request detail pages (golden rule).
+    if (productPhoto && !productScopes(access, "VIEW").includes(productPhoto.product.scope as Scope)) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+    if (requestPhoto && !requestScopes(access, "VIEW").includes(requestPhoto.request.scope as Scope)) {
+      return new NextResponse("Forbidden", { status: 403 });
     }
   }
 
