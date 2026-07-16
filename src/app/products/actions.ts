@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth/access";
 import {
   productScopes,
   validateProduct,
+  canSeePurchasePrice,
   type Scope,
   type ProductType,
 } from "@/lib/products/products-logic";
@@ -18,6 +19,8 @@ export interface ProductPayload {
   originRegion?: string | null;
   defaultSupplierId?: number | null;
   weightG?: number | null;
+  purchasePrice?: number | null;
+  sellingPrice?: number | null;
   size?: string;
   grade?: string;
   url?: string;
@@ -34,8 +37,11 @@ export async function createProductAction(p: ProductPayload): Promise<ProductRes
   if (!productScopes(access, "OPERATE").includes(p.scope as Scope)) {
     return { ok: false, error: "You can't add products in that scope." };
   }
+  // Purchase price is Purchasing/Logistics-only — ignore any value a Sales/XOONX
+  // creator's client might send (defense-in-depth behind the hidden field).
+  const purchasePrice = canSeePurchasePrice(access) ? p.purchasePrice ?? null : null;
   const prod = await createProduct(
-    { ...p, scope: p.scope as Scope, type: p.type as ProductType },
+    { ...p, purchasePrice, scope: p.scope as Scope, type: p.type as ProductType },
     p.photoIds ?? [],
     access.user.id,
   );
@@ -51,9 +57,16 @@ export async function saveProductAction(p: ProductPayload & { id: number; active
   if (!productScopes(access, "OPERATE").includes(p.scope as Scope)) {
     return { ok: false, error: "You can't manage products in that scope." };
   }
+  // Purchase price is Purchasing/Logistics-only: a user who can't see it can't
+  // change it — preserve the stored value rather than the (absent) client one.
+  let purchasePrice = p.purchasePrice ?? null;
+  if (!canSeePurchasePrice(access)) {
+    const existing = await getProduct(p.id);
+    purchasePrice = existing?.purchasePrice ?? null;
+  }
   await updateProduct(
     p.id,
-    { ...p, scope: p.scope as Scope, type: p.type as ProductType, active: p.active },
+    { ...p, purchasePrice, scope: p.scope as Scope, type: p.type as ProductType, active: p.active },
     p.photoIds ?? [],
     access.user.id,
   );

@@ -437,7 +437,16 @@ export async function listScopedProducts(scopes: string[]) {
   const rows = await prisma.product.findMany({
     where: { archivedAt: null, active: true, scope: { in: scopes } },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, sku: true, scope: true, sellingPrice: true, purchasePrice: true },
+    select: { id: true, name: true, sku: true, scope: true, type: true, sellingPrice: true, purchasePrice: true },
   });
   return rows;
+}
+
+/** Name/scope/type of the given products — feeds requestLineProductError. */
+export function getLineProductRefs(ids: number[]) {
+  if (!ids.length) return Promise.resolve([]);
+  return prisma.product.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, scope: true, type: true },
+  });
 }

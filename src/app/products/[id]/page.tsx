@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { assetUrl } from "@/lib/assets/assets-service";
-import { productScopes, primaryProductModule, canSeeSellingPrice } from "@/lib/products/products-logic";
+import { productScopes, primaryProductModule, canSeeSellingPrice, canSeePurchasePrice } from "@/lib/products/products-logic";
 import { productDetail } from "@/lib/products/products-service";
 import { PRODUCT_STAGES } from "@/lib/items/items-logic";
 
@@ -22,6 +22,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const t = await getT();
   const canEdit = productScopes(access, "OPERATE").includes(product.scope as never);
   const canSeeSelling = canSeeSellingPrice(access);
+  const canSeePurchase = canSeePurchasePrice(access);
 
   return (
     <AppShell
@@ -42,7 +43,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             {product.defaultSupplier && <div><span className="text-muted">{t("products.supplier")}: </span><span className="text-ink">{product.defaultSupplier.name}</span></div>}
             {product.sku && <div><span className="text-muted">{t("products.sku")}: </span><span className="text-ink">{product.sku}</span></div>}
             {product.weightG != null && <div><span className="text-muted">{t("products.weight")}: </span><span className="text-ink">{product.weightG}</span></div>}
-            {product.purchasePrice != null && <div><span className="text-muted">{t("products.purchasePrice")}: </span><span className="text-ink">{product.purchasePrice}</span></div>}
+            {canSeePurchase && product.purchasePrice != null && <div><span className="text-muted">{t("products.purchasePrice")}: </span><span className="text-ink">{product.purchasePrice}</span></div>}
             {canSeeSelling && product.sellingPrice != null && <div><span className="text-muted">{t("products.sellingPrice")}: </span><span className="text-ink">{product.sellingPrice}</span></div>}
             {product.size && <div><span className="text-muted">{t("products.size")}: </span><span className="text-ink">{product.size}</span></div>}
             {product.grade && <div><span className="text-muted">{t("products.grade")}: </span><span className="text-ink">{product.grade}</span></div>}

@@ -72,6 +72,21 @@ export function primaryRequestModule(a: AccessLike): string {
   return "order_requests";
 }
 
+/**
+ * A request's line products must belong to the request's scope, and XOONX
+ * requests may only contain products of the XOONX product type. Returns the
+ * first offending product's error, or null when all lines are valid.
+ */
+export function requestLineProductError(scope: string, products: { name: string; scope: string; type: string }[]): string | null {
+  const offScope = products.find((p) => p.scope !== scope);
+  if (offScope) return `"${offScope.name}" isn't a ${scope} product.`;
+  if (scope === "XOONX") {
+    const offType = products.find((p) => p.type !== "XOONX");
+    if (offType) return `"${offType.name}" isn't a XOONX-type product — XOONX requests may only contain XOONX products.`;
+  }
+  return null;
+}
+
 export interface RequestLineInput {
   productId: number;
   count: number;

@@ -1,9 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireCapability } from "@/lib/auth/access";
-import { requestScopes, validateRequest, type RequestType } from "@/lib/requests/request-logic";
-import { type Scope } from "@/lib/products/products-logic";
-import { createRequest, updateRequest, approveRequest, rejectRequest, getRequest } from "@/lib/requests/request-service";
+import { requestScopes, validateRequest, requestLineProductError, type RequestType } from "@/lib/requests/request-logic";
+import { type Scope, canSeePurchasePrice } from "@/lib/products/products-logic";
+import { createRequest, updateRequest, approveRequest, rejectRequest, getRequest, getLineProductRefs } from "@/lib/requests/request-service";
 import { markRequestDelivered, unmarkRequestDelivered } from "@/lib/xoonx/xoonx-finance-service";
 import { writeAudit } from "@/lib/audit";
 
@@ -19,6 +19,22 @@ export interface RequestPayload {
 }
 export type RequestResult = { ok: true; id: number } | { ok: false; error: string };
 
+/** Lines must reference existing products in the request's scope; XOONX
+ *  requests may only contain XOONX-type products. Null when valid. */
+async function checkLineProducts(scope: string, lines: { productId: number }[]): Promise<string | null> {
+  const ids = [...new Set(lines.map((l) => l.productId).filter(Boolean))];
+  const refs = await getLineProductRefs(ids);
+  if (refs.length !== ids.length) return "One of the products no longer exists.";
+  return requestLineProductError(scope, refs);
+}
+
+/** Buy price is hidden from EGV Sales (golden rule). Drop any line purchase
+ *  price a user who can't see it might have sent — defense-in-depth behind the
+ *  hidden field, so it can't be set or wiped from a crafted request. */
+function stripHiddenPurchase<T extends { purchasePrice?: number | null }>(lines: T[], canSeePurchase: boolean): T[] {
+  return canSeePurchase ? lines : lines.map((l) => ({ ...l, purchasePrice: null }));
+}
+
 export async function createRequestAction(p: RequestPayload): Promise<RequestResult> {
   const access = await requireUser();
   const errs = validateRequest({
@@ -32,6 +48,8 @@ export async function createRequestAction(p: RequestPayload): Promise<RequestRes
   if (!requestScopes(access, "OPERATE").includes(p.scope as Scope)) {
     return { ok: false, error: "You can't place requests in that scope." };
   }
+  const prodErr = await checkLineProducts(p.scope, p.lines);
+  if (prodErr) return { ok: false, error: prodErr };
   const req = await createRequest(
     {
       type: p.type as RequestType,
@@ -40,7 +58,7 @@ export async function createRequestAction(p: RequestPayload): Promise<RequestRes
       newCustomer: p.newCustomer ?? null,
       notes: p.notes ?? null,
       deposit: p.deposit ?? null,
-      lines: p.lines,
+      lines: stripHiddenPurchase(p.lines, canSeePurchasePrice(access)),
     },
     p.photoIds ?? [],
     access.user.id,
@@ -58,8 +76,15 @@ export async function updateRequestAction(id: number, p: RequestPayload): Promis
   if (!requestScopes(access, "OPERATE").includes(existing.scope as Scope)) {
     return { ok: false, error: "You can't edit requests in that scope." };
   }
+  // XOONX requests are born approved, so any edit changes an approved order's
+  // prices/deposit — gated by xoonx.editRequest (default MANAGE).
+  if (existing.scope === "XOONX" && !access.can("xoonx", "editRequest")) {
+    return { ok: false, error: "Only a XOONX manager can edit an approved XOONX request." };
+  }
   const errs = validateRequest({ type: p.type, scope: existing.scope, customerId: p.customerId, newCustomerName: p.newCustomer?.name, lines: p.lines });
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
+  const prodErr = await checkLineProducts(existing.scope, p.lines);
+  if (prodErr) return { ok: false, error: prodErr };
   try {
     await updateRequest(
       id,
@@ -70,7 +95,7 @@ export async function updateRequestAction(id: number, p: RequestPayload): Promis
         newCustomer: p.newCustomer ?? null,
         notes: p.notes ?? null,
         deposit: p.deposit ?? null,
-        lines: p.lines,
+        lines: stripHiddenPurchase(p.lines, canSeePurchasePrice(access)),
       },
       p.photoIds ?? [],
       access.user.id,
@@ -114,7 +139,7 @@ export async function rejectRequestAction(id: number, note: string | null): Prom
 
 /** Mark (or un-mark) a XOONX order delivered — books its revenue into that month. */
 export async function markDeliveredAction(id: number, delivered: boolean): Promise<{ ok: boolean; error?: string }> {
-  const access = await requireCapability("xoonx", "operate");
+  const access = await requireCapability("xoonx", "deliver");
   try {
     if (delivered) await markRequestDelivered(id, access.user.id);
     else await unmarkRequestDelivered(id, access.user.id);

@@ -15,7 +15,7 @@ import { RequestStatusBadge } from "../RequestStatusBadge";
 import { RequestApprovalControls } from "../RequestApprovalControls";
 import { slaForRequestItems } from "@/lib/sla/sla-service";
 import { SlaBadge } from "@/components/SlaBadge";
-import { canSeeSellingPrice, type Scope } from "@/lib/products/products-logic";
+import { canSeeSellingPrice, canSeePurchasePrice, type Scope } from "@/lib/products/products-logic";
 
 export default async function RequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireUser();
@@ -25,12 +25,15 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const req = await getRequest(Number(id));
   if (!req || !visible.includes(req.scope as never)) notFound();
   const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getRequestItems(req.id), getWorkflow()]);
-  const canDeliver = req.scope === "XOONX" && access.can("xoonx", "operate");
+  const canDeliver = req.scope === "XOONX" && access.can("xoonx", "deliver");
   const canSeeSelling = canSeeSellingPrice(access);
+  const canSeePurchase = canSeePurchasePrice(access);
   const isSpecial = req.type === "SPECIAL_ORDER";
   const canApprove = req.status === "PENDING" && req.scope === "EGV" && access.can("order_requests", "approve");
   const inScopeOperate = requestScopes(access, "OPERATE").includes(req.scope as Scope);
-  const canEdit = inScopeOperate && requestLinesEditable(items.map((i) => i.status));
+  // XOONX requests are born approved — editing one needs xoonx.editRequest.
+  const canEditScope = req.scope === "XOONX" ? access.can("xoonx", "editRequest") : inScopeOperate;
+  const canEdit = canEditScope && requestLinesEditable(items.map((i) => i.status));
   const slaMap = await slaForRequestItems(items, req.deliveredAt);
 
   return (
@@ -75,14 +78,14 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
         <div className="card p-5">
           <h2 className="mb-3 font-semibold text-ink">{t("requests.products")}</h2>
           <table className="w-full text-sm" data-cards>
-            <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("requests.count")}</th>{canSeeSelling && <th className="th text-end">{t("requests.sell")}</th>}<th className="th text-end">{t("requests.buy")}</th></tr></thead>
+            <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th text-end">{t("requests.count")}</th>{canSeeSelling && <th className="th text-end">{t("requests.sell")}</th>}{canSeePurchase && <th className="th text-end">{t("requests.buy")}</th>}</tr></thead>
             <tbody className="divide-y divide-line">
               {req.lines.map((l) => (
                 <tr key={l.id}>
                   <td className="td" data-label={t("requests.product")}><Link href={`/products/${l.product.id}`} className="prodname text-brand hover:underline">{l.product.name}</Link></td>
                   <td className="td text-end" data-label={t("requests.count")}>{l.count}</td>
                   {canSeeSelling && <td className="td text-end text-muted" data-label={t("requests.sell")}>{l.sellingPrice ?? "—"}</td>}
-                  <td className="td text-end text-muted" data-label={t("requests.buy")}>{l.purchasePrice ?? "—"}</td>
+                  {canSeePurchase && <td className="td text-end text-muted" data-label={t("requests.buy")}>{l.purchasePrice ?? "—"}</td>}
                 </tr>
               ))}
             </tbody>

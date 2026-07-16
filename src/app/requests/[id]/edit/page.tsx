@@ -6,7 +6,7 @@ import { requestScopes, primaryRequestModule, requestLinesEditable } from "@/lib
 import { getRequest, getRequestItems, listScopedProducts, listCustomerOptions } from "@/lib/requests/request-service";
 import { getSla } from "@/lib/sla/sla-config-service";
 import { assetUrl } from "@/lib/assets/assets-service";
-import { type Scope } from "@/lib/products/products-logic";
+import { type Scope, canSeePurchasePrice } from "@/lib/products/products-logic";
 import { RequestForm, type RequestFormInitial } from "../../RequestForm";
 
 export default async function EditRequestPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,15 +17,20 @@ export default async function EditRequestPage({ params }: { params: Promise<{ id
   const scope = req.scope as Scope;
   // Must be in-scope OPERATE and the request must still be editable (no progressed items).
   if (!requestScopes(access, "OPERATE").includes(scope)) redirect(`/requests/${req.id}`);
+  // XOONX requests are born approved — editing one needs xoonx.editRequest (default MANAGE).
+  if (scope === "XOONX" && !access.can("xoonx", "editRequest")) redirect(`/requests/${req.id}`);
   const items = await getRequestItems(req.id);
   if (!requestLinesEditable(items.map((i) => i.status))) redirect(`/requests/${req.id}`);
 
-  const [t, products, customers, sla] = await Promise.all([
+  const [t, rawProducts, customers, sla] = await Promise.all([
     getT(),
     listScopedProducts([scope]),
     listCustomerOptions([scope]),
     getSla(),
   ]);
+  const canSeePurchase = canSeePurchasePrice(access);
+  // Don't ship buy prices into a Sales user's page props.
+  const products = canSeePurchase ? rawProducts : rawProducts.map((p) => ({ ...p, purchasePrice: null }));
 
   const initial: RequestFormInitial = {
     type: req.type,
@@ -37,7 +42,8 @@ export default async function EditRequestPage({ params }: { params: Promise<{ id
       productId: String(l.product.id),
       count: String(l.count),
       sellingPrice: l.sellingPrice != null ? String(l.sellingPrice) : "",
-      purchasePrice: l.purchasePrice != null ? String(l.purchasePrice) : "",
+      // Don't ship the buy price into a Sales user's page props.
+      purchasePrice: canSeePurchase && l.purchasePrice != null ? String(l.purchasePrice) : "",
       purchaseCurrency: l.purchaseCurrency ?? "",
       notes: l.notes ?? "",
     })),
@@ -46,7 +52,7 @@ export default async function EditRequestPage({ params }: { params: Promise<{ id
 
   return (
     <AppShell access={access} moduleKey={primaryRequestModule(access)} pageTitle={t("req.edit")} backHref={`/requests/${req.id}`}>
-      <RequestForm allowedScopes={[scope]} products={products} customers={customers} depositPct={sla.depositPct} editId={req.id} initial={initial} />
+      <RequestForm allowedScopes={[scope]} products={products} customers={customers} depositPct={sla.depositPct} canSeePurchase={canSeePurchase} editId={req.id} initial={initial} />
     </AppShell>
   );
 }

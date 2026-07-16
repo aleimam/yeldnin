@@ -35,13 +35,16 @@ export function RequestForm({
   products,
   customers,
   depositPct,
+  canSeePurchase,
   editId,
   initial,
 }: {
   allowedScopes: Scope[];
-  products: { id: number; name: string; sku: string | null; scope: string; sellingPrice: number | null; purchasePrice: number | null }[];
+  products: { id: number; name: string; sku: string | null; scope: string; type: string; sellingPrice: number | null; purchasePrice: number | null }[];
   customers: { id: number; name: string; scope: string }[];
   depositPct: number;
+  /** Buy price is hidden from EGV Sales (golden rule); shown to XOONX/purchasing/admin. */
+  canSeePurchase: boolean;
   editId?: number;
   initial?: RequestFormInitial;
 }) {
@@ -70,11 +73,13 @@ export function RequestForm({
     depositPct,
     lines.map((l) => ({ count: Number(l.count) || 0, sellingPrice: l.sellingPrice ? Number(l.sellingPrice) : null })),
   );
-  const scopeProducts = products.filter((p) => p.scope === scope);
+  // XOONX requests may only contain XOONX-type products (enforced server-side too).
+  const scopeProducts = products.filter((p) => p.scope === scope && (scope !== "XOONX" || p.type === "XOONX"));
   const scopeCustomers = customers.filter((c) => c.scope === scope);
   const setLine = (i: number, k: keyof Line, v: string) =>
     setLines((p) => p.map((l, idx) => (idx === i ? { ...l, [k]: v } : l)));
-  // Selecting a product copies its default selling/purchase price into the line.
+  // Selecting a product copies its default selling price into the line (and buy
+  // price too, but only for users allowed to see it — Sales never does).
   const pickProduct = (i: number, productId: string) => {
     const p = scopeProducts.find((sp) => String(sp.id) === productId);
     setLines((prev) =>
@@ -84,7 +89,7 @@ export function RequestForm({
               ...l,
               productId,
               sellingPrice: p?.sellingPrice != null ? String(p.sellingPrice) : l.sellingPrice,
-              purchasePrice: p?.purchasePrice != null ? String(p.purchasePrice) : l.purchasePrice,
+              purchasePrice: canSeePurchase && p?.purchasePrice != null ? String(p.purchasePrice) : l.purchasePrice,
             }
           : l,
       ),
@@ -106,7 +111,7 @@ export function RequestForm({
           productId: Number(l.productId),
           count: Number(l.count) || 1,
           sellingPrice: l.sellingPrice ? Number(l.sellingPrice) : null,
-          purchasePrice: l.purchasePrice ? Number(l.purchasePrice) : null,
+          purchasePrice: canSeePurchase && l.purchasePrice ? Number(l.purchasePrice) : null,
           purchaseCurrency: l.purchaseCurrency || null,
           notes: l.notes || undefined,
         })),
@@ -179,7 +184,7 @@ export function RequestForm({
               />
               <input type="number" min={1} className="input sm:col-span-2" placeholder={t("requests.count")} value={l.count} onChange={(e) => setLine(i, "count", e.target.value)} />
               <input type="number" step="any" className="input sm:col-span-2" placeholder={t("requests.sell")} value={l.sellingPrice} onChange={(e) => setLine(i, "sellingPrice", e.target.value)} />
-              <input type="number" step="any" className="input sm:col-span-2" placeholder={t("requests.buy")} value={l.purchasePrice} onChange={(e) => setLine(i, "purchasePrice", e.target.value)} />
+              {canSeePurchase && <input type="number" step="any" className="input sm:col-span-2" placeholder={t("requests.buy")} value={l.purchasePrice} onChange={(e) => setLine(i, "purchasePrice", e.target.value)} />}
               {scope === "XOONX" && (
                 <select className="input sm:col-span-2" value={l.purchaseCurrency} onChange={(e) => setLine(i, "purchaseCurrency", e.target.value)} title={t("xreq.buyCurrency")}>
                   <option value="">EGP</option>

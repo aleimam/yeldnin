@@ -58,6 +58,17 @@ export function canSeeSellingPrice(a: AccessLike): boolean {
   return a.isAdmin || a.canModule("order_requests") || a.canModule("xoonx");
 }
 
+/**
+ * Purchase (buy) prices. EGV Sales is the sell side and must never see the
+ * supply-chain buy cost — the golden rule. Purchasing/Logistics are the buy-side
+ * back office (cross-scope). XOONX sources and pays for its own items, so the
+ * buy price is that operator's own cost basis (it drives the XOONX P&L) and
+ * stays visible to them — within XOONX scope, which is all they can ever reach.
+ */
+export function canSeePurchasePrice(a: AccessLike): boolean {
+  return a.isAdmin || a.canModule("purchasing") || a.canModule("logistics") || a.canModule("xoonx");
+}
+
 export function validateProduct(input: { name?: string; scope?: string; type?: string }): Record<string, string> {
   const e: Record<string, string> = {};
   if (!input.name?.trim()) e.name = "Name is required.";

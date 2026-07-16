@@ -60,6 +60,12 @@ export const CAPABILITIES: Capability[] = [
   // ── XOONX ────────────────────────────────────────────────────────────────
   { key: "operate", module: "xoonx", labelKey: "cap.xoonx.operate", defaultLevel: "OPERATE" },
   { key: "manage", module: "xoonx", labelKey: "cap.xoonx.manage", defaultLevel: "MANAGE" },
+  // Mark delivered books the order's revenue into the month (feeds reports +
+  // profit split), so it's a manager action by default.
+  { key: "deliver", module: "xoonx", labelKey: "cap.xoonx.deliver", defaultLevel: "MANAGE" },
+  // XOONX requests are born approved (no approval gate), so editing one changes
+  // an already-approved order's prices/deposit — manager action by default.
+  { key: "editRequest", module: "xoonx", labelKey: "cap.xoonx.editRequest", defaultLevel: "MANAGE" },
 
   // ── Purchasing ───────────────────────────────────────────────────────────
   { key: "operate", module: "purchasing", labelKey: "cap.purchasing.operate", defaultLevel: "OPERATE" },

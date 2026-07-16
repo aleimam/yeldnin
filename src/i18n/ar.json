@@ -1651,6 +1651,8 @@
   "cap.order_requests.approve": "اعتماد / رفض طلبات EGV",
   "cap.xoonx.operate": "إنشاء طلبات ومصروفات XOONX",
   "cap.xoonx.manage": "إغلاق الأشهر وإدارة حصص الموظفين",
+  "cap.xoonx.deliver": "تحديد الطلبات كمُسلّمة (يُسجّل الإيراد)",
+  "cap.xoonx.editRequest": "تعديل طلبات XOONX المعتمدة",
   "cap.purchasing.operate": "إنشاء وتعديل المشتريات",
   "cap.logistics.operate": "إدارة الإرساليات والرحلات والمسافرين والمراكز",
   "cap.operations.operate": "إدارة الشحنات (المراجعة والصور)",

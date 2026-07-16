@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { productScopes, primaryProductModule, validateProduct, type AccessLike } from "./products-logic";
+import { productScopes, primaryProductModule, validateProduct, canSeeSellingPrice, canSeePurchasePrice, type AccessLike } from "./products-logic";
 
 const mk = (mods: string[], isAdmin = false): AccessLike => ({
   isAdmin,
@@ -39,5 +39,25 @@ describe("validateProduct", () => {
     expect(validateProduct({ name: "X", scope: "BAD", type: "SUPPLEMENT" })).toHaveProperty("scope");
     expect(validateProduct({ name: "X", scope: "EGV", type: "BAD" })).toHaveProperty("type");
     expect(validateProduct({ name: "X", scope: "EGV", type: "SUPPLEMENT" })).toEqual({});
+  });
+});
+
+describe("price visibility (golden rule)", () => {
+  it("selling price: Sales/XOONX/admin — not Purchasing/Logistics", () => {
+    expect(canSeeSellingPrice(mk(["order_requests"]))).toBe(true);
+    expect(canSeeSellingPrice(mk(["xoonx"]))).toBe(true);
+    expect(canSeeSellingPrice(mk(["purchasing"]))).toBe(false);
+    expect(canSeeSellingPrice(mk(["logistics"]))).toBe(false);
+    expect(canSeeSellingPrice(mk([], true))).toBe(true);
+  });
+  it("purchase price: everyone EXCEPT EGV Sales — the golden rule", () => {
+    // EGV Sales is the sell side and must never see the buy cost.
+    expect(canSeePurchasePrice(mk(["order_requests"]))).toBe(false);
+    // XOONX sources/pays for its own items — buy price is its own cost basis.
+    expect(canSeePurchasePrice(mk(["xoonx"]))).toBe(true);
+    // Purchasing/Logistics are the buy-side back office.
+    expect(canSeePurchasePrice(mk(["purchasing"]))).toBe(true);
+    expect(canSeePurchasePrice(mk(["logistics"]))).toBe(true);
+    expect(canSeePurchasePrice(mk([], true))).toBe(true);
   });
 });

@@ -10,6 +10,7 @@ import {
   usesApprovalGate,
   hasSpawnedItems,
   requestLinesEditable,
+  requestLineProductError,
 } from "./request-logic";
 import type { AccessLike } from "@/lib/products/products-logic";
 
@@ -91,5 +92,23 @@ describe("approval gate", () => {
     expect(requestLinesEditable(["REQUESTED", "REQUESTED"])).toBe(true);
     expect(requestLinesEditable(["REQUESTED", "PURCHASED"])).toBe(false);
     expect(requestLinesEditable(["SHIPPED"])).toBe(false);
+  });
+});
+
+describe("requestLineProductError", () => {
+  const p = (name: string, scope: string, type: string) => ({ name, scope, type });
+  it("accepts in-scope products; XOONX additionally requires the XOONX type", () => {
+    expect(requestLineProductError("EGV", [p("Zinc", "EGV", "SUPPLEMENT"), p("Pump", "EGV", "DEVICE")])).toBeNull();
+    expect(requestLineProductError("XOONX", [p("iPhone", "XOONX", "XOONX")])).toBeNull();
+    expect(requestLineProductError("XOONX", [])).toBeNull();
+  });
+  it("rejects out-of-scope products", () => {
+    expect(requestLineProductError("EGV", [p("iPhone", "XOONX", "XOONX")])).toContain("iPhone");
+    expect(requestLineProductError("XOONX", [p("Zinc", "EGV", "SUPPLEMENT")])).toContain("Zinc");
+  });
+  it("rejects non-XOONX-type products in XOONX requests", () => {
+    expect(requestLineProductError("XOONX", [p("iPhone", "XOONX", "XOONX"), p("Zinc D", "XOONX", "SUPPLEMENT")])).toContain("Zinc D");
+    // EGV doesn't care about type
+    expect(requestLineProductError("EGV", [p("Odd", "EGV", "XOONX")])).toBeNull();
   });
 });
