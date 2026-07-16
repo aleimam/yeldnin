@@ -33,7 +33,8 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const inScopeOperate = requestScopes(access, "OPERATE").includes(req.scope as Scope);
   // XOONX requests are born approved — editing one needs xoonx.editRequest.
   const canEditScope = req.scope === "XOONX" ? access.can("xoonx", "editRequest") : inScopeOperate;
-  const canEdit = canEditScope && requestLinesEditable(items.map((i) => i.status));
+  // A delivered order's revenue is booked; block edits until it's un-marked.
+  const canEdit = canEditScope && !req.deliveredAt && requestLinesEditable(items.map((i) => i.status));
   const slaMap = await slaForRequestItems(items, req.deliveredAt);
 
   return (

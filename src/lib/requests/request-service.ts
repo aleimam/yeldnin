@@ -207,8 +207,14 @@ export async function updateRequest(
   photoAssetIds: string[],
   userId: number,
 ): Promise<{ id: number; needsApproval: boolean }> {
-  const req = await prisma.request.findFirst({ where: { id, archivedAt: null }, select: { id: true, uid: true, scope: true, createdById: true } });
+  const req = await prisma.request.findFirst({ where: { id, archivedAt: null }, select: { id: true, uid: true, scope: true, createdById: true, deliveredAt: true } });
   if (!req) throw new Error("Request not found.");
+  // A delivered XOONX order has already booked its revenue into that month (and
+  // the month may be closed). Editing its prices would silently re-book — block
+  // it; the delivery must be un-marked first (only possible in an open month).
+  if (req.deliveredAt) {
+    throw new Error("This order is delivered and its revenue is booked — un-mark delivery before editing it.");
+  }
   const items = await prisma.item.findMany({ where: { requestId: id }, select: { id: true, status: true } });
   if (!requestLinesEditable(items.map((i) => i.status))) {
     throw new Error("This request is already being purchased and can no longer be edited.");

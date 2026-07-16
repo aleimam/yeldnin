@@ -46,7 +46,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "products.title", icon: "📦", href: "/products?m=xoonx" },
     { labelKey: "customers.title", icon: "🙋", href: "/customers?m=xoonx" },
     { labelKey: "xoonx.expenses", icon: "💵", href: "/xoonx/expenses" },
-    { labelKey: "xoonx.reports", icon: "📈", href: "/xoonx/reports" },
+    { labelKey: "xoonx.reports", icon: "📈", href: "/xoonx/reports", capability: "viewReports" },
   ],
   // Logistics holds the merged Purchasing + Logistics nav. Pool/Purchases are
   // gated by the (separate) `purchasing` permission; Patches…Hubs by `logistics`.

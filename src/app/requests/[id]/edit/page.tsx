@@ -19,6 +19,8 @@ export default async function EditRequestPage({ params }: { params: Promise<{ id
   if (!requestScopes(access, "OPERATE").includes(scope)) redirect(`/requests/${req.id}`);
   // XOONX requests are born approved — editing one needs xoonx.editRequest (default MANAGE).
   if (scope === "XOONX" && !access.can("xoonx", "editRequest")) redirect(`/requests/${req.id}`);
+  // A delivered order's revenue is booked — un-mark delivery before editing.
+  if (req.deliveredAt) redirect(`/requests/${req.id}`);
   const items = await getRequestItems(req.id);
   if (!requestLinesEditable(items.map((i) => i.status))) redirect(`/requests/${req.id}`);
 

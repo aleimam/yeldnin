@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireModule } from "@/lib/auth/access";
+import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { monthlyReport, yearlyReport, type PerStaff } from "@/lib/xoonx/xoonx-finance-service";
@@ -64,7 +64,8 @@ function Costs({ purchasing, local, byCategory, t }: { purchasing: number; local
 }
 
 export default async function XoonxReportsPage({ searchParams }: { searchParams: Promise<{ m?: string; y?: string }> }) {
-  const access = await requireModule("xoonx", "VIEW");
+  // Reports expose net profit + partner profit shares — gated above plain VIEW.
+  const access = await requireCapability("xoonx", "viewReports");
   const canClose = access.can("xoonx", "manage");
   const sp = await searchParams;
   const t = await getT();
