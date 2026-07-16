@@ -22,20 +22,24 @@ export async function onRequestError(
   context: { routerKind?: string; routePath?: string; routeType?: string },
 ): Promise<void> {
   try {
-    // Only the Node runtime can reach the DB (the edge runtime can't load the adapter).
-    if (process.env.NEXT_RUNTIME !== "nodejs") return;
-    if (isBenignError(err)) return;
-    const { logError } = await import("@/lib/errors/error-log-service");
-    const e = err as { message?: unknown; stack?: unknown } | null;
-    await logError({
-      level: "error",
-      source: context?.routeType ? `server:${context.routeType}` : "server",
-      message: e?.message ? String(e.message) : String(err),
-      stack: e?.stack ? String(e.stack) : null,
-      url: request?.path ?? context?.routePath ?? null,
-      method: request?.method ?? null,
-      meta: { routerKind: context?.routerKind, routePath: context?.routePath, routeType: context?.routeType },
-    });
+    // Only the Node runtime can reach the DB (the edge runtime can't load the
+    // adapter). The import MUST sit inside this if-block (not after an early
+    // return): webpack's edge compile only dead-code-eliminates the import —
+    // whose chain reaches node:path, unsupported there — for the block form.
+    if (process.env.NEXT_RUNTIME === "nodejs") {
+      if (isBenignError(err)) return;
+      const { logError } = await import("@/lib/errors/error-log-service");
+      const e = err as { message?: unknown; stack?: unknown } | null;
+      await logError({
+        level: "error",
+        source: context?.routeType ? `server:${context.routeType}` : "server",
+        message: e?.message ? String(e.message) : String(err),
+        stack: e?.stack ? String(e.stack) : null,
+        url: request?.path ?? context?.routePath ?? null,
+        method: request?.method ?? null,
+        meta: { routerKind: context?.routerKind, routePath: context?.routePath, routeType: context?.routeType },
+      });
+    }
   } catch {
     // logging must never break a request
   }
