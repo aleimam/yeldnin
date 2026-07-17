@@ -5,6 +5,10 @@ business lines: **EGV** (Egypt Vitamins — supplements/devices) and **XOONX**
 (global "order anything" service). See `APP_BLUEPRINT.md` for the full spec,
 `PDD.docx` for the product design doc, and `Pricing.xlsx` for the pricing math.
 
+> **⚠ Read `HANDOFF.md` before deploying or touching permissions/scope code.**
+> It carries the operational runbook (deploy gotchas that each caused a real
+> incident), the golden-rule enforcement map, and the current production state.
+
 ## Stack
 
 - **Next.js 15** (App Router, RSC + Server Actions), **TypeScript** (strict).
