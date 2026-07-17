@@ -21,9 +21,11 @@
   (incl. VEEEY integration vault).
 - Spec documents live **untracked** in the repo root on the dev machine
   (`YeldnIN Description.docx`, `Human Resources Module.docx`, `YeldnIN-CS/
-  Chat/Documents/Evaluation/Notes.docx`, `PDD.docx`, `Status.xlsx`,
-  `Pricing.xlsx`, product spreadsheets). They are inputs, not code — don't
-  commit them, don't lose them.
+  Chat/Documents/Evaluation/Notes.docx`, `PDD.docx`, `Status.xlsx`, and the
+  `Products*.csv/xlsx` spreadsheets). They are inputs, not code — don't commit
+  them, don't lose them (there is no documented off-machine backup). The
+  `Pricing.xlsx` older docs mention no longer exists — its math is implemented
+  in the Pricing module.
 
 ## Production & deployment runbook
 
@@ -68,11 +70,18 @@ guided deploy where the owner pastes commands).
    `listen 443 ssl` (wildcard) — this box needs
    `listen 204.168.129.186:443 ssl` or requests fall through to CWP's
    self-signed default. See DEPLOY.md.
-7. Ops extras: the item auto-advance cron hits
-   `/api/cron/advance` via root crontab with an `x-cron-key` header
-   (`CRON_SECRET` in server `.env.local`). Web-push VAPID keys are also in
-   server `.env.local` (gitignored, survives pulls). Uploads live in
+7. Ops extras: the item auto-advance cron is a root crontab entry running
+   **every 10 minutes** — `curl` to `/api/cron/advance` with an `x-cron-key`
+   header (`CRON_SECRET` in server `.env.local`). Web-push VAPID keys are also
+   in server `.env.local` (gitignored, survives pulls). Uploads live in
    `./uploads` — back up with the DB.
+
+**What the owner must hand over separately (not in this repo, by design):**
+SSH access to the box (the previous operator used a personal key + a local
+`veeey` host alias), GitHub push access to `aleimam/yeldnin`, the production
+admin login, and — if the server is ever rebuilt — the server-side
+`.env.local` values (`SESSION_SECRET`, `CRON_SECRET`, VAPID keys). Also decide
+a backup home for the untracked spec documents and the prod DB/uploads.
 
 ## Dev-machine gotchas (Windows on ARM)
 

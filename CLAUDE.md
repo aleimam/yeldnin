@@ -2,8 +2,9 @@
 
 Internal back-office platform (the storefront "Veeey" is a separate app). Two
 business lines: **EGV** (Egypt Vitamins — supplements/devices) and **XOONX**
-(global "order anything" service). See `APP_BLUEPRINT.md` for the full spec,
-`PDD.docx` for the product design doc, and `Pricing.xlsx` for the pricing math.
+(global "order anything" service). See `APP_BLUEPRINT.md` for the full spec and
+`PDD.docx` for the product design doc. (The pricing math from the original
+`Pricing.xlsx` is long since implemented in the Pricing module; the file is gone.)
 
 > **⚠ Read `HANDOFF.md` before deploying or touching permissions/scope code.**
 > It carries the operational runbook (deploy gotchas that each caused a real
