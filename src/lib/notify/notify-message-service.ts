@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { sendToUsers } from "./notify-service";
+import { makeT, isLocale, DEFAULT_LOCALE } from "@/i18n";
 
 export const NOTIFICATION_TYPES = ["info", "warning", "success"] as const;
 
@@ -63,6 +64,34 @@ export async function sendCustomNotification(input: ComposeInput, senderId: numb
   // In-app inbox is already saved; push is a best-effort bonus for subscribers.
   await sendToUsers(recipientIds, { title, body, url: link || "/notifications", tag: `custom-${message.id}` }).catch(() => {});
   return recipientIds.length;
+}
+
+/**
+ * Send one localized in-app/push notification per recipient, rendered in each
+ * recipient's own locale (grouped per user). Skips the actor so people aren't
+ * pinged for their own actions. Best-effort: never throws.
+ */
+export async function sendLocalizedCustomNotification(
+  userIds: number[],
+  titleKey: string,
+  bodyKey: string,
+  vars: Record<string, string | number>,
+  link: string,
+  type: string,
+  actorId: number,
+): Promise<void> {
+  const recipients = [...new Set(userIds)].filter((u) => u !== actorId);
+  if (!recipients.length) return;
+  const users = await prisma.user.findMany({ where: { id: { in: recipients } }, select: { id: true, locale: true } });
+  await Promise.allSettled(
+    users.map((u) => {
+      const tt = makeT(isLocale(u.locale) ? u.locale : DEFAULT_LOCALE);
+      return sendCustomNotification(
+        { title: tt(titleKey), body: tt(bodyKey, vars), link, type, target: { userIds: [u.id] } },
+        actorId,
+      );
+    }),
+  );
 }
 
 export interface InboxRow {

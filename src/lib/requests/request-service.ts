@@ -8,9 +8,8 @@ import { createCustomer } from "@/lib/customers/customers-service";
 import { getSla } from "@/lib/sla/sla-config-service";
 import { graceDays, sourceClass, promisedDate } from "@/lib/sla/sla-logic";
 import { usesApprovalGate, requestLinesEditable } from "./request-logic";
-import { sendCustomNotification } from "@/lib/notify/notify-message-service";
+import { sendLocalizedCustomNotification } from "@/lib/notify/notify-message-service";
 import { moduleOperatorIds } from "@/lib/notify/notify-service";
-import { makeT, isLocale, DEFAULT_LOCALE } from "@/i18n";
 import { getLocale } from "@/i18n/server";
 import { displayName } from "@/lib/users/users-logic";
 
@@ -64,8 +63,12 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
   });
   // Items spawn immediately only when there's no gate (XOONX). EGV items spawn on
   // approval (see approveRequest); flag the approvers that one is waiting.
-  if (!gated) await spawnRequestItems(request.id, userId);
-  else await notifyRequestPending(request, userId);
+  if (!gated) {
+    await spawnRequestItems(request.id, userId);
+    await notifyXoonxRequestNeedsSourcing(request, userId);
+  } else {
+    await notifyRequestPending(request, userId);
+  }
   return request;
 }
 
@@ -123,42 +126,26 @@ export interface RequestActorRef {
 }
 const ACTOR_REF_SELECT = { id: true, uid: true, scope: true, status: true, createdById: true } as const;
 
-/** Send one localized in-app/push notification per recipient (skips the actor).
- *  Best-effort: never throws. */
-async function notifyLocalized(
-  userIds: number[],
-  titleKey: string,
-  bodyKey: string,
-  vars: Record<string, string | number>,
-  link: string,
-  type: string,
-  actorId: number,
-) {
-  const recipients = [...new Set(userIds)].filter((u) => u !== actorId);
-  if (!recipients.length) return;
-  const users = await prisma.user.findMany({ where: { id: { in: recipients } }, select: { id: true, locale: true } });
-  await Promise.allSettled(
-    users.map((u) => {
-      const tt = makeT(isLocale(u.locale) ? u.locale : DEFAULT_LOCALE);
-      return sendCustomNotification(
-        { title: tt(titleKey), body: tt(bodyKey, vars), link, type, target: { userIds: [u.id] } },
-        actorId,
-      );
-    }),
-  );
-}
-
 /** Tell the EGV approvers (order_requests MANAGE + admins) a request awaits review. */
 async function notifyRequestPending(req: RequestActorRef, actorId: number) {
   if (req.scope !== "EGV") return;
   const approvers = await moduleOperatorIds(["order_requests"], "MANAGE");
-  await notifyLocalized(approvers, "req.notif.pendingTitle", "req.notif.pendingBody", { ref: req.uid ?? `#${req.id}` }, `/requests/${req.id}`, "info", actorId).catch(() => {});
+  await sendLocalizedCustomNotification(approvers, "req.notif.pendingTitle", "req.notif.pendingBody", { ref: req.uid ?? `#${req.id}` }, `/requests/${req.id}`, "info", actorId).catch(() => {});
+}
+
+/** Tell the XOONX managers a new (or re-edited) XOONX order needs sourcing —
+ *  XOONX orders are born approved and spawn purchasable items immediately, so
+ *  without this nobody is told to go buy them. Mirrors the EGV pending notify. */
+async function notifyXoonxRequestNeedsSourcing(req: RequestActorRef, actorId: number) {
+  if (req.scope !== "XOONX") return;
+  const managers = await moduleOperatorIds(["xoonx"], "MANAGE");
+  await sendLocalizedCustomNotification(managers, "req.notif.xoonxNewTitle", "req.notif.xoonxNewBody", { ref: req.uid ?? `#${req.id}` }, `/requests/${req.id}`, "info", actorId).catch(() => {});
 }
 
 /** Tell the request's creator that it was approved / rejected. */
 async function notifyRequestDecision(req: RequestActorRef, approved: boolean, actorId: number) {
   if (!req.createdById) return;
-  await notifyLocalized(
+  await sendLocalizedCustomNotification(
     [req.createdById],
     approved ? "req.notif.approvedTitle" : "req.notif.rejectedTitle",
     approved ? "req.notif.approvedBody" : "req.notif.rejectedBody",
@@ -264,8 +251,13 @@ export async function updateRequest(
       },
     });
   });
-  if (!gated) await spawnRequestItems(id, userId);
-  else await notifyRequestPending({ id: req.id, uid: req.uid, scope: req.scope, status: "PENDING", createdById: req.createdById }, userId);
+  if (!gated) {
+    await spawnRequestItems(id, userId);
+    // An edited XOONX order changes what needs buying — re-flag the managers.
+    await notifyXoonxRequestNeedsSourcing({ id: req.id, uid: req.uid, scope: req.scope, status: "APPROVED", createdById: req.createdById }, userId);
+  } else {
+    await notifyRequestPending({ id: req.id, uid: req.uid, scope: req.scope, status: "PENDING", createdById: req.createdById }, userId);
+  }
   return { id, needsApproval: gated };
 }
 

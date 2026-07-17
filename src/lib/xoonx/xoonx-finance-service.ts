@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { writeAudit } from "@/lib/audit";
+import { sendLocalizedCustomNotification } from "@/lib/notify/notify-message-service";
 import { getLocale } from "@/i18n/server";
 import { monthKey, monthRange, monthCloseable, toEgp, validateStaffShares, PETTY_CASH_START, STAFF_POOL_PCT, YELDN_PCT, round2 } from "./xoonx-finance-logic";
 
@@ -212,11 +213,23 @@ export async function setStaffShares(shares: { userId: number; sharePct: number 
 // A XOONX order's revenue is recognised when it's marked delivered (the month of
 // `deliveredAt`). Revenue = the order's items' selling prices (already EGP).
 export async function markRequestDelivered(requestId: number, userId: number) {
-  const r = await prisma.request.findFirst({ where: { id: requestId, scope: XOONX_SCOPE, archivedAt: null }, select: { id: true, deliveredAt: true } });
+  const r = await prisma.request.findFirst({ where: { id: requestId, scope: XOONX_SCOPE, archivedAt: null }, select: { id: true, uid: true, deliveredAt: true, createdById: true } });
   if (!r) throw new Error("XOONX order not found.");
   if (r.deliveredAt) throw new Error("This order is already marked delivered.");
   await prisma.request.update({ where: { id: requestId }, data: { deliveredAt: new Date() } });
   await writeAudit(userId, XOONX, "order.delivered", "request", requestId, {});
+  // Tell the order's creator their order arrived (skipped when they marked it themselves).
+  if (r.createdById) {
+    await sendLocalizedCustomNotification(
+      [r.createdById],
+      "req.notif.deliveredTitle",
+      "req.notif.deliveredBody",
+      { ref: r.uid ?? `#${r.id}` },
+      `/requests/${r.id}`,
+      "success",
+      userId,
+    ).catch(() => {});
+  }
 }
 export async function unmarkRequestDelivered(requestId: number, userId: number) {
   const r = await prisma.request.findUnique({ where: { id: requestId }, select: { deliveredAt: true } });
