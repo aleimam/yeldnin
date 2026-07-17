@@ -5,7 +5,10 @@ import { requireUser } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT } from "@/i18n/server";
 import { requestScopes, primaryRequestModule } from "@/lib/requests/request-logic";
-import { listRequestsPaged, listRequestSlaInputs, requestCreatorNames, type RequestSortKey } from "@/lib/requests/request-service";
+import { listRequestsPaged, listRequestSlaInputs, requestCreatorNames, countPendingRequests, type RequestSortKey } from "@/lib/requests/request-service";
+import { monthlyReport } from "@/lib/xoonx/xoonx-finance-service";
+import { monthKey } from "@/lib/xoonx/xoonx-finance-logic";
+import { formatEgp } from "@/lib/format/money";
 import { itemStatusSummary, categoryCountsByRequest } from "@/lib/items/items-service";
 import { ITEM_BUCKETS, categoryLabels, emptyCategoryCounts } from "@/lib/items/items-logic";
 import { moduleContextScopes } from "@/lib/module-context";
@@ -37,11 +40,21 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const sort = (SORT_KEYS as readonly string[]).includes(sp.sort ?? "") ? (sp.sort as RequestSortKey) : "created";
   const dir = sp.dir === "asc" ? "asc" : "desc";
 
-  const [t, { rows, total }, summary, slaInputs] = await Promise.all([
+  // Landing cues: approvers get a pending-EGV banner; XOONX report viewers get a
+  // this-month revenue/net strip (same gate as the Reports page). Both are
+  // fetched only when the viewer actually qualifies.
+  const canApprove = access.can("order_requests", "approve") && scopes.includes("EGV");
+  const showXoonxSnap = moduleKey === "xoonx" && access.can("xoonx", "viewReports");
+  const now = new Date();
+  const month = monthKey(now);
+
+  const [t, { rows, total }, summary, slaInputs, pendingCount, xoonxSnap] = await Promise.all([
     getT(),
     listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, onlyUnfulfilled: true, sort, dir, skip, take }),
     itemStatusSummary(scopes),
     listRequestSlaInputs({ scopes }),
+    canApprove ? countPendingRequests(["EGV"]) : Promise.resolve(0),
+    showXoonxSnap ? monthlyReport(month, now) : Promise.resolve(null),
   ]);
   const [slaByReq, counts, creators] = await Promise.all([
     worstSlaByRequest(slaInputs.map((r) => r.id), new Map(slaInputs.map((r) => [r.id, r.deliveredAt]))),
@@ -76,6 +89,27 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
       actions={canManage ? <Link href="/requests/new" className="btn-primary">+ {t("requests.new")}</Link> : null}
     >
       <RequestsTabs active="list" m={ctx ?? ""} t={t} />
+
+      {pendingCount > 0 && (
+        <Link
+          href={`/requests?status=PENDING${ctx ? `&m=${ctx}` : ""}`}
+          className="alert alert-warning mb-6 flex items-center justify-between gap-3 hover:opacity-90"
+        >
+          <span>⏳ {t("rdash.awaitApproval", { count: pendingCount })}</span>
+          <span className="font-semibold">{t("rdash.review")}</span>
+        </Link>
+      )}
+
+      {xoonxSnap && (
+        <div className="card mb-6 flex flex-wrap items-center justify-between gap-x-8 gap-y-2 p-4">
+          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1 text-sm">
+            <span className="text-xs text-muted">{t("rdash.thisMonth")} · {month}</span>
+            <div><span className="text-muted">{t("xrep.revenue")}: </span><span className="font-bold text-ink">{formatEgp(xoonxSnap.revenue)} EGP</span></div>
+            <div><span className="text-muted">{t("xrep.net")}: </span><span className={`font-bold ${xoonxSnap.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>{formatEgp(xoonxSnap.netProfit)} EGP</span></div>
+          </div>
+          <Link href="/xoonx/reports" className="text-sm font-medium text-brand hover:underline">{t("xoonx.reports")}</Link>
+        </div>
+      )}
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
         {ITEM_BUCKETS.map((b) => (

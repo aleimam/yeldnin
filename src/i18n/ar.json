@@ -256,6 +256,9 @@
   "rdash.inStock": "في المخزون",
   "rdash.onWebsite": "على الموقع",
   "rdash.problems": "مشاكل",
+  "rdash.awaitApproval": "بانتظار اعتمادك: {count}",
+  "rdash.review": "مراجعة",
+  "rdash.thisMonth": "هذا الشهر",
 
   "products.import": "استيراد",
   "pimport.title": "استيراد المنتجات",

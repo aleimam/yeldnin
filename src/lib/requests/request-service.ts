@@ -261,6 +261,11 @@ export async function updateRequest(
   return { id, needsApproval: gated };
 }
 
+/** PENDING requests in scope — feeds the approvers' "awaiting approval" cue. */
+export function countPendingRequests(scopes: string[]): Promise<number> {
+  return prisma.request.count({ where: { archivedAt: null, status: "PENDING", scope: { in: scopes } } });
+}
+
 export function listRequests(opts: { scopes: string[] }) {
   return prisma.request.findMany({
     where: { archivedAt: null, scope: { in: opts.scopes } },

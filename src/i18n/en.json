@@ -256,6 +256,9 @@
   "rdash.inStock": "In stock",
   "rdash.onWebsite": "On website",
   "rdash.problems": "Problems",
+  "rdash.awaitApproval": "Waiting for your approval: {count}",
+  "rdash.review": "Review",
+  "rdash.thisMonth": "This month",
 
   "products.import": "Import",
   "pimport.title": "Import products",
