@@ -50,7 +50,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
 
   const [t, { rows, total }, summary, slaInputs, pendingCount, xoonxSnap] = await Promise.all([
     getT(),
-    listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, onlyUnfulfilled: true, sort, dir, skip, take }),
+    listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, onlyUnfulfilled: sp.all !== "1", sort, dir, skip, take }),
     itemStatusSummary(scopes),
     listRequestSlaInputs({ scopes }),
     canApprove ? countPendingRequests(["EGV"]) : Promise.resolve(0),
@@ -71,7 +71,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
 
   const sortHref = (key: string) => {
     const p = new URLSearchParams();
-    for (const k of ["q", "type", "status", "m", "perPage"] as const) {
+    for (const k of ["q", "type", "status", "all", "m", "perPage"] as const) {
       const v = sp[k];
       if (v) p.set(k, v);
     }
@@ -127,7 +127,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
         </div>
       )}
 
-      <RequestsFilters basePath="/requests" current={{ q: sp.q ?? "", type: sp.type ?? "", status: sp.status ?? "", m: ctx ?? "" }} />
+      <RequestsFilters basePath="/requests" current={{ q: sp.q ?? "", type: sp.type ?? "", status: sp.status ?? "", m: ctx ?? "", all: sp.all === "1" ? "1" : "" }} />
 
       <div className="card overflow-x-auto">
         <table className="w-full" data-cards>

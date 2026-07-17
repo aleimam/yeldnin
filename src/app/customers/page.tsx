@@ -21,7 +21,10 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const ctxScopes = ctx ? moduleContextScopes(ctx) : null;
   const baseScopes = ctxScopes ? visible.filter((s) => ctxScopes.includes(s)) : visible;
   const scopes = sp.scope && (baseScopes as string[]).includes(sp.scope) ? [sp.scope] : baseScopes;
-  const canManage = customerScopes(access, "OPERATE").length > 0;
+  // The detail route IS the edit form (OPERATE-gated), so only link rows the
+  // viewer can actually open — a VIEW-only user otherwise just bounces back.
+  const editableScopes = customerScopes(access, "OPERATE") as string[];
+  const canManage = editableScopes.length > 0;
   const cookiePerPage = Number((await cookies()).get(PER_PAGE_COOKIE)?.value) || undefined;
   const { page, perPage, skip, take } = pageWindow({ page: sp.page, perPage: sp.perPage, cookiePerPage });
   const [t, { rows, total }] = await Promise.all([getT(), listCustomers({ scopes, search: sp.q, sort: sp.sort, skip, take })]);
@@ -52,7 +55,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             {rows.map((c) => (
               <tr key={c.id} className="hover:bg-canvas/60">
                 <td className="td" data-label={t("customers.name")}>
-                  <Link href={`/customers/${c.id}`} className="font-medium text-brand hover:underline">{c.name}</Link>
+                  {editableScopes.includes(c.scope) ? (
+                    <Link href={`/customers/${c.id}`} className="font-medium text-brand hover:underline">{c.name}</Link>
+                  ) : (
+                    <span className="font-medium text-ink">{c.name}</span>
+                  )}
                   {!c.active && <span className="ms-2 rounded bg-canvas px-1.5 py-0.5 text-[10px] text-muted">{t("customers.inactive")}</span>}
                 </td>
                 <td className="td text-muted" data-label={t("requests.scope")}>{t(`scope.${c.scope}`)}</td>

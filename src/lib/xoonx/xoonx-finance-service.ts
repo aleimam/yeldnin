@@ -216,6 +216,12 @@ export async function markRequestDelivered(requestId: number, userId: number) {
   const r = await prisma.request.findFirst({ where: { id: requestId, scope: XOONX_SCOPE, archivedAt: null }, select: { id: true, uid: true, deliveredAt: true, createdById: true } });
   if (!r) throw new Error("XOONX order not found.");
   if (r.deliveredAt) throw new Error("This order is already marked delivered.");
+  // Delivery books revenue — don't let it happen for an order where nothing has
+  // even been purchased yet (every item still sits at REQUESTED, or none exist).
+  const items = await prisma.item.findMany({ where: { requestId }, select: { status: true } });
+  if (!items.length || items.every((i) => i.status === "REQUESTED")) {
+    throw new Error("Nothing in this order has been purchased yet — it can't be marked delivered.");
+  }
   await prisma.request.update({ where: { id: requestId }, data: { deliveredAt: new Date() } });
   await writeAudit(userId, XOONX, "order.delivered", "request", requestId, {});
   // Tell the order's creator their order arrived (skipped when they marked it themselves).

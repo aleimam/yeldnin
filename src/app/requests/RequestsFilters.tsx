@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { REQUEST_TYPES, REQUEST_STATUSES } from "@/lib/requests/request-logic";
 
-type Current = { q: string; type: string; status: string; m: string };
+type Current = { q: string; type: string; status: string; m: string; all: string };
 
 /** Requests filters (URL-backed; resets to page 1). Preserves the `m` module
  *  context so the dashboard stays scoped to the active section. */
@@ -20,12 +20,13 @@ export function RequestsFilters({ basePath, current }: { basePath: string; curre
     if (merged.q.trim()) params.set("q", merged.q.trim());
     if (merged.type) params.set("type", merged.type);
     if (merged.status) params.set("status", merged.status);
+    if (merged.all) params.set("all", merged.all);
     const qs = params.toString();
     router.push(`${basePath}${qs ? `?${qs}` : ""}`);
   };
 
   return (
-    <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
       <input
         className="input lg:col-span-2"
         placeholder={t("requests.searchPlaceholder")}
@@ -40,6 +41,10 @@ export function RequestsFilters({ basePath, current }: { basePath: string; curre
       <select className="input" aria-label={t("req.status")} value={current.status} onChange={(e) => push({ status: e.target.value })}>
         <option value="">{t("requests.allStatuses")}</option>
         {REQUEST_STATUSES.map((s) => <option key={s} value={s}>{t(`reqstatus.${s}`)}</option>)}
+      </select>
+      <select className="input" aria-label={t("requests.fulfillment")} value={current.all} onChange={(e) => push({ all: e.target.value })}>
+        <option value="">{t("requests.unfulfilledOnly")}</option>
+        <option value="1">{t("requests.inclFulfilled")}</option>
       </select>
     </div>
   );
