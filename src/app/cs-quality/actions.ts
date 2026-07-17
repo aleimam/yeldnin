@@ -202,9 +202,13 @@ export async function castVetoAction(evaluationId: number, note: string): Promis
 }
 
 /** Admin resolves a pending veto: uphold (delete the eval) or reject (keep it). */
-export async function resolveVetoAction(vetoId: number, uphold: boolean, note: string | null): Promise<{ ok: boolean }> {
+export async function resolveVetoAction(vetoId: number, uphold: boolean, note: string | null): Promise<{ ok: boolean; error?: string }> {
   const access = await requireCapability("cs_quality", "manage");
-  await resolveVeto(vetoId, uphold, access.user.id, note);
+  try {
+    await resolveVeto(vetoId, uphold, access.user.id, note);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Couldn't resolve the veto." };
+  }
   revalidatePath("/cs-quality/vetoes");
   revalidatePath("/cs-quality/review");
   return { ok: true };

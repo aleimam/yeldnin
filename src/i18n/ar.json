@@ -516,7 +516,7 @@
   "cs.veto.keep": "إبقاء",
   "cs.veto.delete": "حذف",
   "cs.veto.confirmDelete": "حذف هذا التقييم؟ سيُزال من درجة المندوب. لا يمكن التراجع.",
-  "cs.veto.resolutionNote": "ملاحظة (اختياري)",
+  "cs.veto.resolutionNote": "تعليق القرار (مطلوب)",
   "cs.veto.allowanceTitle": "رصيد الاعتراضات",
   "cs.veto.allowanceHint": "عدد الاعتراضات المسموح بها لكل مندوب شهريًا.",
   "cs.veto.perMonth": "شهريًا",

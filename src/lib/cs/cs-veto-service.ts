@@ -105,6 +105,8 @@ export async function castVeto(evaluationId: number, userId: number, note: strin
 
 /** Admin resolves a pending veto: uphold (soft-delete the eval) or reject (keep it). */
 export async function resolveVeto(vetoId: number, uphold: boolean, userId: number, note: string | null): Promise<boolean> {
+  const comment = (note ?? "").trim();
+  if (!comment) throw new Error("A decision comment is required to resolve a veto.");
   const veto = await prisma.csVeto.findUnique({
     where: { id: vetoId },
     select: { id: true, evaluationId: true, byUserId: true, status: true, evaluation: { select: { uid: true } } },
@@ -113,7 +115,7 @@ export async function resolveVeto(vetoId: number, uphold: boolean, userId: numbe
   await prisma.$transaction(async (tx) => {
     await tx.csVeto.update({
       where: { id: vetoId },
-      data: { status: uphold ? "UPHELD" : "REJECTED", resolvedById: userId, resolvedAt: new Date(), resolutionNote: note?.trim() || null },
+      data: { status: uphold ? "UPHELD" : "REJECTED", resolvedById: userId, resolvedAt: new Date(), resolutionNote: comment },
     });
     if (uphold) await tx.csEvaluation.update({ where: { id: veto.evaluationId }, data: { archivedAt: new Date() } });
   });

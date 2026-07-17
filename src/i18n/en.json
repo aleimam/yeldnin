@@ -516,7 +516,7 @@
   "cs.veto.keep": "Keep",
   "cs.veto.delete": "Delete",
   "cs.veto.confirmDelete": "Delete this evaluation? It will be removed from the rep's score. This can't be undone.",
-  "cs.veto.resolutionNote": "Note (optional)",
+  "cs.veto.resolutionNote": "Decision comment (required)",
   "cs.veto.allowanceTitle": "Veto allowance",
   "cs.veto.allowanceHint": "How many vetoes each rep may cast per month.",
   "cs.veto.perMonth": "Per month",
