@@ -456,6 +456,7 @@ model CsEvaluationPhoto {
 model Product {
   id                Int       @id @default(autoincrement())
   uid               String?   @unique // PRD<YY><MM><seq3>
+  veeeyWpId         Int?      @unique // stable link to Veeey (its Product.legacyWpId = WordPress id); set on catalog sync
   name              String
   sku               String?
   scope             String
