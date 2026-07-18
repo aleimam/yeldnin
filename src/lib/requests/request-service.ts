@@ -12,6 +12,7 @@ import { sendLocalizedCustomNotification } from "@/lib/notify/notify-message-ser
 import { moduleOperatorIds } from "@/lib/notify/notify-service";
 import { getLocale } from "@/i18n/server";
 import { displayName } from "@/lib/users/users-logic";
+import { emitRequestSync } from "@/lib/integration/request-sync";
 
 export interface CreateRequestInput {
   type: string;
@@ -69,6 +70,7 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
   } else {
     await notifyRequestPending(request, userId);
   }
+  await emitRequestSync(request.id); // best-effort Veeey sync (no-op while disabled)
   return request;
 }
 
@@ -168,6 +170,7 @@ export async function approveRequest(id: number, userId: number): Promise<Reques
     await spawnRequestItems(id, userId);
     await notifyRequestDecision(req, true, userId);
   }
+  await emitRequestSync(id); // best-effort Veeey sync (no-op while disabled)
   return req;
 }
 
@@ -179,6 +182,7 @@ export async function rejectRequest(id: number, note: string | null, userId: num
     await prisma.request.update({ where: { id }, data: { status: "REJECTED", rejectedNote: note?.trim() || null, updatedById: userId } });
     await notifyRequestDecision(req, false, userId);
   }
+  await emitRequestSync(id); // best-effort Veeey sync (no-op while disabled)
   return req;
 }
 
@@ -258,6 +262,7 @@ export async function updateRequest(
   } else {
     await notifyRequestPending({ id: req.id, uid: req.uid, scope: req.scope, status: "PENDING", createdById: req.createdById }, userId);
   }
+  await emitRequestSync(id); // best-effort Veeey sync (no-op while disabled)
   return { id, needsApproval: gated };
 }
 

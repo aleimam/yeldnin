@@ -1970,6 +1970,49 @@ model ApiIntegration {
   updatedAt       DateTime  @updatedAt
 }
 
+// ── YeldnIN ↔ Veeey request sync (Requests epic Phase D) ─────────────────────
+// Outbound delivery queue. `payloadJson` is a JSON string (SQLite has no Json
+// column). status: PENDING | FAILED | SENT | DEAD. Dispatched by dispatchOutbox()
+// (signed webhook to Veeey); inert while the integration flag is off.
+model OutboxEvent {
+  id            String    @id @default(cuid())
+  type          String // request.upsert
+  aggregateId   String? // request uid — same aggregate delivered in order
+  payloadJson   String // JSON.stringify(wire payload)
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  lastError     String?
+  createdAt     DateTime  @default(now())
+  nextAttemptAt DateTime?
+  sentAt        DateTime?
+
+  @@index([status])
+  @@index([aggregateId])
+}
+
+// Seen inbound nonces — each (nonce, clientId) may be presented once (replay
+// guard). Pruning is a future concern; rows are tiny.
+model IntegrationNonce {
+  id        String   @id @default(cuid())
+  nonce     String
+  clientId  String
+  createdAt DateTime @default(now())
+
+  @@unique([nonce, clientId])
+  @@index([createdAt])
+}
+
+// Inbound idempotency ledger — a repeated Idempotency-Key replays the stored
+// response instead of re-running the mutation. `responseJson` is a JSON string.
+model IdempotencyRecord {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  endpoint     String
+  statusCode   Int
+  responseJson String
+  createdAt    DateTime @default(now())
+}
+
 // ── HR Engagement ────────────────────────────────────────────────────────────
 // Staff engagement events (challenges/activities) that pay a bonus per achieved
 // criterion. Templates (with criteria + bonus) are reusable; each Event is a

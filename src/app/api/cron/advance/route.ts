@@ -4,6 +4,7 @@ import { getAccess } from "@/lib/auth/access";
 import { advanceDueItems } from "@/lib/items/items-service";
 import { runSlaAlerts } from "@/lib/sla/sla-service";
 import { pruneOldErrorLogs } from "@/lib/errors/error-log-service";
+import { dispatchOutbox } from "@/lib/integration/integration-service";
 
 /** Constant-time string compare (avoids leaking the secret via response timing). */
 function safeEqual(a: string, b: string): boolean {
@@ -32,7 +33,10 @@ async function handle(req: Request) {
   const advanced = await advanceDueItems();
   const slaAlerts = await runSlaAlerts();
   const errorLogsPruned = await pruneOldErrorLogs().catch(() => 0); // 30-day retention
-  return NextResponse.json({ advanced, slaAlerts, errorLogsPruned });
+  // Drain the Veeey outbox on the same tick — no-op (skipped) while the
+  // integration flag is off, so this stays inert until the owner enables it.
+  const outbox = await dispatchOutbox().catch(() => ({ sent: 0, failed: 0, skipped: true }));
+  return NextResponse.json({ advanced, slaAlerts, errorLogsPruned, outbox });
 }
 
 export const GET = handle;
