@@ -155,6 +155,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     labelKey: "settings.group.integrations",
     items: [{ labelKey: "integ.title", icon: "🔌", href: "/settings/integrations", module: "settings", capability: "manageModules", adminOnly: true }],
   },
+  {
+    labelKey: "settings.group.system",
+    items: [{ labelKey: "backup.title", icon: "🗄️", href: "/settings/backup", module: "settings", capability: "manageModules", adminOnly: true }],
+  },
 ];
 
 type CapFn = (moduleKey: string, capability: string) => boolean;

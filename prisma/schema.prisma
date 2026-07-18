@@ -2119,3 +2119,53 @@ model EngagementAchievement {
   @@index([employeeId])
   @@index([eventId])
 }
+
+// ── Backup system (Admin → Settings → Backup) ────────────────────────────────
+// Single-row config for scheduled off-site backups over FTPS. The password is
+// encrypted at rest (AES-256-GCM, same vault as the VEEEY secret) and never
+// returned to the browser. A cron tick (/api/cron/backup) runs a backup when
+// isBackupDue() says the schedule is due; retention prunes old remote archives.
+model BackupConfig {
+  id              Int       @id @default(autoincrement())
+  singleton       String    @unique @default("BACKUP") // enforce a single row
+  enabled         Boolean   @default(false)
+  protocol        String    @default("FTPS") // FTPS today (SFTP possible later)
+  host            String?
+  port            Int       @default(21)
+  username        String?
+  passwordEnc     String? // encrypted AES-256-GCM; never sent to the client
+  remotePath      String    @default("/") // remote directory that receives archives
+  secure          Boolean   @default(true) // FTPS explicit TLS
+  includeDb       Boolean   @default(true)
+  includeUploads  Boolean   @default(false)
+  frequency       String    @default("DAILY") // OFF | HOURLY | DAILY | WEEKLY | MONTHLY
+  hourUtc         Int       @default(2) // hour of day (UTC) for DAILY/WEEKLY/MONTHLY
+  weekday         Int       @default(1) // 0=Sun..6=Sat, for WEEKLY
+  dayOfMonth      Int       @default(1) // 1..28, for MONTHLY
+  retentionKeep   Int       @default(30) // keep the newest N archives (0 = keep all)
+  notifyOnFailure Boolean   @default(true)
+  lastTestAt      DateTime?
+  lastTestOk      Boolean?
+  lastTestMessage String?
+  lastRunAt       DateTime?
+  createdById     Int?
+  updatedById     Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+// One row per backup attempt (manual or scheduled) — the run history/log.
+model BackupRun {
+  id         Int       @id @default(autoincrement())
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  status     String    @default("RUNNING") // RUNNING | SUCCESS | FAILED
+  trigger    String    @default("SCHEDULED") // SCHEDULED | MANUAL
+  contents   String    @default("") // csv of included parts, e.g. "db,uploads"
+  fileName   String?
+  sizeBytes  Int?
+  error      String?
+  byUserId   Int?
+
+  @@index([startedAt])
+}
