@@ -522,6 +522,8 @@
   "cs.veto.perMonth": "Per month",
   "cs.veto.notif.castTitle": "Veto",
   "cs.veto.notif.castBody": "{rep} vetoed {evaluator}'s Evaluation",
+  "cs.veto.notif.evalTitle": "Your evaluation was disputed",
+  "cs.veto.notif.evalBody": "{rep} disputed your evaluation {ref}.",
   "cs.veto.notif.upheldTitle": "Veto upheld",
   "cs.veto.notif.upheldBody": "Your veto on {ref} was upheld — the evaluation was removed.",
   "cs.veto.notif.rejectedTitle": "Veto reviewed",

@@ -522,6 +522,8 @@
   "cs.veto.perMonth": "شهريًا",
   "cs.veto.notif.castTitle": "اعتراض",
   "cs.veto.notif.castBody": "{rep} اعترض على تقييم {evaluator}",
+  "cs.veto.notif.evalTitle": "تم الاعتراض على تقييمك",
+  "cs.veto.notif.evalBody": "{rep} اعترض على تقييمك {ref}.",
   "cs.veto.notif.upheldTitle": "تم قبول الاعتراض",
   "cs.veto.notif.upheldBody": "تم قبول اعتراضك على {ref} — وحُذف التقييم.",
   "cs.veto.notif.rejectedTitle": "تمت مراجعة الاعتراض",

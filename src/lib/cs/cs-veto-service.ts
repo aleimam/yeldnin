@@ -37,29 +37,47 @@ export async function vetoStatusByEval(evalIds: number[]): Promise<Map<number, s
   return new Map(rows.map((r) => [r.evaluationId, r.status]));
 }
 
-/** Notify the CS approvers (cs_quality MANAGE + admins) that a veto was cast. */
-async function notifyVetoCast(veto: { id: number; evaluationId: number; evaluatorUserId: number }, actorId: number) {
-  const recipients = (await moduleOperatorIds(["cs_quality"], "MANAGE")).filter((u) => u !== actorId);
-  if (!recipients.length) return;
-  // The rep who vetoed (the actor) and the evaluator whose eval was vetoed — names
-  // resolved per recipient locale below.
-  const [users, rep, evaluator] = await Promise.all([
-    prisma.user.findMany({ where: { id: { in: recipients } }, select: { id: true, locale: true } }),
+/** Notify the CS approvers (cs_quality MANAGE + admins) that a veto was cast, and
+ *  the evaluator whose evaluation was disputed — with a personalized message. */
+async function notifyVetoCast(veto: { id: number; evaluationId: number; evalUid: string | null; evaluatorUserId: number }, actorId: number) {
+  const evaluatorId = veto.evaluatorUserId;
+  // Managers get the generic alert; the evaluator gets a personalized one below.
+  // Exclude the actor (the rep) AND the evaluator from the manager list so nobody
+  // is double-notified (an evaluator who is also a CS manager gets only theirs).
+  const managerIds = (await moduleOperatorIds(["cs_quality"], "MANAGE")).filter((u) => u !== actorId && u !== evaluatorId);
+  const [managers, rep, evaluator] = await Promise.all([
+    managerIds.length ? prisma.user.findMany({ where: { id: { in: managerIds } }, select: { id: true, locale: true } }) : Promise.resolve([]),
     prisma.user.findUnique({ where: { id: actorId }, select: { name: true, nameAr: true } }),
-    prisma.user.findUnique({ where: { id: veto.evaluatorUserId }, select: { name: true, nameAr: true } }),
+    prisma.user.findUnique({ where: { id: evaluatorId }, select: { id: true, name: true, nameAr: true, locale: true } }),
   ]);
-  await Promise.allSettled(
-    users.map((u) => {
-      const loc = isLocale(u.locale) ? u.locale : DEFAULT_LOCALE;
-      const tt = makeT(loc);
-      const repName = rep ? displayName(rep, loc) : "—";
-      const evaluatorName = evaluator ? displayName(evaluator, loc) : "—";
-      return sendCustomNotification(
+  const ref = veto.evalUid ?? `#${veto.evaluationId}`;
+  const tasks: Promise<unknown>[] = [];
+  // Managers → generic "{rep} vetoed {evaluator}'s Evaluation", linking to the queue.
+  for (const u of managers) {
+    const loc = isLocale(u.locale) ? u.locale : DEFAULT_LOCALE;
+    const tt = makeT(loc);
+    const repName = rep ? displayName(rep, loc) : "—";
+    const evaluatorName = evaluator ? displayName(evaluator, loc) : "—";
+    tasks.push(
+      sendCustomNotification(
         { title: tt("cs.veto.notif.castTitle"), body: tt("cs.veto.notif.castBody", { rep: repName, evaluator: evaluatorName }), link: "/cs-quality/vetoes", type: "warning", target: { userIds: [u.id] } },
         actorId,
-      );
-    }),
-  );
+      ),
+    );
+  }
+  // The evaluator whose evaluation was disputed → personalized alert.
+  if (evaluator && evaluatorId !== actorId) {
+    const loc = isLocale(evaluator.locale) ? evaluator.locale : DEFAULT_LOCALE;
+    const tt = makeT(loc);
+    const repName = rep ? displayName(rep, loc) : "—";
+    tasks.push(
+      sendCustomNotification(
+        { title: tt("cs.veto.notif.evalTitle"), body: tt("cs.veto.notif.evalBody", { rep: repName, ref }), link: "/cs-quality/vetoes", type: "warning", target: { userIds: [evaluator.id] } },
+        actorId,
+      ),
+    );
+  }
+  await Promise.allSettled(tasks);
 }
 
 /** Notify the rep that their veto was kept (rejected) or upheld (deleted). */
@@ -99,7 +117,7 @@ export async function castVeto(evaluationId: number, userId: number, note: strin
 
   const veto = await prisma.csVeto.create({ data: { evaluationId, byUserId: userId, note: trimmed }, select: { id: true } });
   await writeAudit(userId, "cs_quality", "veto.cast", "csVeto", veto.id, { evaluationId });
-  await notifyVetoCast({ id: veto.id, evaluationId, evaluatorUserId: ev.evaluatorUserId }, userId).catch(() => {});
+  await notifyVetoCast({ id: veto.id, evaluationId, evalUid: ev.uid, evaluatorUserId: ev.evaluatorUserId }, userId).catch(() => {});
   return veto;
 }
 
