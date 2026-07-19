@@ -9,7 +9,9 @@ import { supplierLabel } from "../supplier-label";
 
 export default async function NewProductPage() {
   const access = await requireUser();
-  const manageable = productScopes(access, "OPERATE");
+  // VEEEY products are born in the Veeey storefront and synced in — you can't
+  // hand-create them here, so exclude VEEEY from the create scopes.
+  const manageable = productScopes(access, "OPERATE").filter((s) => s !== "VEEEY");
   if (!manageable.length) redirect("/");
   const [t, suppliers] = await Promise.all([getT(), listSuppliersForPicker()]);
 

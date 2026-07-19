@@ -21,7 +21,11 @@ export const MAX_UPLOAD_BYTES = 32 * 1024 * 1024; // 32 MB
 export const ALLOWED_MIME = new Set(Object.keys(EXT));
 
 export function assetUrl(id: string | null | undefined): string | null {
-  return id ? `/api/asset/${id}` : null;
+  if (!id) return null;
+  // Veeey-synced product photos store an absolute URL in `assetId` (hotlinked,
+  // contract v2) — pass those through instead of wrapping the asset route.
+  if (/^https?:\/\//.test(id)) return id;
+  return `/api/asset/${id}`;
 }
 
 /** Persist an uploaded File to disk + DB. Returns the Asset id. */

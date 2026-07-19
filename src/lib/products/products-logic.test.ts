@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { productScopes, primaryProductModule, validateProduct, canSeeSellingPrice, canSeePurchasePrice, type AccessLike } from "./products-logic";
+import { productScopes, primaryProductModule, validateProduct, canSeeSellingPrice, canSeePurchasePrice, isVeeeyManaged, resolveEditedType, type AccessLike } from "./products-logic";
 
 const mk = (mods: string[], isAdmin = false): AccessLike => ({
   isAdmin,
@@ -59,5 +59,22 @@ describe("price visibility (golden rule)", () => {
     expect(canSeePurchasePrice(mk(["purchasing"]))).toBe(true);
     expect(canSeePurchasePrice(mk(["logistics"]))).toBe(true);
     expect(canSeePurchasePrice(mk([], true))).toBe(true);
+  });
+});
+
+describe("isVeeeyManaged / resolveEditedType (Veeey-scope read-only)", () => {
+  it("only VEEEY scope is Veeey-managed", () => {
+    expect(isVeeeyManaged("VEEEY")).toBe(true);
+    expect(isVeeeyManaged("XOONX")).toBe(false);
+    expect(isVeeeyManaged("PERSONAL")).toBe(false);
+  });
+  it("non-VEEEY products take the submitted type as-is", () => {
+    expect(resolveEditedType("XOONX", "DEVICE", "SUPPLEMENT")).toBe("DEVICE");
+  });
+  it("VEEEY product: heavy toggle allowed on a supplement, base change ignored", () => {
+    expect(resolveEditedType("VEEEY", "HEAVY_SUPPLEMENT", "SUPPLEMENT")).toBe("HEAVY_SUPPLEMENT"); // set heavy
+    expect(resolveEditedType("VEEEY", "SUPPLEMENT", "HEAVY_SUPPLEMENT")).toBe("SUPPLEMENT"); // unset heavy
+    expect(resolveEditedType("VEEEY", "DEVICE", "SUPPLEMENT")).toBe("SUPPLEMENT"); // base is Veeey's — ignored
+    expect(resolveEditedType("VEEEY", "SUPPLEMENT", "DEVICE")).toBe("DEVICE"); // heavy N/A to a device
   });
 });

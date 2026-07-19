@@ -5,6 +5,8 @@ import {
   productScopes,
   validateProduct,
   canSeePurchasePrice,
+  isVeeeyManaged,
+  resolveEditedType,
   type Scope,
   type ProductType,
 } from "@/lib/products/products-logic";
@@ -37,6 +39,11 @@ export async function createProductAction(p: ProductPayload): Promise<ProductRes
   if (!productScopes(access, "OPERATE").includes(p.scope as Scope)) {
     return { ok: false, error: "You can't add products in that scope." };
   }
+  // VEEEY products are created in the Veeey storefront and synced in — never
+  // hand-created in YeldnIN (they'd have no Veeey master to reconcile against).
+  if (isVeeeyManaged(p.scope)) {
+    return { ok: false, error: "Veeey products are created in the Veeey storefront, not here." };
+  }
   // Purchase price is Purchasing/Logistics-only — ignore any value a Sales/XOONX
   // creator's client might send (defense-in-depth behind the hidden field).
   const purchasePrice = canSeePurchasePrice(access) ? p.purchasePrice ?? null : null;
@@ -57,19 +64,30 @@ export async function saveProductAction(p: ProductPayload & { id: number; active
   if (!productScopes(access, "OPERATE").includes(p.scope as Scope)) {
     return { ok: false, error: "You can't manage products in that scope." };
   }
+  const existing = await getProduct(p.id);
+  if (!existing) return { ok: false, error: "Product not found." };
   // Purchase price is Purchasing/Logistics-only: a user who can't see it can't
   // change it — preserve the stored value rather than the (absent) client one.
-  let purchasePrice = p.purchasePrice ?? null;
-  if (!canSeePurchasePrice(access)) {
-    const existing = await getProduct(p.id);
-    purchasePrice = existing?.purchasePrice ?? null;
-  }
-  await updateProduct(
-    p.id,
-    { ...p, purchasePrice, scope: p.scope as Scope, type: p.type as ProductType, active: p.active },
-    p.photoIds ?? [],
-    access.user.id,
-  );
+  const purchasePrice = canSeePurchasePrice(access) ? p.purchasePrice ?? null : existing.purchasePrice ?? null;
+  // VEEEY-scope products: the Veeey storefront masters the display fields — the
+  // sync is their sole writer. Preserve them here; only the heavy toggle (via
+  // type) + the supply-chain layer are editable in YeldnIN.
+  const veeey = isVeeeyManaged(existing.scope);
+  const data = veeey
+    ? {
+        ...p,
+        purchasePrice,
+        scope: existing.scope as Scope,
+        name: existing.name,
+        sku: existing.sku ?? undefined,
+        size: existing.size ?? undefined,
+        grade: existing.grade ?? undefined,
+        type: resolveEditedType(existing.scope, p.type, existing.type) as ProductType,
+        active: p.active,
+      }
+    : { ...p, purchasePrice, scope: p.scope as Scope, type: p.type as ProductType, active: p.active };
+  // Photos on a Veeey product come from the sync — don't add form photos to it.
+  await updateProduct(p.id, data, veeey ? [] : p.photoIds ?? [], access.user.id);
   await writeAudit(access.user.id, "purchasing", "product.update", "product", p.id);
   revalidatePath("/products");
   revalidatePath(`/products/${p.id}`);

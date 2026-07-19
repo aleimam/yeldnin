@@ -19,6 +19,8 @@ const canManage = (access: Access, scope: string) => customerScopes(access, "OPE
 export async function createCustomerAction(p: CustomerPayload): Promise<SaveResult> {
   const access = await requireUser();
   if (!canManage(access, p.scope)) return { ok: false, error: "You can't add customers in that scope." };
+  // VEEEY customers come from the Veeey storefront via the sync — not hand-created here.
+  if (p.scope === "VEEEY") return { ok: false, error: "Veeey customers are created in the Veeey storefront, not here." };
   const errs = validateCustomer(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   const c = await createCustomer(p, access.user.id);
@@ -35,7 +37,13 @@ export async function saveCustomerAction(p: CustomerPayload & { id: number; acti
   }
   const errs = validateCustomer(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
-  await updateCustomer(p.id, { ...p, active: p.active }, access.user.id);
+  // VEEEY customers: Veeey masters name/phone/channel (the sync is sole writer) —
+  // preserve them; only internal notes + active stay editable in YeldnIN.
+  const payload =
+    existing.scope === "VEEEY"
+      ? { ...p, scope: existing.scope, name: existing.name, contactChannel: existing.contactChannel, contactNumber: existing.contactNumber ?? undefined, active: p.active }
+      : { ...p, active: p.active };
+  await updateCustomer(p.id, payload, access.user.id);
   await writeAudit(access.user.id, moduleForCustomerScope(p.scope), "customer.update", "customer", p.id);
   revalidatePath("/customers");
   revalidatePath(`/customers/${p.id}`);

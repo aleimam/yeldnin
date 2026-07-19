@@ -7,7 +7,8 @@ import { CustomerForm } from "../CustomerForm";
 
 export default async function NewCustomerPage() {
   const access = await requireUser();
-  const allowed = customerScopes(access, "OPERATE");
+  // VEEEY customers come from the storefront via the sync — not hand-created here.
+  const allowed = customerScopes(access, "OPERATE").filter((s) => s !== "VEEEY");
   if (!allowed.length) redirect("/");
   const t = await getT();
   return (

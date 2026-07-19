@@ -458,7 +458,7 @@ model Product {
   uid               String?   @unique // PRD<YY><MM><seq3>
   veeeyWpId         Int?      @unique // stable link to Veeey (its Product.legacyWpId = WordPress id); set on catalog sync
   name              String
-  sku               String?
+  sku               String?   @unique // canonical shared key with Veeey (contract v2); nullable for legacy rows
   scope             String
   type              String
   originRegion      String?   // USA | UK | EU — gates the Default Supplier choices
@@ -501,6 +501,7 @@ model ProductPhoto {
 model Customer {
   id             Int       @id @default(autoincrement())
   uid            String?   @unique // CUS<YY><MM><seq3>
+  veeeyCustomerId String?  @unique // Veeey account id — correlation key for the customer sync (contract v2)
   name           String
   scope          String    @default("VEEEY") // VEEEY | XOONX (hard boundary, like requests/products)
   contactChannel String    @default("WHATSAPP")

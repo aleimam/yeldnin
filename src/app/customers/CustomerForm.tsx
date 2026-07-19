@@ -39,6 +39,10 @@ export function CustomerForm({
     notes: initial.notes,
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
+  // VEEEY customers are mastered by the Veeey storefront: name/channel/phone are
+  // read-only here (the sync is sole writer); only internal notes stay editable.
+  const veeeyManaged = mode === "edit" && f.scope === "VEEEY";
+  const channelOptions = veeeyManaged ? [...CONTACT_CHANNELS, "VEEEY"] : CONTACT_CHANNELS;
 
   function submit() {
     setError(null);
@@ -61,21 +65,22 @@ export function CustomerForm({
     <div className="card max-w-xl space-y-4 p-6">
       {error && <div className="alert alert-error">{error}</div>}
       {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("customers.saved")}</div>}
+      {veeeyManaged && <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">{t("customers.veeeyManaged")}</div>}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div><label className="label">{t("customers.name")}</label><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></div>
+        <div><label className="label">{t("customers.name")}</label><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} disabled={veeeyManaged} /></div>
         <div>
           <label className="label">{t("requests.scope")}</label>
-          <select className="input" value={f.scope} onChange={(e) => set("scope", e.target.value)} disabled={allowedScopes.length <= 1}>
+          <select className="input" value={f.scope} onChange={(e) => set("scope", e.target.value)} disabled={allowedScopes.length <= 1 || mode === "edit"}>
             {allowedScopes.map((s) => <option key={s} value={s}>{t(`scope.${s}`)}</option>)}
           </select>
         </div>
         <div>
           <label className="label">{t("customers.channel")}</label>
-          <select className="input" value={f.contactChannel} onChange={(e) => set("contactChannel", e.target.value)}>
-            {CONTACT_CHANNELS.map((c) => <option key={c} value={c}>{t(`channel.${c}`)}</option>)}
+          <select className="input" value={f.contactChannel} onChange={(e) => set("contactChannel", e.target.value)} disabled={veeeyManaged}>
+            {channelOptions.map((c) => <option key={c} value={c}>{t(`channel.${c}`)}</option>)}
           </select>
         </div>
-        <div><label className="label">{t("customers.number")}</label><input className="input" value={f.contactNumber} onChange={(e) => set("contactNumber", e.target.value)} /></div>
+        <div><label className="label">{t("customers.number")}</label><input className="input" value={f.contactNumber} onChange={(e) => set("contactNumber", e.target.value)} disabled={veeeyManaged} /></div>
         {mode === "edit" && (
           <label className="flex items-end gap-2 pb-2 text-sm text-ink">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />

@@ -59,6 +59,30 @@ export function canSeeSellingPrice(a: AccessLike): boolean {
 }
 
 /**
+ * VEEEY-scope products are mastered by the Veeey storefront (contract v2): their
+ * catalog-display fields (name, sku, size, grade, photos, base type) are
+ * read-only in YeldnIN and only the supply-chain layer + the heavy toggle stay
+ * editable. XOONX/PERSONAL products are fully YeldnIN-owned.
+ */
+export function isVeeeyManaged(scope: string): boolean {
+  return scope === "VEEEY";
+}
+
+/**
+ * Resolve a product's type on a YeldnIN edit. For non-VEEEY products the
+ * submitted value is taken as-is. For a VEEEY product only the **heavy**
+ * dimension may change (Veeey owns the base type): a supplement may toggle
+ * SUPPLEMENT↔HEAVY_SUPPLEMENT; any other change is ignored and the stored type
+ * is preserved (the next Veeey sync is the sole writer of the base).
+ */
+export function resolveEditedType(scope: string, submitted: string, stored: string): string {
+  if (!isVeeeyManaged(scope)) return submitted;
+  const storedIsSupplement = stored === "SUPPLEMENT" || stored === "HEAVY_SUPPLEMENT";
+  if (storedIsSupplement && (submitted === "SUPPLEMENT" || submitted === "HEAVY_SUPPLEMENT")) return submitted;
+  return stored;
+}
+
+/**
  * Purchase (buy) prices. VEEEY Sales is the sell side and must never see the
  * supply-chain buy cost — the golden rule. Purchasing/Logistics are the buy-side
  * back office (cross-scope). XOONX sources and pays for its own items, so the

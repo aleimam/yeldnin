@@ -72,6 +72,12 @@ export function ProductForm({
     isMaleSupport: initial.isMaleSupport,
   });
   const set = (k: keyof typeof f, v: string | boolean) => setF((p) => ({ ...p, [k]: v }));
+  // VEEEY-scope products are mastered by the Veeey storefront: the catalog-display
+  // fields are read-only here (the sync is their sole writer); only the
+  // supply-chain layer + the heavy toggle stay editable.
+  const veeeyManaged = mode === "edit" && f.scope === "VEEEY";
+  const typeIsSupplement = f.type === "SUPPLEMENT" || f.type === "HEAVY_SUPPLEMENT";
+  const typeOptions = veeeyManaged ? (typeIsSupplement ? ["SUPPLEMENT", "HEAVY_SUPPLEMENT"] : [f.type]) : (PRODUCT_TYPES as readonly string[]);
   // Default Supplier choices are gated by the product's origin region. Changing
   // the origin clears a supplier that no longer serves it.
   const availableSuppliers = f.originRegion ? suppliers.filter((s) => s.regions.includes(f.originRegion)) : suppliers;
@@ -129,23 +135,24 @@ export function ProductForm({
     <div className="card max-w-3xl space-y-4 p-6">
       {error && <div className="alert alert-error">{error}</div>}
       {saved && <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{t("products.saved")}</div>}
+      {veeeyManaged && <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700">{t("products.veeeyManaged")}</div>}
 
       {/* Desktop: Name (3fr) + SKU (1fr) on the first row. */}
       <div className="grid gap-4 sm:grid-cols-4">
-        <Field label={t("products.name")} className="sm:col-span-3"><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
-        <Field label={t("products.sku")}><input className="input" value={f.sku} onChange={(e) => set("sku", e.target.value)} /></Field>
+        <Field label={t("products.name")} className="sm:col-span-3"><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} disabled={veeeyManaged} /></Field>
+        <Field label={t("products.sku")}><input className="input" value={f.sku} onChange={(e) => set("sku", e.target.value)} disabled={veeeyManaged} /></Field>
       </div>
 
       {/* Desktop: the remaining fields three per row. */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label={t("products.scope")}>
-          <select className="input" value={f.scope} onChange={(e) => set("scope", e.target.value)}>
+          <select className="input" value={f.scope} onChange={(e) => set("scope", e.target.value)} disabled={veeeyManaged || mode === "edit"}>
             {allowedScopes.map((s) => <option key={s} value={s}>{t(`scope.${s}`)}</option>)}
           </select>
         </Field>
         <Field label={t("products.type")}>
-          <select className="input" value={f.type} onChange={(e) => set("type", e.target.value)}>
-            {PRODUCT_TYPES.map((ty) => <option key={ty} value={ty}>{t(`ptype.${ty}`)}</option>)}
+          <select className="input" value={f.type} onChange={(e) => set("type", e.target.value)} disabled={veeeyManaged && !typeIsSupplement}>
+            {typeOptions.map((ty) => <option key={ty} value={ty}>{t(`ptype.${ty}`)}</option>)}
           </select>
         </Field>
         <Field label={t("products.origin")}>
@@ -163,8 +170,8 @@ export function ProductForm({
         <Field label={t("products.weight")}><input type="number" step="any" className="input" value={f.weightG} onChange={(e) => set("weightG", e.target.value)} /></Field>
         {canSeePurchase && <Field label={t("products.purchasePrice")}><input type="number" step="any" className="input" value={f.purchasePrice} onChange={(e) => set("purchasePrice", e.target.value)} /></Field>}
         <Field label={t("products.sellingPrice")}><input type="number" step="any" className="input" value={f.sellingPrice} onChange={(e) => set("sellingPrice", e.target.value)} /></Field>
-        <Field label={t("products.size")}><input className="input" value={f.size} onChange={(e) => set("size", e.target.value)} /></Field>
-        <Field label={t("products.grade")}><input className="input" value={f.grade} onChange={(e) => set("grade", e.target.value)} /></Field>
+        <Field label={t("products.size")}><input className="input" value={f.size} onChange={(e) => set("size", e.target.value)} disabled={veeeyManaged} /></Field>
+        <Field label={t("products.grade")}><input className="input" value={f.grade} onChange={(e) => set("grade", e.target.value)} disabled={veeeyManaged} /></Field>
         <Field label={t("products.url")} className="sm:col-span-3"><input className="input" value={f.url} onChange={(e) => set("url", e.target.value)} /></Field>
       </div>
 
@@ -183,7 +190,17 @@ export function ProductForm({
       </div>
 
       <Field label={t("products.photos")}>
-        <PhotoUpload photos={photos} onChange={setPhotos} />
+        {veeeyManaged ? (
+          <div className="flex flex-wrap gap-2">
+            {photos.length === 0 && <span className="text-sm text-muted">—</span>}
+            {photos.map((p) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={p.id} src={p.url} alt="" className="h-16 w-16 rounded-lg border border-line object-cover" />
+            ))}
+          </div>
+        ) : (
+          <PhotoUpload photos={photos} onChange={setPhotos} />
+        )}
       </Field>
 
       <div className="flex items-center gap-4">
