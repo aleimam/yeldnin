@@ -7,6 +7,17 @@
 >
 > Owner/operator actions are marked **[OWNER]**; YeldnIN-verification steps
 > **[YELDNIN]** (run by this session or from `ssh veeey`).
+>
+> ## ✅ STATUS 2026-07-19 — CUTOVER COMPLETE
+>
+> Steps 1–4 were executed by the Veeey side (it armed `integration.v2.enabled`
+> and swept everything). Verified on prod: **2,555 / 2,556 VEEEY products
+> SKU-keyed, 16,235 customers with `veeeyCustomerId`**, type pass done
+> (2,503 SUPPLEMENT / 37 DEVICE / 16 INJECTION), supply-chain fields intact.
+> Step 6's catalog half is now done too. **Nothing remains** except the EGV
+> wire shim, intentionally held back for the Phase D re-baseline (see step 6).
+> The old egyptvitamins.net WordPress was checked: it has **no YeldnIN
+> webhook** (only Shippo/OPay), so there was nothing to switch off there.
 
 ## Preconditions (all true today)
 
@@ -94,18 +105,36 @@ create/update on Veeey reflects in YeldnIN and no DEAD outbox events accumulate.
 
 ## Step 6 — retire the legacy channel [YELDNIN, code]
 
-Only after step 4/5 are clean. This IS a YeldnIN code change (a small PR):
-- Remove the legacy `/api/integration/v1/catalog` route + `catalog-sync.ts` /
-  `catalog-wire.ts` (wpId-keyed) and the Veeey-side `catalog.upsert` emitter.
-- Remove the **EGV wire shim** in `request-wire.ts` (`toWireScope`/`fromWireScope`)
-  — the new Veeey speaks `VEEEY` natively, so the request wire can carry `VEEEY`
-  directly. Coordinate this flip with the Veeey side in the same window.
+**Catalog half — DONE.** Removed the legacy `/api/integration/v1/catalog` route
++ `catalog-sync.ts` / `catalog-wire.ts` (wpId-keyed) and its test. Verified
+safe first: `IdempotencyRecord` showed **no successful `v1.catalog` call after
+2026-07-18 15:25** (the one-time backfill burst), and Veeey's `emitCatalogSync`
+already no-ops while v2 is armed. Note the old handler was actively *unsafe* if
+it ever fired again — it wrote `name`/`type`/`active` with **no scope guard, no
+heavy-never-downgrade, and no partial-upsert**, so a stray push could downgrade
+a HEAVY_SUPPLEMENT or match a non-VEEEY product by sku. `Product.veeeyWpId` is
+KEPT (historical adoption link, still carried by 2,548 rows).
+
+**EGV wire shim — DELIBERATELY NOT REMOVED.** The original plan assumed "the new
+Veeey speaks `VEEEY` natively". That is **false for the request channel**:
+Veeey's `src/lib/integration/request-sync.ts` still defaults `scope` to
+`'EGV'`. Dropping `toWireScope`/`fromWireScope` unilaterally would break request
+sync the moment Phase D is re-enabled. The shim retires as part of the Phase D
+contract re-baseline, flipped on BOTH sides in one window.
+
 - Full verify gate (typecheck · vitest · i18n parity · build) + deploy.
 
 ## Rollback
 
-At any step before 6: flip Veeey's `integration.v2.enabled` **OFF**. The v2
-endpoints stop receiving pushes; the legacy `/catalog` channel (untouched)
-keeps the old sync working; no YeldnIN data is lost (upserts are non-destructive
-and supply-chain fields were never written). Restore the DB backup only if a bad
-push is suspected (shouldn't be possible given the partial-upsert + scope guard).
+⚠️ **The rollback shape CHANGED at step 6.** Previously, flipping Veeey's
+`integration.v2.enabled` **OFF** made the legacy `/catalog` channel resume and
+carry the sync. **That path no longer exists** — YeldnIN does not serve
+`/catalog` anymore.
+
+- **Today:** disarming `integration.v2.enabled` simply **stops** product/customer
+  sync (it does not fall back to anything). That is safe: no YeldnIN data is
+  lost, upserts are non-destructive, and supply-chain fields were never written.
+- **To truly restore the legacy channel:** revert the step-6 commit and redeploy
+  (~5 min — the route and both modules are recoverable from git history).
+- Restore the DB backup only if a bad push is suspected (shouldn't be possible
+  given the partial-upsert + scope guard).

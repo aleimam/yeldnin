@@ -20,11 +20,14 @@
   Phase 1 of contract v2 — commit `d77bf1e`, migration
   `rename_egv_scope_to_veeey` applied on prod: 2,556 products / all scoped rows
   rewritten; XOONX untouched). Code, DB, i18n (`scope.VEEEY` = "Veeey") all use
-  `VEEEY`. **Exception:** the LIVE legacy storefront channel still speaks
-  scope `"EGV"` on the wire — `toWireScope`/`fromWireScope` in
-  `src/lib/integration/request-wire.ts` shim it both directions; the shim (and
-  the legacy `/catalog` endpoint) retire at contract-v2 cutover. See
-  `INTEGRATION_V2_PRODUCTS_CUSTOMERS.md` + `INTEGRATION_V2_BUILD_PLAN.md`.
+  `VEEEY`. **Exception:** the REQUEST channel still speaks scope `"EGV"` on the
+  wire — `toWireScope`/`fromWireScope` in `src/lib/integration/request-wire.ts`
+  shim it both directions. **The shim STAYS:** Veeey's own `request-sync.ts`
+  still defaults `scope` to `'EGV'`, so removing it unilaterally would break
+  request sync. It retires only when the request channel (Phase D) is
+  re-baselined — changed on BOTH sides in one window. The legacy `/catalog`
+  endpoint IS retired. See `INTEGRATION_V2_PRODUCTS_CUSTOMERS.md` +
+  `INTEGRATION_V2_BUILD_PLAN.md`.
   **Phase 2 shipped (`5212a4b`):** the v2 inbound endpoints
   `POST /api/integration/v1/{products,customers}/upsert` are LIVE on prod
   (SKU-keyed products, veeeyCustomerId-keyed customers; migration
@@ -33,11 +36,17 @@
   scope-guard to VEEEY, and VEEEY products/customers are read-only in the UI
   (edit forms lock Veeey fields; create excludes VEEEY). Integration is already
   ENABLED on prod (shared HMAC secret), so the endpoints answer signed pushes
-  now and 401 unsigned ones. **Phase 3 (cutover) pending:** the new Veeey
-  builds contract §7, then a full push migrates the 2,556 products to SKU keys
-  and the legacy `/catalog` + the EGV wire shim retire. A one-time type seed for the new Veeey was exported to
-  `C:\Claude\eCommerce\VEEEY_TYPE_SEED.csv` (see its README — types are mostly
-  defaulted SUPPLEMENT; devices need editorial fixing on the Veeey side).
+  now and 401 unsigned ones. **Phase 3 (cutover) COMPLETE — 2026-07-19:** the
+  Veeey side armed `integration.v2.enabled` and swept its full catalog +
+  customer base into prod. Verified on prod: **2,555 of 2,556 VEEEY products are
+  SKU-keyed** (the one holdout, `PRD2606002` "Penguine Peptides Kisspeptin 5 mg",
+  is YeldnIN-local and was never in Veeey) and **16,235 customers carry
+  `veeeyCustomerId`** (the 3 without are WHATSAPP-channel YeldnIN natives, not
+  storefront customers). Type pass done: 2,503 SUPPLEMENT / 37 DEVICE / 16
+  INJECTION. The legacy `/catalog` route + `catalog-sync.ts` / `catalog-wire.ts`
+  are now REMOVED; the EGV wire shim deliberately stays (see above). Ongoing
+  sync = Veeey emitters on every product/customer write → outbox → dispatcher,
+  with a nightly 02:30 full sweep as the safety net.
 - All modules from the blueprint are built and deployed: supply chain
   (products/requests/purchasing/patches/transfers/shipments/hubs/trips/
   travelers/couriers/carriers/items), Pricing, Issues & Compensations,
@@ -57,10 +66,12 @@
 
 - **VEEEY integration is now LIVE** (was "phase 2 pending" in the old handoff).
   Enabled on prod (`baseUrl https://veeey.com`). What syncs — and ONLY this:
-  - **Product catalog: Veeey → YeldnIN, inbound only** (Veeey is the master).
-    `POST /api/integration/v1/catalog` upserts products keyed on `wpId`
-    (WordPress id → `Product.veeeyWpId`). 2,548 / 2,560 products linked. YeldnIN
-    never pushes catalog back.
+  - **Products + customers: Veeey → YeldnIN, inbound only** (Veeey masters the
+    DISPLAY layer only). `POST /api/integration/v1/{products,customers}/upsert`
+    — SKU-keyed products, `veeeyCustomerId`-keyed customers (contract v2).
+    YeldnIN never pushes catalog back. The old wpId-keyed `/catalog` route was
+    retired at cutover; `Product.veeeyWpId` survives only as the historical
+    adoption link.
   - **Requests: both directions**, uid-keyed. Outbound: every request
     create/update queues a `request.upsert` (`emitRequestSync` →
     `OutboxEvent`, drained on the advance cron) → signed webhook. Inbound:

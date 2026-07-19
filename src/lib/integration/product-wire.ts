@@ -7,7 +7,9 @@
  * old WordPress id (`Product.veeeyWpId`).
  *
  * Pure (no DB/IO) so the mapping is unit-testable and byte-compatible with the
- * other side. The legacy `catalog-wire.ts` (wpId-keyed) stays until cutover.
+ * other side. This is now the ONLY inbound product channel — the legacy
+ * wpId-keyed `/catalog` route and `catalog-wire.ts` were retired at cutover
+ * (contract v2 §6); `Product.veeeyWpId` is kept purely as the adoption link.
  */
 
 // Base product types Veeey may send. "HEAVY_SUPPLEMENT" is deliberately NOT
