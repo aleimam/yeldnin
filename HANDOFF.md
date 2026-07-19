@@ -11,11 +11,24 @@
 > re-check actual `git`/prod state before committing or deploying (see the
 > runbook). This file is the shared source of truth across accounts.
 
-## Current state (2026-07-19)
+## Current state (2026-07-19, post-rename)
 
-- **App version 1.18.0**, ~50k lines, ~120 routes, 397 unit tests, typecheck clean.
-- **Production**: live at https://in.yeldn.com, deployed at commit `816cdd2`.
+- **App version 1.18.0**, ~50k lines, 123 routes, 398 unit tests, typecheck clean.
+- **Production**: live at https://in.yeldn.com, deployed at commit `d77bf1e`.
   `main` == `origin/main` == prod. No pending migrations, no undeployed work.
+- **⚠ THE SCOPE FORMERLY KNOWN AS `EGV` IS NOW `VEEEY`** (full internal rename,
+  Phase 1 of contract v2 — commit `d77bf1e`, migration
+  `rename_egv_scope_to_veeey` applied on prod: 2,556 products / all scoped rows
+  rewritten; XOONX untouched). Code, DB, i18n (`scope.VEEEY` = "Veeey") all use
+  `VEEEY`. **Exception:** the LIVE legacy storefront channel still speaks
+  scope `"EGV"` on the wire — `toWireScope`/`fromWireScope` in
+  `src/lib/integration/request-wire.ts` shim it both directions; the shim (and
+  the legacy `/catalog` endpoint) retire at contract-v2 cutover. See
+  `INTEGRATION_V2_PRODUCTS_CUSTOMERS.md` + `INTEGRATION_V2_BUILD_PLAN.md`
+  (phases 2–3 pending: products/customers upsert endpoints, read-only
+  enforcement, cutover). A one-time type seed for the new Veeey was exported to
+  `C:\Claude\eCommerce\VEEEY_TYPE_SEED.csv` (see its README — types are mostly
+  defaulted SUPPLEMENT; devices need editorial fixing on the Veeey side).
 - All modules from the blueprint are built and deployed: supply chain
   (products/requests/purchasing/patches/transfers/shipments/hubs/trips/
   travelers/couriers/carriers/items), Pricing, Issues & Compensations,
