@@ -2,7 +2,13 @@
 const nextConfig = {
   reactStrictMode: true,
   // Keep Prisma's engine external to the server bundle.
-  serverExternalPackages: ["@prisma/client", "prisma"],
+  // `ssh2` (via ssh2-sftp-client, the backup SFTP transport) MUST be external
+  // too: it ships an optional native `sshcrypto.node`, and webpack has no loader
+  // for a binary — bundling it fails the build outright. NOTE this only
+  // reproduces where the native addon actually got built: on a dev machine whose
+  // npm blocks install scripts the file is absent and the build passes, so this
+  // must never be dropped on the strength of a green local build.
+  serverExternalPackages: ["@prisma/client", "prisma", "ssh2", "ssh2-sftp-client"],
   // Appearance logo/favicon upload goes through a Server Action; raise the body
   // limit (default 1 MB) to match the 32 MB upload policy (+ nginx 35m).
   experimental: {
