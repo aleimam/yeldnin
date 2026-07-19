@@ -42,45 +42,79 @@ export const clampRetention = (n: unknown) => clampInt(n, 0, 3650, 30);
 /** A per-tier "keep last N". 0 disables that tier; capped so a typo can't ask
  *  for an absurd history. Each tier carries its own sensible default. */
 export const clampKeep = (n: unknown, fallback: number) => clampInt(n, 0, 1000, fallback);
+/** Interval multiplier for a tier's frequency ("every N hours/days/…"). */
+export const clampEveryN = (n: unknown) => clampInt(n, 1, 365, 1);
+
+/** What a tier's archives contain. */
+export const TIER_CONTENTS = ["DB", "FULL"] as const;
+export type TierContents = (typeof TIER_CONTENTS)[number];
+export function isTierContents(v: unknown): v is TierContents {
+  return typeof v === "string" && (TIER_CONTENTS as readonly string[]).includes(v);
+}
+/** A tier's contents choice as the archive kind that names its files. */
+export const contentsToKind = (c: string): ArchiveKind => (c === "DB" ? "db" : "full");
 
 export interface Schedule {
   frequency: BackupFrequency;
+  /** Interval multiplier — every N hours/days/weeks/months. Defaults to 1. */
+  everyN?: number;
   hourUtc: number;
   weekday: number; // 0=Sun..6=Sat
   dayOfMonth: number; // 1..28
 }
 
 const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+const WEEK_MS = 7 * DAY_MS;
+
+/** Modulo that stays non-negative for pre-1970 indices. */
+const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 /**
  * The most recent moment the schedule should have fired at or before `now` (all
  * UTC), or null when the schedule is OFF. Used to decide whether a run is overdue.
+ *
+ * `everyN` selects every Nth slot, anchored to FIXED epoch boundaries rather
+ * than to the previous run — so "every 2 hours" is always the even UTC hours and
+ * a late or missed run can never shift the whole series (no drift). N = 1 is
+ * exactly the original behaviour.
  */
 export function lastScheduledFireTime(s: Schedule, now: Date): Date | null {
   if (s.frequency === "OFF") return null;
+  const n = Math.max(1, Math.floor(s.everyN ?? 1));
+  const t = now.getTime();
+  const guardMax = 5000; // bounded walk-back; N is clamped well below this
+
+  if (s.frequency === "HOURLY") {
+    const slot = Math.floor(t / HOUR_MS);
+    return new Date((slot - mod(slot, n)) * HOUR_MS);
+  }
+
   const y = now.getUTCFullYear();
   const mo = now.getUTCMonth();
   const d = now.getUTCDate();
 
-  if (s.frequency === "HOURLY") {
-    return new Date(Date.UTC(y, mo, d, now.getUTCHours(), 0, 0, 0));
-  }
   if (s.frequency === "DAILY") {
-    const today = new Date(Date.UTC(y, mo, d, s.hourUtc, 0, 0, 0));
-    return now.getTime() >= today.getTime() ? today : new Date(today.getTime() - DAY_MS);
+    let fire = Date.UTC(y, mo, d, s.hourUtc, 0, 0, 0);
+    if (fire > t) fire -= DAY_MS;
+    for (let i = 0; mod(Math.floor(fire / DAY_MS), n) !== 0 && i < guardMax; i++) fire -= DAY_MS;
+    return new Date(fire);
   }
+
   if (s.frequency === "WEEKLY") {
-    const todayAt = new Date(Date.UTC(y, mo, d, s.hourUtc, 0, 0, 0));
-    const backDays = (now.getUTCDay() - s.weekday + 7) % 7; // days since the target weekday
-    let fire = new Date(todayAt.getTime() - backDays * DAY_MS);
-    if (fire.getTime() > now.getTime()) fire = new Date(fire.getTime() - 7 * DAY_MS);
-    return fire;
+    let fire = Date.UTC(y, mo, d, s.hourUtc, 0, 0, 0) - mod(now.getUTCDay() - s.weekday, 7) * DAY_MS;
+    if (fire > t) fire -= WEEK_MS;
+    for (let i = 0; mod(Math.floor(fire / WEEK_MS), n) !== 0 && i < guardMax; i++) fire -= WEEK_MS;
+    return new Date(fire);
   }
+
   // MONTHLY (dayOfMonth capped at 28 so every month has it)
   const dom = Math.min(Math.max(s.dayOfMonth, 1), 28);
-  const thisMonth = new Date(Date.UTC(y, mo, dom, s.hourUtc, 0, 0, 0));
-  if (thisMonth.getTime() <= now.getTime()) return thisMonth;
-  return new Date(Date.UTC(y, mo - 1, dom, s.hourUtc, 0, 0, 0));
+  let yy = y;
+  let mm = mo;
+  if (Date.UTC(yy, mm, dom, s.hourUtc, 0, 0, 0) > t) mm -= 1;
+  for (let i = 0; mod(yy * 12 + mm, n) !== 0 && i < guardMax; i++) mm -= 1;
+  return new Date(Date.UTC(yy, mm, dom, s.hourUtc, 0, 0, 0));
 }
 
 /** Should a backup run now? True when the schedule has fired since the last run. */
@@ -156,74 +190,6 @@ export function prunableArchives(names: string[], keep: number): string[] {
   return ourArchives(names).slice(keep);
 }
 
-export interface RetentionPolicy {
-  /** db-only archives to keep (the last N hours). */
-  keepHourly: number;
-  /** newest full archives to keep (the last N days, one full per day). */
-  keepDaily: number;
-  /** additional full archives, one per 7-day bucket, beyond the daily window. */
-  keepWeekly: number;
-}
-
-/** 7-day bucket id. Deliberately epoch-based rather than calendar ISO weeks —
- *  retention only needs "one per week", and this has no year-boundary edges. */
-const weekBucket = (d: Date) => Math.floor(d.getTime() / (7 * DAY_MS));
-
-/**
- * Tiered (grandfather-father-son) retention: which archives to DELETE.
- *
- *  - `db` archives: keep the newest `keepHourly`.
- *  - `full` archives: keep the newest `keepDaily`, then walking older, keep the
- *    newest survivor in each distinct week until `keepWeekly` weeks are held.
- *
- * Safety properties (unit-tested, because this deletes real backups):
- *  - files we cannot parse are NEVER returned;
- *  - the single most recent archive is NEVER returned, whatever the policy says.
- */
-export function tieredPrunable(names: string[], p: RetentionPolicy): string[] {
-  const parsed = names
-    .map((n) => ({ n, p: parseArchiveName(n) }))
-    .filter((x): x is { n: string; p: { kind: ArchiveKind; at: Date } } => x.p !== null);
-  if (!parsed.length) return [];
-
-  const newestFirst = [...parsed].sort((a, b) => b.p.at.getTime() - a.p.at.getTime());
-  const newestOverall = newestFirst[0].n;
-  const doomed: string[] = [];
-
-  const db = newestFirst.filter((x) => x.p.kind === "db");
-  doomed.push(...db.slice(Math.max(0, p.keepHourly)).map((x) => x.n));
-
-  const full = newestFirst.filter((x) => x.p.kind === "full");
-  const weeks = new Set<number>();
-  for (const a of full.slice(Math.max(0, p.keepDaily))) {
-    const w = weekBucket(a.p.at);
-    if (weeks.size < Math.max(0, p.keepWeekly) && !weeks.has(w)) {
-      weeks.add(w); // this one represents its week — keep it
-      continue;
-    }
-    doomed.push(a.n);
-  }
-
-  // Belt and braces: a mis-set policy (all zeros) must not wipe the newest copy.
-  return doomed.filter((n) => n !== newestOverall);
-}
-
-/**
- * What this run should contain. Under tiered retention a FULL archive is taken
- * at `hourUtc`; every other hour is db-only. A full is also forced when none has
- * been taken for over a day, so a missed slot (app down at `hourUtc`) doesn't
- * silently cost a whole day's uploads.
- */
-export function archiveKindFor(
-  cfg: { tiered: boolean; hourUtc: number },
-  lastFullAt: Date | null,
-  now: Date,
-): ArchiveKind {
-  if (!cfg.tiered) return "full";
-  if (now.getUTCHours() === cfg.hourUtc) return "full";
-  if (!lastFullAt) return "full";
-  return now.getTime() - lastFullAt.getTime() >= 25 * 3_600_000 ? "full" : "db";
-}
 
 /**
  * Turn a bare remote path error into an actionable one. Servers answer a path

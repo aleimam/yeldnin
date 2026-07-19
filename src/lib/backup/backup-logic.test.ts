@@ -14,8 +14,9 @@ import {
   defaultPortFor,
   explainPathError,
   parseArchiveName,
-  tieredPrunable,
-  archiveKindFor,
+  contentsToKind,
+  isTierContents,
+  clampEveryN,
   BACKUP_PROTOCOLS,
   type Schedule,
 } from "./backup-logic";
@@ -190,80 +191,106 @@ describe("archive naming + parsing", () => {
   });
 });
 
-describe("tieredPrunable", () => {
-  const POLICY = { keepHourly: 24, keepDaily: 7, keepWeekly: 8 };
-  // 30 hourly db archives + 40 daily full archives, newest 2026-07-19.
-  const dbNames = Array.from({ length: 30 }, (_, i) =>
-    nm("db", new Date(Date.UTC(2026, 6, 19, 12, 0, 0) - i * 3600_000).toISOString()));
-  const fullNames = Array.from({ length: 40 }, (_, i) =>
-    nm("full", new Date(Date.UTC(2026, 6, 19, 2, 0, 0) - i * 86400_000).toISOString()));
-  const all = [...dbNames, ...fullNames];
 
-  it("keeps exactly the newest keepHourly db archives", () => {
-    const del = tieredPrunable(all, POLICY);
-    const survivingDb = dbNames.filter((n) => !del.includes(n));
-    expect(survivingDb).toHaveLength(24);
-    expect(survivingDb).toEqual(dbNames.slice(0, 24)); // the newest 24
+
+// ── "every N" interval scheduling ───────────────────────────────────────────
+const DAY = 86_400_000;
+const dayIdx = (d: Date) => Math.floor(d.getTime() / DAY);
+const weekIdx = (d: Date) => Math.floor(d.getTime() / (7 * DAY));
+
+describe("lastScheduledFireTime — everyN", () => {
+  it("everyN=1 is identical to the original behaviour", () => {
+    const now = at("2026-07-19T09:40:00Z");
+    const base = { hourUtc: 2, weekday: 1, dayOfMonth: 15 };
+    for (const frequency of ["HOURLY", "DAILY", "WEEKLY", "MONTHLY"] as const) {
+      const withN = lastScheduledFireTime({ frequency, everyN: 1, ...base }, now);
+      const without = lastScheduledFireTime({ frequency, ...base }, now);
+      expect(withN!.toISOString()).toBe(without!.toISOString());
+    }
   });
 
-  it("keeps the newest keepDaily full archives outright", () => {
-    const del = tieredPrunable(all, POLICY);
-    for (const n of fullNames.slice(0, 7)) expect(del).not.toContain(n);
+  it("HOURLY every 2 lands on even UTC hours", () => {
+    // a day is 24h and 24 is even, so epoch-hour parity == UTC-hour parity
+    const s = { frequency: "HOURLY" as const, everyN: 2, hourUtc: 0, weekday: 0, dayOfMonth: 1 };
+    expect(lastScheduledFireTime(s, at("2026-07-19T09:40:00Z"))!.toISOString()).toBe("2026-07-19T08:00:00.000Z");
+    expect(lastScheduledFireTime(s, at("2026-07-19T08:00:00Z"))!.toISOString()).toBe("2026-07-19T08:00:00.000Z");
+    expect(lastScheduledFireTime(s, at("2026-07-19T00:05:00Z"))!.toISOString()).toBe("2026-07-19T00:00:00.000Z");
   });
 
-  it("thins older full archives to one per week", () => {
-    const del = tieredPrunable(all, POLICY);
-    const survivingOlder = fullNames.slice(7).filter((n) => !del.includes(n));
-    // 33 remaining days span ~5 week buckets, all under the 8-week allowance
-    expect(survivingOlder.length).toBeGreaterThan(3);
-    expect(survivingOlder.length).toBeLessThanOrEqual(8);
-    const weeks = survivingOlder.map((n) =>
-      Math.floor(parseArchiveName(n)!.at.getTime() / (7 * 86400_000)));
-    expect(new Set(weeks).size).toBe(weeks.length); // one per week, no duplicates
+  it("HOURLY every 6 lands on 00/06/12/18", () => {
+    const s = { frequency: "HOURLY" as const, everyN: 6, hourUtc: 0, weekday: 0, dayOfMonth: 1 };
+    expect(lastScheduledFireTime(s, at("2026-07-19T13:59:00Z"))!.toISOString()).toBe("2026-07-19T12:00:00.000Z");
+    expect(lastScheduledFireTime(s, at("2026-07-19T05:00:00Z"))!.toISOString()).toBe("2026-07-19T00:00:00.000Z");
   });
 
-  it("never touches files it does not recognise", () => {
-    const del = tieredPrunable([...all, "notes.txt", "someone-elses.tar.gz"], POLICY);
-    expect(del).not.toContain("notes.txt");
-    expect(del).not.toContain("someone-elses.tar.gz");
+  it("DAILY every 2 fires at hourUtc on every other day, never in the future", () => {
+    const s = { frequency: "DAILY" as const, everyN: 2, hourUtc: 2, weekday: 0, dayOfMonth: 1 };
+    for (const iso of ["2026-07-19T09:40:00Z", "2026-07-20T01:00:00Z", "2026-07-21T23:59:00Z"]) {
+      const now = at(iso);
+      const fire = lastScheduledFireTime(s, now)!;
+      expect(fire.getTime()).toBeLessThanOrEqual(now.getTime());
+      expect(fire.getUTCHours()).toBe(2);
+      expect(dayIdx(fire) % 2).toBe(0);          // an every-other-day slot
+      expect(now.getTime() - fire.getTime()).toBeLessThan(3 * DAY); // and the RECENT one
+    }
   });
 
-  it("never deletes the most recent archive, even on a zeroed policy", () => {
-    const zero = { keepHourly: 0, keepDaily: 0, keepWeekly: 0 };
-    const del = tieredPrunable(all, zero);
-    const newest = ourArchives(all)[0];
-    expect(del).not.toContain(newest);
-    expect(del).toHaveLength(all.length - 1); // everything else goes
+  it("WEEKLY every 2 fires on the chosen weekday, every other week", () => {
+    const s = { frequency: "WEEKLY" as const, everyN: 2, hourUtc: 3, weekday: 0, dayOfMonth: 1 }; // Sunday
+    for (const iso of ["2026-07-19T09:40:00Z", "2026-07-25T12:00:00Z", "2026-08-01T00:00:00Z"]) {
+      const now = at(iso);
+      const fire = lastScheduledFireTime(s, now)!;
+      expect(fire.getTime()).toBeLessThanOrEqual(now.getTime());
+      expect(fire.getUTCDay()).toBe(0);
+      expect(fire.getUTCHours()).toBe(3);
+      expect(weekIdx(fire) % 2).toBe(0);
+      expect(now.getTime() - fire.getTime()).toBeLessThan(3 * 7 * DAY);
+    }
   });
 
-  it("is a no-op on an empty or foreign-only listing", () => {
-    expect(tieredPrunable([], POLICY)).toEqual([]);
-    expect(tieredPrunable(["a.txt", "b.zip"], POLICY)).toEqual([]);
+  it("MONTHLY every 3 fires on the chosen day, every third month", () => {
+    const s = { frequency: "MONTHLY" as const, everyN: 3, hourUtc: 4, weekday: 0, dayOfMonth: 15 };
+    for (const iso of ["2026-07-19T09:40:00Z", "2026-01-02T00:00:00Z", "2026-12-31T23:00:00Z"]) {
+      const now = at(iso);
+      const fire = lastScheduledFireTime(s, now)!;
+      expect(fire.getTime()).toBeLessThanOrEqual(now.getTime());
+      expect(fire.getUTCDate()).toBe(15);
+      expect(fire.getUTCHours()).toBe(4);
+      expect((fire.getUTCFullYear() * 12 + fire.getUTCMonth()) % 3).toBe(0);
+    }
+  });
+
+  it("does not drift when a run is late — the slot is epoch-anchored", () => {
+    const s = { frequency: "HOURLY" as const, everyN: 4, hourUtc: 0, weekday: 0, dayOfMonth: 1 };
+    // whatever time we ask at, the answer is always a multiple-of-4 UTC hour
+    for (const h of [0, 3, 7, 11, 15, 19, 23]) {
+      const fire = lastScheduledFireTime(s, at(`2026-07-19T${String(h).padStart(2, "0")}:37:00Z`))!;
+      expect(fire.getUTCHours() % 4).toBe(0);
+      expect(fire.getUTCMinutes()).toBe(0);
+    }
+  });
+
+  it("isBackupDue respects the interval", () => {
+    const s = { frequency: "HOURLY" as const, everyN: 6, hourUtc: 0, weekday: 0, dayOfMonth: 1 };
+    const now = at("2026-07-19T13:00:00Z"); // last slot was 12:00
+    expect(isBackupDue(s, at("2026-07-19T12:30:00Z"), now)).toBe(false); // already ran in this slot
+    expect(isBackupDue(s, at("2026-07-19T11:00:00Z"), now)).toBe(true);  // ran before the slot
+    expect(isBackupDue(s, null, now)).toBe(true);
   });
 });
 
-describe("archiveKindFor", () => {
-  const tiered = { tiered: true, hourUtc: 2 };
-  const lastFull = at("2026-07-19T02:00:00Z");
-
-  it("is always full when tiering is off", () => {
-    expect(archiveKindFor({ tiered: false, hourUtc: 2 }, lastFull, at("2026-07-19T15:00:00Z"))).toBe("full");
+describe("tier contents", () => {
+  it("maps contents onto the archive kind that names the file", () => {
+    expect(contentsToKind("DB")).toBe("db");
+    expect(contentsToKind("FULL")).toBe("full");
+    expect(contentsToKind("anything else")).toBe("full"); // safe default: more, not less
   });
-
-  it("takes a full archive at the configured hour", () => {
-    expect(archiveKindFor(tiered, lastFull, at("2026-07-20T02:30:00Z"))).toBe("full");
-  });
-
-  it("takes db-only at every other hour", () => {
-    expect(archiveKindFor(tiered, lastFull, at("2026-07-19T15:00:00Z"))).toBe("db");
-  });
-
-  it("forces a full when none has ever been taken", () => {
-    expect(archiveKindFor(tiered, null, at("2026-07-19T15:00:00Z"))).toBe("full");
-  });
-
-  it("recovers a missed full slot rather than skipping a day", () => {
-    // app was down at 02:00; by 04:00 the next day the last full is >25h old
-    expect(archiveKindFor(tiered, at("2026-07-18T02:00:00Z"), at("2026-07-19T04:00:00Z"))).toBe("full");
+  it("validates and clamps", () => {
+    expect(isTierContents("DB")).toBe(true);
+    expect(isTierContents("db")).toBe(false);
+    expect(clampEveryN(0)).toBe(1);
+    expect(clampEveryN(2)).toBe(2);
+    expect(clampEveryN(99999)).toBe(365);
+    expect(clampEveryN("x")).toBe(1);
   });
 });

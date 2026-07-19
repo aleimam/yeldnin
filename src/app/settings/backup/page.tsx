@@ -20,7 +20,7 @@ export default async function BackupSettingsPage() {
     <AppShell access={access} moduleKey="settings" pageTitle={t("backup.title")} backHref="/settings">
       <div className="max-w-3xl space-y-6">
         <p className="text-sm text-muted">{t("backup.intro")}</p>
-        <BackupForm initial={data.config} />
+        <BackupForm initial={data.config} initialTiers={data.tiers} />
 
         <section>
           <h2 className="mb-2 font-semibold text-ink">{t("backup.history")}</h2>
@@ -29,6 +29,7 @@ export default async function BackupSettingsPage() {
               <thead className="border-b border-line bg-canvas">
                 <tr>
                   <th className="th">{t("backup.col.when")}</th>
+                  <th className="th">{t("backup.col.level")}</th>
                   <th className="th">{t("backup.col.trigger")}</th>
                   <th className="th">{t("backup.col.contents")}</th>
                   <th className="th">{t("backup.col.size")}</th>
@@ -39,6 +40,7 @@ export default async function BackupSettingsPage() {
                 {data.runs.map((r) => (
                   <tr key={r.id} className="align-top">
                     <td className="td whitespace-nowrap text-muted" data-datecol data-label={t("backup.col.when")}>{formatBizDate(r.startedAt)}</td>
+                    <td className="td text-muted" data-label={t("backup.col.level")}>{r.tierKey ? t(`backup.tier.${r.tierKey}`) : "—"}</td>
                     <td className="td text-muted" data-label={t("backup.col.trigger")}>{t(`backup.trigger.${r.trigger}`)}</td>
                     <td className="td text-muted" data-label={t("backup.col.contents")}>{r.contents || "—"}</td>
                     <td className="td text-muted" data-label={t("backup.col.size")}>{formatBytes(r.sizeBytes)}</td>
@@ -48,7 +50,7 @@ export default async function BackupSettingsPage() {
                     </td>
                   </tr>
                 ))}
-                {data.runs.length === 0 && <tr><td className="td text-muted" colSpan={5}>{t("backup.noRuns")}</td></tr>}
+                {data.runs.length === 0 && <tr><td className="td text-muted" colSpan={6}>{t("backup.noRuns")}</td></tr>}
               </tbody>
             </table>
           </div>

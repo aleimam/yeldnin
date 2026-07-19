@@ -21,9 +21,10 @@ import {
   clampKeep,
   isBackupFrequency,
   isBackupProtocol,
+  isTierContents,
+  contentsToKind,
+  clampEveryN,
   explainPathError,
-  tieredPrunable,
-  archiveKindFor,
   type BackupFrequency,
   type ArchiveKind,
 } from "./backup-logic";
@@ -35,6 +36,93 @@ async function getRow() {
   const r = await prisma.backupConfig.findUnique({ where: { singleton: KEY } });
   if (r) return r;
   return prisma.backupConfig.create({ data: { singleton: KEY } });
+}
+
+export type TierRow = Awaited<ReturnType<typeof prisma.backupTier.findFirstOrThrow>>;
+
+/** The three levels a fresh install starts with. An UPGRADE gets its tiers from
+ *  the migration (seeded from the previous single schedule) instead. */
+const DEFAULT_TIERS = [
+  { key: "HOURLY", frequency: "HOURLY", contents: "DB", suffix: "/hourly", keepLast: 24, sortOrder: 1 },
+  { key: "DAILY", frequency: "DAILY", contents: "FULL", suffix: "/daily", keepLast: 7, sortOrder: 2 },
+  { key: "WEEKLY", frequency: "WEEKLY", contents: "FULL", suffix: "/weekly", keepLast: 8, sortOrder: 3 },
+];
+
+/** All tiers in display order, seeding the defaults on first access. */
+export async function listTiers(): Promise<TierRow[]> {
+  const rows = await prisma.backupTier.findMany({ orderBy: { sortOrder: "asc" } });
+  if (rows.length) return rows;
+  const base = (await getRow()).remotePath.replace(/\/+$/, "");
+  for (const { suffix, ...d } of DEFAULT_TIERS) {
+    await prisma.backupTier.create({ data: { ...d, everyN: 1, hourUtc: 2, remotePath: `${base}${suffix}` } });
+  }
+  return prisma.backupTier.findMany({ orderBy: { sortOrder: "asc" } });
+}
+
+export interface BackupTierView {
+  key: string;
+  enabled: boolean;
+  frequency: string;
+  everyN: number;
+  hourUtc: number;
+  weekday: number;
+  dayOfMonth: number;
+  contents: string;
+  remotePath: string;
+  keepLast: number;
+  lastRunAt: string | null;
+}
+
+export interface SaveTierInput {
+  key: string;
+  enabled: boolean;
+  frequency: string;
+  everyN?: number | null;
+  hourUtc?: number | null;
+  weekday?: number | null;
+  dayOfMonth?: number | null;
+  contents: string;
+  remotePath?: string | null;
+  keepLast?: number | null;
+}
+
+/** Update the tiers. Only KNOWN keys are touched — client input can never
+ *  create or delete a tier. */
+export async function saveTiers(inputs: SaveTierInput[], userId: number): Promise<void> {
+  const existing = await listTiers();
+  for (const input of inputs) {
+    const cur = existing.find((t) => t.key === input.key);
+    if (!cur) continue;
+    await prisma.backupTier.update({
+      where: { id: cur.id },
+      data: {
+        enabled: input.enabled,
+        frequency: isBackupFrequency(input.frequency) ? input.frequency : cur.frequency,
+        everyN: clampEveryN(input.everyN),
+        hourUtc: clampHour(input.hourUtc),
+        weekday: clampWeekday(input.weekday),
+        dayOfMonth: clampDayOfMonth(input.dayOfMonth),
+        contents: isTierContents(input.contents) ? input.contents : cur.contents,
+        remotePath: clean(input.remotePath) || cur.remotePath,
+        keepLast: clampKeep(input.keepLast, cur.keepLast),
+      },
+    });
+  }
+  await writeAudit(userId, "settings", "backup.tiers.save", "backupTier", KEY);
+}
+
+/** Manual "Backup now": run every ENABLED tier once, so the operator proves the
+ *  whole setup (each folder, each contents choice) in a single click. */
+export async function runAllTiersNow(
+  userId: number | null,
+): Promise<Array<{ tier: string; ok: boolean; fileName?: string; error?: string }>> {
+  const out: Array<{ tier: string; ok: boolean; fileName?: string; error?: string }> = [];
+  for (const tier of await listTiers()) {
+    if (!tier.enabled) continue;
+    const r = await runBackup("MANUAL", userId, tier);
+    out.push({ tier: tier.key, ok: r.ok, fileName: r.fileName, error: r.error });
+  }
+  return out;
 }
 
 export interface BackupConfigView {
@@ -66,6 +154,7 @@ export interface BackupConfigView {
 
 export interface BackupRunView {
   id: number;
+  tierKey: string | null;
   startedAt: string;
   finishedAt: string | null;
   status: string;
@@ -77,12 +166,30 @@ export interface BackupRunView {
 }
 
 /** Browser-safe projection of the config + recent run history. No secrets. */
-export async function backupView(): Promise<{ config: BackupConfigView; runs: BackupRunView[] }> {
-  const [r, runs] = await Promise.all([
+export async function backupView(): Promise<{
+  config: BackupConfigView;
+  tiers: BackupTierView[];
+  runs: BackupRunView[];
+}> {
+  const [r, tiers, runs] = await Promise.all([
     getRow(),
+    listTiers(),
     prisma.backupRun.findMany({ orderBy: { startedAt: "desc" }, take: 20 }),
   ]);
   return {
+    tiers: tiers.map((t) => ({
+      key: t.key,
+      enabled: t.enabled,
+      frequency: t.frequency,
+      everyN: t.everyN,
+      hourUtc: t.hourUtc,
+      weekday: t.weekday,
+      dayOfMonth: t.dayOfMonth,
+      contents: t.contents,
+      remotePath: t.remotePath,
+      keepLast: t.keepLast,
+      lastRunAt: t.lastRunAt?.toISOString() ?? null,
+    })),
     config: {
       enabled: r.enabled,
       protocol: r.protocol,
@@ -111,6 +218,7 @@ export async function backupView(): Promise<{ config: BackupConfigView; runs: Ba
     },
     runs: runs.map((x) => ({
       id: x.id,
+      tierKey: x.tierKey,
       startedAt: x.startedAt.toISOString(),
       finishedAt: x.finishedAt?.toISOString() ?? null,
       status: x.status,
@@ -330,15 +438,16 @@ async function pathExists(p: string): Promise<boolean> {
 }
 
 /** Stage selected parts and produce a .tar.gz at `archivePath`. Returns the parts. */
-async function buildArchive(cfg: Row, kind: ArchiveKind, tmpDir: string, archivePath: string): Promise<string[]> {
+async function buildArchive(kind: ArchiveKind, tmpDir: string, archivePath: string): Promise<string[]> {
   const stage = path.join(tmpDir, "stage");
   await fs.mkdir(stage, { recursive: true });
   const entries: string[] = [];
-  // A `db` archive deliberately omits uploads — that is the whole point of the
-  // cheap hourly tier (the uploads are ~3x the database and barely change).
-  const withUploads = cfg.includeUploads && kind === "full";
+  // The tier's `contents` decides: a `db` archive deliberately omits uploads —
+  // that is the point of the cheap frequent tier (uploads are ~10x the database
+  // once compressed, and barely change).
+  const withUploads = kind === "full";
 
-  if (cfg.includeDb) {
+  {
     await snapshotDb(path.join(stage, "dev.db"));
     entries.push("dev.db");
   }
@@ -351,7 +460,7 @@ async function buildArchive(cfg: Row, kind: ArchiveKind, tmpDir: string, archive
   }
   // The manifest must describe what this archive ACTUALLY holds, not what the
   // config asks for in general — a db-only archive must not claim uploads.
-  const actual = contentsList({ includeDb: cfg.includeDb, includeUploads: withUploads });
+  const actual = contentsList({ includeDb: true, includeUploads: withUploads });
   await fs.writeFile(
     path.join(stage, "manifest.json"),
     JSON.stringify({ app: "YeldnIN", kind, createdAt: new Date().toISOString(), contents: actual }, null, 2),
@@ -367,19 +476,16 @@ async function buildArchive(cfg: Row, kind: ArchiveKind, tmpDir: string, archive
 
 /** Upload the archive to the configured destination and prune old archives per
  *  the retention policy. */
-async function uploadAndPrune(cfg: Row, archivePath: string, fileName: string): Promise<void> {
+async function uploadAndPrune(cfg: Row, tier: TierRow, archivePath: string, fileName: string): Promise<void> {
   await withTransport(cfg, async (t) => {
-    const dir = cfg.remotePath || "/";
+    const dir = tier.remotePath || "/";
     await t.ensureDir(dir); // created when missing
     await t.upload(archivePath, dir, fileName);
-    const names = await t.list(dir);
-    const stale = cfg.tiered
-      ? tieredPrunable(names, { keepHourly: cfg.keepHourly, keepDaily: cfg.keepDaily, keepWeekly: cfg.keepWeekly })
-      : cfg.retentionKeep > 0
-        ? prunableArchives(names, cfg.retentionKeep)
-        : [];
+    // Each tier owns its folder, so retention is simply keep-newest-N in it —
+    // no cross-tier reasoning, and a foreign file is never a candidate.
+    const stale = prunableArchives(await t.list(dir), tier.keepLast);
     // Deleting real backups — say what went, so pm2 logs can be audited after.
-    if (stale.length) console.log(`[backup] pruning ${stale.length} archive(s): ${stale.join(", ")}`);
+    if (stale.length) console.log(`[backup] ${tier.key}: pruning ${stale.length} in ${dir}: ${stale.join(", ")}`);
     for (const name of stale) await t.remove(dir, name).catch(() => {});
   });
 }
@@ -403,56 +509,76 @@ async function notifyFailure(message: string): Promise<void> {
 export async function runBackup(
   trigger: "MANUAL" | "SCHEDULED",
   userId: number | null,
+  tier: TierRow,
 ): Promise<{ ok: boolean; runId: number; fileName?: string; sizeBytes?: number; error?: string }> {
   const cfg = await getRow();
   const startedAt = new Date();
-  // Under tiered retention only the run at `hourUtc` carries the uploads.
-  const kind = archiveKindFor(cfg, cfg.lastFullAt, startedAt);
-  const effective = { includeDb: cfg.includeDb, includeUploads: cfg.includeUploads && kind === "full" };
+  const kind = contentsToKind(tier.contents);
   const run = await prisma.backupRun.create({
-    data: { trigger, status: "RUNNING", contents: contentsList(effective).join(","), byUserId: userId ?? undefined },
+    data: {
+      tierKey: tier.key,
+      trigger,
+      status: "RUNNING",
+      contents: contentsList({ includeDb: true, includeUploads: kind === "full" }).join(","),
+      byUserId: userId ?? undefined,
+    },
   });
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "yeldnin-backup-"));
   try {
     const fileName = backupFileName(startedAt, kind);
     const archivePath = path.join(tmpDir, fileName);
-    await buildArchive(cfg, kind, tmpDir, archivePath);
+    await buildArchive(kind, tmpDir, archivePath);
     const sizeBytes = (await fs.stat(archivePath)).size;
-    await uploadAndPrune(cfg, archivePath, fileName);
+    await uploadAndPrune(cfg, tier, archivePath, fileName);
     await prisma.backupRun.update({
       where: { id: run.id },
       data: { status: "SUCCESS", finishedAt: new Date(), fileName, sizeBytes },
     });
-    await prisma.backupConfig.update({
-      where: { singleton: KEY },
-      // lastFullAt only advances on a FULL archive — it is what lets a missed
-      // full slot be recovered on a later run.
-      data: { lastRunAt: new Date(), ...(kind === "full" ? { lastFullAt: startedAt } : {}) },
-    });
-    if (userId != null) await writeAudit(userId, "settings", "backup.run", "backupRun", run.id, { trigger, fileName, sizeBytes });
+    // Each tier tracks its OWN last run — that is what keeps the cadences
+    // independent of one another.
+    await prisma.backupTier.update({ where: { id: tier.id }, data: { lastRunAt: startedAt } });
+    await prisma.backupConfig.update({ where: { singleton: KEY }, data: { lastRunAt: new Date() } });
+    if (userId != null) await writeAudit(userId, "settings", "backup.run", "backupRun", run.id, { trigger, tier: tier.key, fileName, sizeBytes });
     return { ok: true, runId: run.id, fileName, sizeBytes };
   } catch (e) {
     const error = e instanceof Error ? e.message : "Backup failed.";
     await prisma.backupRun
       .update({ where: { id: run.id }, data: { status: "FAILED", finishedAt: new Date(), error: error.slice(0, 500) } })
       .catch(() => {});
-    if (cfg.notifyOnFailure) await notifyFailure(error);
+    if (cfg.notifyOnFailure) await notifyFailure(`${tier.key}: ${error}`);
     return { ok: false, runId: run.id, error };
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
 }
 
-/** Cron entrypoint: run a backup iff enabled and the schedule is due. */
-export async function maybeRunScheduledBackup(): Promise<{ ran: boolean; skipped?: boolean; status?: string }> {
+/** Cron entrypoint: run EVERY tier whose own schedule is due. Tiers are
+ *  independent, so one failing (or being off) never blocks the others. */
+export async function maybeRunScheduledBackup(): Promise<{
+  ran: boolean;
+  skipped?: boolean;
+  results?: Array<{ tier: string; status: string }>;
+}> {
   const cfg = await getRow();
   if (!cfg.enabled) return { ran: false, skipped: true };
-  const due = isBackupDue(
-    { frequency: cfg.frequency as BackupFrequency, hourUtc: cfg.hourUtc, weekday: cfg.weekday, dayOfMonth: cfg.dayOfMonth },
-    cfg.lastRunAt,
-    new Date(),
-  );
-  if (!due) return { ran: false };
-  const res = await runBackup("SCHEDULED", null);
-  return { ran: true, status: res.ok ? "SUCCESS" : "FAILED" };
+  const now = new Date();
+  const results: Array<{ tier: string; status: string }> = [];
+  for (const tier of await listTiers()) {
+    if (!tier.enabled) continue;
+    const due = isBackupDue(
+      {
+        frequency: tier.frequency as BackupFrequency,
+        everyN: tier.everyN,
+        hourUtc: tier.hourUtc,
+        weekday: tier.weekday,
+        dayOfMonth: tier.dayOfMonth,
+      },
+      tier.lastRunAt,
+      now,
+    );
+    if (!due) continue;
+    const res = await runBackup("SCHEDULED", null, tier);
+    results.push({ tier: tier.key, status: res.ok ? "SUCCESS" : "FAILED" });
+  }
+  return results.length ? { ran: true, results } : { ran: false };
 }

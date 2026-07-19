@@ -2168,9 +2168,31 @@ model BackupConfig {
   updatedAt       DateTime  @updatedAt
 }
 
+/// One independently-scheduled backup level. Replaces the single schedule +
+/// GFS-retention model: each tier has its OWN cadence, contents, remote folder
+/// and "keep last N", so folders stay homogeneous and retention is just
+/// keep-newest-N per folder. Seeded with HOURLY / DAILY / WEEKLY.
+model BackupTier {
+  id         Int       @id @default(autoincrement())
+  key        String    @unique // HOURLY | DAILY | WEEKLY (stable identity; label comes from i18n)
+  enabled    Boolean   @default(true)
+  frequency  String    @default("DAILY") // OFF | HOURLY | DAILY | WEEKLY | MONTHLY
+  everyN     Int       @default(1) // interval multiplier — every N hours/days/weeks/months
+  hourUtc    Int       @default(2)
+  weekday    Int       @default(0) // 0=Sun..6=Sat, for WEEKLY
+  dayOfMonth Int       @default(1) // 1..28, for MONTHLY
+  contents   String    @default("FULL") // DB (database only) | FULL (database + uploads)
+  remotePath String    @default("/")
+  keepLast   Int       @default(7) // 0 = keep everything
+  sortOrder  Int       @default(0)
+  lastRunAt  DateTime?
+  updatedAt  DateTime  @updatedAt
+}
+
 // One row per backup attempt (manual or scheduled) — the run history/log.
 model BackupRun {
   id         Int       @id @default(autoincrement())
+  tierKey    String? // which BackupTier produced it (null = pre-tiers)
   startedAt  DateTime  @default(now())
   finishedAt DateTime?
   status     String    @default("RUNNING") // RUNNING | SUCCESS | FAILED

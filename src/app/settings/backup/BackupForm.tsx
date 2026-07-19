@@ -3,13 +3,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { formatBizDate } from "@/lib/format/dates";
-import type { BackupConfigView } from "@/lib/backup/backup-service";
-import { BACKUP_PROTOCOLS, defaultPortFor, type BackupProtocol } from "@/lib/backup/backup-logic";
+import type { BackupConfigView, BackupTierView } from "@/lib/backup/backup-service";
+import { BACKUP_PROTOCOLS, TIER_CONTENTS, defaultPortFor, type BackupProtocol } from "@/lib/backup/backup-logic";
 import { saveBackupAction, testBackupAction, runBackupNowAction } from "./actions";
 
 const FREQUENCIES = ["OFF", "HOURLY", "DAILY", "WEEKLY", "MONTHLY"] as const;
 
-export function BackupForm({ initial }: { initial: BackupConfigView }) {
+export function BackupForm({ initial, initialTiers }: { initial: BackupConfigView; initialTiers: BackupTierView[] }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -25,20 +25,13 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
     password: "",
     remotePath: initial.remotePath,
     secure: initial.secure,
-    includeDb: initial.includeDb,
-    includeUploads: initial.includeUploads,
-    frequency: initial.frequency,
-    hourUtc: initial.hourUtc,
-    weekday: initial.weekday,
-    dayOfMonth: initial.dayOfMonth,
-    retentionKeep: String(initial.retentionKeep),
-    tiered: initial.tiered,
-    keepHourly: String(initial.keepHourly),
-    keepDaily: String(initial.keepDaily),
-    keepWeekly: String(initial.keepWeekly),
     notifyOnFailure: initial.notifyOnFailure,
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
+
+  const [tiers, setTiers] = useState(initialTiers);
+  const setTier = <K extends keyof BackupTierView>(key: string, k: K, v: BackupTierView[K]) =>
+    setTiers((list) => list.map((x) => (x.key === key ? { ...x, [k]: v } : x)));
 
   /**
    * Switching protocol re-defaults the port (FTPS 21 / SFTP 22) — but ONLY when
@@ -65,25 +58,33 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
     password: f.password, // empty = keep the stored one
     remotePath: f.remotePath,
     secure: f.secure,
-    includeDb: f.includeDb,
-    includeUploads: f.includeUploads,
-    frequency: f.frequency,
-    hourUtc: f.hourUtc,
-    weekday: f.weekday,
-    dayOfMonth: f.dayOfMonth,
-    retentionKeep: Number(f.retentionKeep) || 0,
-    tiered: f.tiered,
-    keepHourly: Number(f.keepHourly) || 0,
-    keepDaily: Number(f.keepDaily) || 0,
-    keepWeekly: Number(f.keepWeekly) || 0,
+    // Superseded by each tier's `contents`; sent so the stored row stays sane.
+    includeDb: true,
+    includeUploads: true,
+    frequency: "HOURLY",
+    tiered: true,
     notifyOnFailure: f.notifyOnFailure,
   });
+
+  const tierPayload = () =>
+    tiers.map((x) => ({
+      key: x.key,
+      enabled: x.enabled,
+      frequency: x.frequency,
+      everyN: Number(x.everyN) || 1,
+      hourUtc: x.hourUtc,
+      weekday: x.weekday,
+      dayOfMonth: x.dayOfMonth,
+      contents: x.contents,
+      remotePath: x.remotePath,
+      keepLast: Number(x.keepLast) || 0,
+    }));
 
   const save = () =>
     start(async () => {
       setBusy("save");
       setMsg(null);
-      const r = await saveBackupAction(payload());
+      const r = await saveBackupAction(payload(), tierPayload());
       setMsg(r.ok ? { tone: "ok", text: t("backup.saved") } : { tone: "err", text: r.error ?? t("common.error") });
       if (r.ok) { set("password", ""); router.refresh(); }
       setBusy("");
@@ -93,7 +94,7 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
     start(async () => {
       setBusy("test");
       setMsg({ tone: "info", text: t("backup.testing") });
-      await saveBackupAction(payload()); // persist current fields so the test uses them
+      await saveBackupAction(payload(), tierPayload()); // persist current fields so the test uses them
       const r = await testBackupAction();
       setMsg({ tone: r.ok ? "ok" : "err", text: r.message });
       if (r.ok) set("password", "");
@@ -113,9 +114,6 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
     });
 
   const alertClass = msg?.tone === "ok" ? "alert-success" : msg?.tone === "err" ? "alert-error" : "alert-info";
-  // Under tiering the hour still matters — it selects the one run per day that
-  // carries the uploads (the FULL archive).
-  const showHour = f.tiered || f.frequency === "DAILY" || f.frequency === "WEEKLY" || f.frequency === "MONTHLY";
 
   return (
     <div className="space-y-6">
@@ -161,6 +159,7 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
           <div>
             <label className="label">{t("backup.remotePath")}</label>
             <input className="input" value={f.remotePath} onChange={(e) => set("remotePath", e.target.value)} placeholder="/backups" />
+            <p className="mt-1 text-xs text-muted">{t("backup.remotePathHint")}</p>
           </div>
         </div>
         {/* TLS is an FTPS concept — SFTP is always encrypted by SSH. */}
@@ -172,91 +171,85 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
         )}
       </div>
 
-      {/* Contents */}
-      <div className="card space-y-3 p-5">
-        <h2 className="font-semibold text-ink">{t("backup.contents")}</h2>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={f.includeDb} onChange={(e) => set("includeDb", e.target.checked)} />
-          <span className="text-ink">{t("backup.includeDb")}</span>
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={f.includeUploads} onChange={(e) => set("includeUploads", e.target.checked)} />
-          <span className="text-ink">{t("backup.includeUploads")}</span>
-        </label>
-      </div>
-
-      {/* Schedule */}
-      <div className="card space-y-4 p-5">
-        <h2 className="font-semibold text-ink">{t("backup.schedule")}</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className="label">{t("backup.frequency")}</label>
-            <select className="input" value={f.frequency} onChange={(e) => set("frequency", e.target.value)}>
-              {FREQUENCIES.map((x) => <option key={x} value={x}>{t(`backup.freq.${x}`)}</option>)}
-            </select>
-          </div>
-          {showHour && (
-            <div>
-              <label className="label">{f.tiered ? t("backup.fullHour") : t("backup.hour")}</label>
-              <select className="input" value={f.hourUtc} onChange={(e) => set("hourUtc", Number(e.target.value))}>
-                {Array.from({ length: 24 }).map((_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00 UTC</option>)}
-              </select>
-            </div>
-          )}
-          {f.frequency === "WEEKLY" && (
-            <div>
-              <label className="label">{t("backup.weekday")}</label>
-              <select className="input" value={f.weekday} onChange={(e) => set("weekday", Number(e.target.value))}>
-                {Array.from({ length: 7 }).map((_, d) => <option key={d} value={d}>{t(`backup.dow.${d}`)}</option>)}
-              </select>
-            </div>
-          )}
-          {f.frequency === "MONTHLY" && (
-            <div>
-              <label className="label">{t("backup.dayOfMonth")}</label>
-              <select className="input" value={f.dayOfMonth} onChange={(e) => set("dayOfMonth", Number(e.target.value))}>
-                {Array.from({ length: 28 }).map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
-              </select>
-            </div>
-          )}
+      {/* Levels */}
+      <div className="card space-y-5 p-5">
+        <div>
+          <h2 className="font-semibold text-ink">{t("backup.levels")}</h2>
+          <p className="mt-1 text-xs text-muted">{t("backup.levelsHint")}</p>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={f.tiered}
-            onChange={(e) => setF((s) => ({ ...s, tiered: e.target.checked, frequency: e.target.checked ? "HOURLY" : s.frequency }))}
-          />
-          <span className="font-medium text-ink">{t("backup.tiered")}</span>
-        </label>
-        <p className="-mt-2 text-xs text-muted">{t("backup.tieredHint")}</p>
 
-        {f.tiered ? (
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className="label">{t("backup.keepHourly")}</label>
-              <input className="input" inputMode="numeric" value={f.keepHourly} onChange={(e) => set("keepHourly", e.target.value)} />
-              <p className="mt-1 text-xs text-muted">{t("backup.keepHourlyHint")}</p>
+        {tiers.map((x) => {
+          const showHour = x.frequency === "DAILY" || x.frequency === "WEEKLY" || x.frequency === "MONTHLY";
+          return (
+            <div key={x.key} className="rounded-lg border border-line p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={x.enabled} onChange={(e) => setTier(x.key, "enabled", e.target.checked)} />
+                  <span className="font-medium text-ink">{t(`backup.tier.${x.key}`)}</span>
+                </label>
+                {x.lastRunAt && (
+                  <span className="text-xs text-muted">{t("backup.lastRun", { when: formatBizDate(x.lastRunAt) })}</span>
+                )}
+              </div>
+
+              <div className="mt-3 grid gap-4 sm:grid-cols-4">
+                <div>
+                  <label className="label">{t("backup.frequency")}</label>
+                  <select className="input" value={x.frequency} onChange={(e) => setTier(x.key, "frequency", e.target.value)}>
+                    {FREQUENCIES.map((v) => <option key={v} value={v}>{t(`backup.freq.${v}`)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">{t("backup.everyN")}</label>
+                  <input className="input" inputMode="numeric" value={String(x.everyN)}
+                    onChange={(e) => setTier(x.key, "everyN", Number(e.target.value) || 1)} />
+                  <p className="mt-1 text-xs text-muted">{t("backup.everyNHint")}</p>
+                </div>
+                {showHour && (
+                  <div>
+                    <label className="label">{t("backup.hour")}</label>
+                    <select className="input" value={x.hourUtc} onChange={(e) => setTier(x.key, "hourUtc", Number(e.target.value))}>
+                      {Array.from({ length: 24 }).map((_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00 UTC</option>)}
+                    </select>
+                  </div>
+                )}
+                {x.frequency === "WEEKLY" && (
+                  <div>
+                    <label className="label">{t("backup.weekday")}</label>
+                    <select className="input" value={x.weekday} onChange={(e) => setTier(x.key, "weekday", Number(e.target.value))}>
+                      {Array.from({ length: 7 }).map((_, d) => <option key={d} value={d}>{t(`backup.dow.${d}`)}</option>)}
+                    </select>
+                  </div>
+                )}
+                {x.frequency === "MONTHLY" && (
+                  <div>
+                    <label className="label">{t("backup.dayOfMonth")}</label>
+                    <select className="input" value={x.dayOfMonth} onChange={(e) => setTier(x.key, "dayOfMonth", Number(e.target.value))}>
+                      {Array.from({ length: 28 }).map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="label">{t("backup.tierContents")}</label>
+                  <select className="input" value={x.contents} onChange={(e) => setTier(x.key, "contents", e.target.value)}>
+                    {TIER_CONTENTS.map((c) => <option key={c} value={c}>{t(`backup.contents.${c}`)}</option>)}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="label">{t("backup.tierFolder")}</label>
+                  <input className="input" value={x.remotePath} onChange={(e) => setTier(x.key, "remotePath", e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">{t("backup.keepLast")}</label>
+                  <input className="input" inputMode="numeric" value={String(x.keepLast)}
+                    onChange={(e) => setTier(x.key, "keepLast", Number(e.target.value) || 0)} />
+                  <p className="mt-1 text-xs text-muted">{t("backup.keepLastHint")}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="label">{t("backup.keepDaily")}</label>
-              <input className="input" inputMode="numeric" value={f.keepDaily} onChange={(e) => set("keepDaily", e.target.value)} />
-              <p className="mt-1 text-xs text-muted">{t("backup.keepDailyHint")}</p>
-            </div>
-            <div>
-              <label className="label">{t("backup.keepWeekly")}</label>
-              <input className="input" inputMode="numeric" value={f.keepWeekly} onChange={(e) => set("keepWeekly", e.target.value)} />
-              <p className="mt-1 text-xs text-muted">{t("backup.keepWeeklyHint")}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label">{t("backup.retention")}</label>
-              <input className="input" inputMode="numeric" value={f.retentionKeep} onChange={(e) => set("retentionKeep", e.target.value)} />
-              <p className="mt-1 text-xs text-muted">{t("backup.retentionHint")}</p>
-            </div>
-          </div>
-        )}
+          );
+        })}
+
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={f.notifyOnFailure} onChange={(e) => set("notifyOnFailure", e.target.checked)} />
           <span className="text-ink">{t("backup.notifyOnFailure")}</span>
