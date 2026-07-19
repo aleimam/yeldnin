@@ -36,10 +36,21 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
 
-  /** Switching protocol re-defaults the port (FTPS 21 / SFTP 22) so the field is
-   *  never left pointing at the previous protocol's port. */
+  /**
+   * Switching protocol re-defaults the port (FTPS 21 / SFTP 22) — but ONLY when
+   * the field still holds the previous protocol's default, i.e. it looks
+   * untouched. A deliberately-set port must survive: a Hetzner Storage Box
+   * serves SFTP on 23, and blindly resetting it to 22 silently breaks backups.
+   */
   const setProtocol = (p: string) =>
-    setF((s) => ({ ...s, protocol: p, port: String(defaultPortFor(p as BackupProtocol)) }));
+    setF((s) => ({
+      ...s,
+      protocol: p,
+      port:
+        Number(s.port) === defaultPortFor(s.protocol as BackupProtocol)
+          ? String(defaultPortFor(p as BackupProtocol))
+          : s.port,
+    }));
 
   const payload = () => ({
     enabled: f.enabled,
