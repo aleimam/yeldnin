@@ -170,8 +170,8 @@ export function ProductForm({
         <Field label={t("products.weight")}><input type="number" step="any" className="input" value={f.weightG} onChange={(e) => set("weightG", e.target.value)} /></Field>
         {canSeePurchase && <Field label={t("products.purchasePrice")}><input type="number" step="any" className="input" value={f.purchasePrice} onChange={(e) => set("purchasePrice", e.target.value)} /></Field>}
         <Field label={t("products.sellingPrice")}><input type="number" step="any" className="input" value={f.sellingPrice} onChange={(e) => set("sellingPrice", e.target.value)} /></Field>
-        <Field label={t("products.size")}><input className="input" value={f.size} onChange={(e) => set("size", e.target.value)} disabled={veeeyManaged} /></Field>
-        <Field label={t("products.grade")}><input className="input" value={f.grade} onChange={(e) => set("grade", e.target.value)} disabled={veeeyManaged} /></Field>
+        <Field label={t("products.size")}><input className="input" value={f.size} onChange={(e) => set("size", e.target.value)} /></Field>
+        <Field label={t("products.grade")}><input className="input" value={f.grade} onChange={(e) => set("grade", e.target.value)} /></Field>
         <Field label={t("products.url")} className="sm:col-span-3"><input className="input" value={f.url} onChange={(e) => set("url", e.target.value)} /></Field>
       </div>
 

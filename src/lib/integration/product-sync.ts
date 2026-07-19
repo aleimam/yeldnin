@@ -39,12 +39,16 @@ export async function handleProductUpsertV2(payload: unknown): Promise<ProductUp
   if (existing && existing.scope !== "VEEEY") return { ok: false, skipped: "product_scope_mismatch" };
 
   // Veeey-owned fields only (never the YeldnIN-owned supply-chain columns).
+  // PARTIAL upsert: write only fields Veeey actually sends. `sku`/`name`/`type`
+  // are always present; `size`/`grade`/photos are optional — when omitted we
+  // PRESERVE the local value rather than null it (Veeey doesn't model size/grade
+  // today; if it starts sending them they'll flow through). archived is set-only.
   const displayData = {
     sku: w.sku,
     name: w.name,
     type: resolveSyncedType(w.type, existing?.type ?? null), // heavy never downgrades
-    size: w.size,
-    grade: w.grade,
+    ...(w.size != null ? { size: w.size } : {}),
+    ...(w.grade != null ? { grade: w.grade } : {}),
     ...(w.archived ? { archivedAt: new Date(), active: false } : {}),
     ...(w.legacyWpId != null ? { veeeyWpId: w.legacyWpId } : {}),
   };

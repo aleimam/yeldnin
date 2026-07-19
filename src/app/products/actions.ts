@@ -72,6 +72,9 @@ export async function saveProductAction(p: ProductPayload & { id: number; active
   // VEEEY-scope products: the Veeey storefront masters the display fields — the
   // sync is their sole writer. Preserve them here; only the heavy toggle (via
   // type) + the supply-chain layer are editable in YeldnIN.
+  // Veeey masters name + sku + base type + photos; size/grade aren't in Veeey's
+  // model, so they stay YeldnIN-editable. resolveEditedType allows only the heavy
+  // toggle on the base type.
   const veeey = isVeeeyManaged(existing.scope);
   const data = veeey
     ? {
@@ -80,8 +83,6 @@ export async function saveProductAction(p: ProductPayload & { id: number; active
         scope: existing.scope as Scope,
         name: existing.name,
         sku: existing.sku ?? undefined,
-        size: existing.size ?? undefined,
-        grade: existing.grade ?? undefined,
         type: resolveEditedType(existing.scope, p.type, existing.type) as ProductType,
         active: p.active,
       }

@@ -16,9 +16,9 @@ Every field has exactly one master; the other side never writes it.
 
 | Owner | Fields |
 |---|---|
-| **Veeey** (masters, syncs down, read-only in YeldnIN) | product: `sku`, `name`, base `type`, `size`, `grade`, photos · customer: identity (`veeeyCustomerId`), `name`, `phone` |
+| **Veeey** (masters, syncs down, read-only in YeldnIN) | product: `sku`, `name`, base `type`, photos · customer: identity (`veeeyCustomerId`), `name`, `phone` |
 | **Veeey** (internal, never synced) | category, selling price, published/active state, orders, stock |
-| **YeldnIN** (Purchasing / Logistics / Ops edit; sync never touches) | purchase price · supplier (single; the supplier list + SLA class/regions live only in YeldnIN) · origin · purchase URL · purchase note · weight · **heavy flag** · YeldnIN's own `active` · `uid` · all operational data (items, requests, pricing, journey) |
+| **YeldnIN** (Purchasing / Logistics / Ops edit; sync never touches) | purchase price · supplier (single; the supplier list + SLA class/regions live only in YeldnIN) · origin · purchase URL · purchase note · weight · **size · grade** · **heavy flag** · YeldnIN's own `active` · `uid` · all operational data (items, requests, pricing, journey) |
 | **YeldnIN** (entirely local) | all **XOONX** and PERSONAL products & customers — the sync may never touch a non-Veeey-scope row |
 
 Scope note: after the standalone rename release, YeldnIN's internal scope value
@@ -39,12 +39,21 @@ Auth per v1 §1; `Idempotency-Key` required per v1 §2. One call per product
   "name": "Vitamin D3 5000IU — 120 caps", // REQUIRED — must be unique in YeldnIN;
                                 // variations must carry distinct names (append attributes)
   "type": "SUPPLEMENT",         // REQUIRED — base codes only: SUPPLEMENT | DEVICE | INJECTION
-  "size": "120 caps",           // optional
-  "grade": "A",                 // optional
+  "size": "120 caps",           // optional — Veeey does NOT model size/grade today (they
+  "grade": "A",                 //   stay YeldnIN-owned/editable). Kept optional so that
+                                //   IF Veeey ever adds them they flow through — otherwise
+                                //   omit; the partial-upsert never nulls them.
   "photoUrls": ["https://veeey.com/img/…"],  // optional, absolute https, max 6, replace-all
   "archived": false             // optional — true ONLY on hard-delete (§4)
 }
 ```
+
+> **Reconciliation note (v2 alignment, 2026-07-19):** the Veeey storefront's
+> product model has no `size`/`grade`, so it does **not** send them. They are
+> therefore **YeldnIN-owned and editable** (moved in §0). YeldnIN's handler is a
+> **partial upsert**: it writes only the fields present in the payload, so an
+> omitted `size`/`grade`/`photoUrls` PRESERVES the local value rather than
+> nulling it.
 
 **Matching order (upsert):**
 1. by `sku` (canonical);
@@ -53,8 +62,10 @@ Auth per v1 §1; `Idempotency-Key` required per v1 §2. One call per product
 3. else **create**, scope `VEEEY`, with a YeldnIN-minted `uid` (PRD…).
 
 **Write rules:**
-- Writes ONLY: `sku`, `name`, `type`, `size`, `grade`, photo URLs. Never the
-  YeldnIN-owned fields in §0 — a resync can never clobber purchasing data.
+- **Partial upsert** — writes only the Veeey-owned fields actually present:
+  `sku`, `name`, `type` always; `size`/`grade`/photos only when sent (omitted →
+  preserved). Never the YeldnIN-owned fields in §0 — a resync can never clobber
+  purchasing data.
 - **Heavy never downgrades:** if YeldnIN has `HEAVY_SUPPLEMENT` and the payload
   says `SUPPLEMENT`, the local type stays `HEAVY_SUPPLEMENT`. (Veeey knows
   nothing about heavy; it's a Logistics/Purchasing refinement.)
