@@ -18,10 +18,14 @@ import {
   clampDayOfMonth,
   clampPort,
   clampRetention,
+  clampKeep,
   isBackupFrequency,
   isBackupProtocol,
   explainPathError,
+  tieredPrunable,
+  archiveKindFor,
   type BackupFrequency,
+  type ArchiveKind,
 } from "./backup-logic";
 
 const KEY = "BACKUP";
@@ -49,6 +53,10 @@ export interface BackupConfigView {
   weekday: number;
   dayOfMonth: number;
   retentionKeep: number;
+  tiered: boolean;
+  keepHourly: number;
+  keepDaily: number;
+  keepWeekly: number;
   notifyOnFailure: boolean;
   lastTestAt: string | null;
   lastTestOk: boolean | null;
@@ -91,6 +99,10 @@ export async function backupView(): Promise<{ config: BackupConfigView; runs: Ba
       weekday: r.weekday,
       dayOfMonth: r.dayOfMonth,
       retentionKeep: r.retentionKeep,
+      tiered: r.tiered,
+      keepHourly: r.keepHourly,
+      keepDaily: r.keepDaily,
+      keepWeekly: r.keepWeekly,
       notifyOnFailure: r.notifyOnFailure,
       lastTestAt: r.lastTestAt?.toISOString() ?? null,
       lastTestOk: r.lastTestOk,
@@ -128,6 +140,10 @@ export interface SaveBackupInput {
   weekday?: number | null;
   dayOfMonth?: number | null;
   retentionKeep?: number | null;
+  tiered: boolean;
+  keepHourly?: number | null;
+  keepDaily?: number | null;
+  keepWeekly?: number | null;
   notifyOnFailure: boolean;
 }
 
@@ -157,6 +173,10 @@ export async function saveBackupConfig(input: SaveBackupInput, userId: number): 
       weekday: clampWeekday(input.weekday),
       dayOfMonth: clampDayOfMonth(input.dayOfMonth),
       retentionKeep: clampRetention(input.retentionKeep),
+      tiered: input.tiered,
+      keepHourly: clampKeep(input.keepHourly, 24),
+      keepDaily: clampKeep(input.keepDaily, 7),
+      keepWeekly: clampKeep(input.keepWeekly, 8),
       notifyOnFailure: input.notifyOnFailure,
       updatedById: userId,
     },
@@ -308,25 +328,31 @@ async function pathExists(p: string): Promise<boolean> {
 }
 
 /** Stage selected parts and produce a .tar.gz at `archivePath`. Returns the parts. */
-async function buildArchive(cfg: Row, tmpDir: string, archivePath: string): Promise<string[]> {
+async function buildArchive(cfg: Row, kind: ArchiveKind, tmpDir: string, archivePath: string): Promise<string[]> {
   const stage = path.join(tmpDir, "stage");
   await fs.mkdir(stage, { recursive: true });
   const entries: string[] = [];
+  // A `db` archive deliberately omits uploads — that is the whole point of the
+  // cheap hourly tier (the uploads are ~3x the database and barely change).
+  const withUploads = cfg.includeUploads && kind === "full";
 
   if (cfg.includeDb) {
     await snapshotDb(path.join(stage, "dev.db"));
     entries.push("dev.db");
   }
-  if (cfg.includeUploads) {
+  if (withUploads) {
     const src = path.join(process.cwd(), "uploads");
     if (await pathExists(src)) {
       await fs.cp(src, path.join(stage, "uploads"), { recursive: true });
       entries.push("uploads");
     }
   }
+  // The manifest must describe what this archive ACTUALLY holds, not what the
+  // config asks for in general — a db-only archive must not claim uploads.
+  const actual = contentsList({ includeDb: cfg.includeDb, includeUploads: withUploads });
   await fs.writeFile(
     path.join(stage, "manifest.json"),
-    JSON.stringify({ app: "YeldnIN", createdAt: new Date().toISOString(), contents: contentsList(cfg) }, null, 2),
+    JSON.stringify({ app: "YeldnIN", kind, createdAt: new Date().toISOString(), contents: actual }, null, 2),
   );
   entries.push("manifest.json");
 
@@ -334,7 +360,7 @@ async function buildArchive(cfg: Row, tmpDir: string, archivePath: string): Prom
 
   const tar = await import("tar");
   await tar.create({ gzip: true, cwd: stage, file: archivePath }, entries);
-  return contentsList(cfg);
+  return actual;
 }
 
 /** Upload the archive to the configured destination and prune old archives per
@@ -344,12 +370,15 @@ async function uploadAndPrune(cfg: Row, archivePath: string, fileName: string): 
     const dir = cfg.remotePath || "/";
     await t.ensureDir(dir); // created when missing
     await t.upload(archivePath, dir, fileName);
-    if (cfg.retentionKeep > 0) {
-      const names = await t.list(dir);
-      for (const stale of prunableArchives(names, cfg.retentionKeep)) {
-        await t.remove(dir, stale).catch(() => {});
-      }
-    }
+    const names = await t.list(dir);
+    const stale = cfg.tiered
+      ? tieredPrunable(names, { keepHourly: cfg.keepHourly, keepDaily: cfg.keepDaily, keepWeekly: cfg.keepWeekly })
+      : cfg.retentionKeep > 0
+        ? prunableArchives(names, cfg.retentionKeep)
+        : [];
+    // Deleting real backups — say what went, so pm2 logs can be audited after.
+    if (stale.length) console.log(`[backup] pruning ${stale.length} archive(s): ${stale.join(", ")}`);
+    for (const name of stale) await t.remove(dir, name).catch(() => {});
   });
 }
 
@@ -374,21 +403,30 @@ export async function runBackup(
   userId: number | null,
 ): Promise<{ ok: boolean; runId: number; fileName?: string; sizeBytes?: number; error?: string }> {
   const cfg = await getRow();
+  const startedAt = new Date();
+  // Under tiered retention only the run at `hourUtc` carries the uploads.
+  const kind = archiveKindFor(cfg, cfg.lastFullAt, startedAt);
+  const effective = { includeDb: cfg.includeDb, includeUploads: cfg.includeUploads && kind === "full" };
   const run = await prisma.backupRun.create({
-    data: { trigger, status: "RUNNING", contents: contentsList(cfg).join(","), byUserId: userId ?? undefined },
+    data: { trigger, status: "RUNNING", contents: contentsList(effective).join(","), byUserId: userId ?? undefined },
   });
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "yeldnin-backup-"));
   try {
-    const fileName = backupFileName(new Date());
+    const fileName = backupFileName(startedAt, kind);
     const archivePath = path.join(tmpDir, fileName);
-    await buildArchive(cfg, tmpDir, archivePath);
+    await buildArchive(cfg, kind, tmpDir, archivePath);
     const sizeBytes = (await fs.stat(archivePath)).size;
     await uploadAndPrune(cfg, archivePath, fileName);
     await prisma.backupRun.update({
       where: { id: run.id },
       data: { status: "SUCCESS", finishedAt: new Date(), fileName, sizeBytes },
     });
-    await prisma.backupConfig.update({ where: { singleton: KEY }, data: { lastRunAt: new Date() } });
+    await prisma.backupConfig.update({
+      where: { singleton: KEY },
+      // lastFullAt only advances on a FULL archive — it is what lets a missed
+      // full slot be recovered on a later run.
+      data: { lastRunAt: new Date(), ...(kind === "full" ? { lastFullAt: startedAt } : {}) },
+    });
     if (userId != null) await writeAudit(userId, "settings", "backup.run", "backupRun", run.id, { trigger, fileName, sizeBytes });
     return { ok: true, runId: run.id, fileName, sizeBytes };
   } catch (e) {

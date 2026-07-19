@@ -32,6 +32,10 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
     weekday: initial.weekday,
     dayOfMonth: initial.dayOfMonth,
     retentionKeep: String(initial.retentionKeep),
+    tiered: initial.tiered,
+    keepHourly: String(initial.keepHourly),
+    keepDaily: String(initial.keepDaily),
+    keepWeekly: String(initial.keepWeekly),
     notifyOnFailure: initial.notifyOnFailure,
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
@@ -68,6 +72,10 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
     weekday: f.weekday,
     dayOfMonth: f.dayOfMonth,
     retentionKeep: Number(f.retentionKeep) || 0,
+    tiered: f.tiered,
+    keepHourly: Number(f.keepHourly) || 0,
+    keepDaily: Number(f.keepDaily) || 0,
+    keepWeekly: Number(f.keepWeekly) || 0,
     notifyOnFailure: f.notifyOnFailure,
   });
 
@@ -105,7 +113,9 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
     });
 
   const alertClass = msg?.tone === "ok" ? "alert-success" : msg?.tone === "err" ? "alert-error" : "alert-info";
-  const showHour = f.frequency === "DAILY" || f.frequency === "WEEKLY" || f.frequency === "MONTHLY";
+  // Under tiering the hour still matters — it selects the one run per day that
+  // carries the uploads (the FULL archive).
+  const showHour = f.tiered || f.frequency === "DAILY" || f.frequency === "WEEKLY" || f.frequency === "MONTHLY";
 
   return (
     <div className="space-y-6">
@@ -187,7 +197,7 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
           </div>
           {showHour && (
             <div>
-              <label className="label">{t("backup.hour")}</label>
+              <label className="label">{f.tiered ? t("backup.fullHour") : t("backup.hour")}</label>
               <select className="input" value={f.hourUtc} onChange={(e) => set("hourUtc", Number(e.target.value))}>
                 {Array.from({ length: 24 }).map((_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00 UTC</option>)}
               </select>
@@ -210,13 +220,43 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
             </div>
           )}
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">{t("backup.retention")}</label>
-            <input className="input" inputMode="numeric" value={f.retentionKeep} onChange={(e) => set("retentionKeep", e.target.value)} />
-            <p className="mt-1 text-xs text-muted">{t("backup.retentionHint")}</p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={f.tiered}
+            onChange={(e) => setF((s) => ({ ...s, tiered: e.target.checked, frequency: e.target.checked ? "HOURLY" : s.frequency }))}
+          />
+          <span className="font-medium text-ink">{t("backup.tiered")}</span>
+        </label>
+        <p className="-mt-2 text-xs text-muted">{t("backup.tieredHint")}</p>
+
+        {f.tiered ? (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="label">{t("backup.keepHourly")}</label>
+              <input className="input" inputMode="numeric" value={f.keepHourly} onChange={(e) => set("keepHourly", e.target.value)} />
+              <p className="mt-1 text-xs text-muted">{t("backup.keepHourlyHint")}</p>
+            </div>
+            <div>
+              <label className="label">{t("backup.keepDaily")}</label>
+              <input className="input" inputMode="numeric" value={f.keepDaily} onChange={(e) => set("keepDaily", e.target.value)} />
+              <p className="mt-1 text-xs text-muted">{t("backup.keepDailyHint")}</p>
+            </div>
+            <div>
+              <label className="label">{t("backup.keepWeekly")}</label>
+              <input className="input" inputMode="numeric" value={f.keepWeekly} onChange={(e) => set("keepWeekly", e.target.value)} />
+              <p className="mt-1 text-xs text-muted">{t("backup.keepWeeklyHint")}</p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="label">{t("backup.retention")}</label>
+              <input className="input" inputMode="numeric" value={f.retentionKeep} onChange={(e) => set("retentionKeep", e.target.value)} />
+              <p className="mt-1 text-xs text-muted">{t("backup.retentionHint")}</p>
+            </div>
+          </div>
+        )}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={f.notifyOnFailure} onChange={(e) => set("notifyOnFailure", e.target.checked)} />
           <span className="text-ink">{t("backup.notifyOnFailure")}</span>

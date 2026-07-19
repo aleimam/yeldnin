@@ -39,6 +39,9 @@ export const clampWeekday = (n: unknown) => clampInt(n, 0, 6, 1);
 export const clampDayOfMonth = (n: unknown) => clampInt(n, 1, 28, 1);
 export const clampPort = (n: unknown) => clampInt(n, 1, 65535, 21);
 export const clampRetention = (n: unknown) => clampInt(n, 0, 3650, 30);
+/** A per-tier "keep last N". 0 disables that tier; capped so a typo can't ask
+ *  for an absurd history. Each tier carries its own sensible default. */
+export const clampKeep = (n: unknown, fallback: number) => clampInt(n, 0, 1000, fallback);
 
 export interface Schedule {
   frequency: BackupFrequency;
@@ -89,24 +92,137 @@ export function isBackupDue(s: Schedule, lastRunAt: Date | null, now: Date): boo
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** Timestamped archive filename in UTC: `yeldnin-backup-YYYYMMDD-HHmmss.tar.gz`.
- *  The lexical order equals chronological order, so sorting sorts by time. */
-export function backupFileName(now: Date): string {
+/** What an archive contains. `db` = database only (the cheap hourly snapshot);
+ *  `full` = database + uploads. */
+export const ARCHIVE_KINDS = ["db", "full"] as const;
+export type ArchiveKind = (typeof ARCHIVE_KINDS)[number];
+
+/** Timestamped archive filename in UTC:
+ *  `yeldnin-backup-<kind>-YYYYMMDD-HHmmss.tar.gz`. */
+export function backupFileName(now: Date, kind: ArchiveKind = "full"): string {
   const stamp =
     `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}` +
     `-${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}`;
-  return `${ARCHIVE_PREFIX}${stamp}.tar.gz`;
+  return `${ARCHIVE_PREFIX}${kind}-${stamp}.tar.gz`;
 }
 
-/** Our archive files within a remote listing, newest-first. */
+const STAMP = String.raw`(\d{8})-(\d{6})`;
+const KINDED = new RegExp(`^${ARCHIVE_PREFIX}(db|full)-${STAMP}\\.tar\\.gz$`);
+const LEGACY = new RegExp(`^${ARCHIVE_PREFIX}${STAMP}\\.tar\\.gz$`);
+
+function stampToDate(ymd: string, hms: string): Date | null {
+  const d = new Date(
+    Date.UTC(
+      Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)),
+      Number(hms.slice(0, 2)), Number(hms.slice(2, 4)), Number(hms.slice(4, 6)),
+    ),
+  );
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+/**
+ * Recognise one of OUR archives and read its kind + timestamp. Returns null for
+ * anything else — foreign files in the backup folder must never be considered
+ * for deletion. Archives written before the kind segment existed are `full`
+ * (they contained whatever the config said, but they are the daily-tier lineage).
+ */
+export function parseArchiveName(name: string): { kind: ArchiveKind; at: Date } | null {
+  const k = KINDED.exec(name);
+  if (k) {
+    const at = stampToDate(k[2], k[3]);
+    return at ? { kind: k[1] as ArchiveKind, at } : null;
+  }
+  const l = LEGACY.exec(name);
+  if (l) {
+    const at = stampToDate(l[1], l[2]);
+    return at ? { kind: "full", at } : null;
+  }
+  return null;
+}
+
+/** Our archive files within a remote listing, newest-first (by TIMESTAMP — with
+ *  a kind segment in the name, lexical order is no longer chronological). */
 export function ourArchives(names: string[]): string[] {
-  return names.filter((n) => n.startsWith(ARCHIVE_PREFIX) && n.endsWith(".tar.gz")).sort().reverse();
+  return names
+    .map((n) => ({ n, p: parseArchiveName(n) }))
+    .filter((x): x is { n: string; p: { kind: ArchiveKind; at: Date } } => x.p !== null)
+    .sort((a, b) => b.p.at.getTime() - a.p.at.getTime())
+    .map((x) => x.n);
 }
 
 /** Which remote files to delete to keep only the newest `keep` (keep<=0 → none). */
 export function prunableArchives(names: string[], keep: number): string[] {
   if (keep <= 0) return [];
   return ourArchives(names).slice(keep);
+}
+
+export interface RetentionPolicy {
+  /** db-only archives to keep (the last N hours). */
+  keepHourly: number;
+  /** newest full archives to keep (the last N days, one full per day). */
+  keepDaily: number;
+  /** additional full archives, one per 7-day bucket, beyond the daily window. */
+  keepWeekly: number;
+}
+
+/** 7-day bucket id. Deliberately epoch-based rather than calendar ISO weeks —
+ *  retention only needs "one per week", and this has no year-boundary edges. */
+const weekBucket = (d: Date) => Math.floor(d.getTime() / (7 * DAY_MS));
+
+/**
+ * Tiered (grandfather-father-son) retention: which archives to DELETE.
+ *
+ *  - `db` archives: keep the newest `keepHourly`.
+ *  - `full` archives: keep the newest `keepDaily`, then walking older, keep the
+ *    newest survivor in each distinct week until `keepWeekly` weeks are held.
+ *
+ * Safety properties (unit-tested, because this deletes real backups):
+ *  - files we cannot parse are NEVER returned;
+ *  - the single most recent archive is NEVER returned, whatever the policy says.
+ */
+export function tieredPrunable(names: string[], p: RetentionPolicy): string[] {
+  const parsed = names
+    .map((n) => ({ n, p: parseArchiveName(n) }))
+    .filter((x): x is { n: string; p: { kind: ArchiveKind; at: Date } } => x.p !== null);
+  if (!parsed.length) return [];
+
+  const newestFirst = [...parsed].sort((a, b) => b.p.at.getTime() - a.p.at.getTime());
+  const newestOverall = newestFirst[0].n;
+  const doomed: string[] = [];
+
+  const db = newestFirst.filter((x) => x.p.kind === "db");
+  doomed.push(...db.slice(Math.max(0, p.keepHourly)).map((x) => x.n));
+
+  const full = newestFirst.filter((x) => x.p.kind === "full");
+  const weeks = new Set<number>();
+  for (const a of full.slice(Math.max(0, p.keepDaily))) {
+    const w = weekBucket(a.p.at);
+    if (weeks.size < Math.max(0, p.keepWeekly) && !weeks.has(w)) {
+      weeks.add(w); // this one represents its week — keep it
+      continue;
+    }
+    doomed.push(a.n);
+  }
+
+  // Belt and braces: a mis-set policy (all zeros) must not wipe the newest copy.
+  return doomed.filter((n) => n !== newestOverall);
+}
+
+/**
+ * What this run should contain. Under tiered retention a FULL archive is taken
+ * at `hourUtc`; every other hour is db-only. A full is also forced when none has
+ * been taken for over a day, so a missed slot (app down at `hourUtc`) doesn't
+ * silently cost a whole day's uploads.
+ */
+export function archiveKindFor(
+  cfg: { tiered: boolean; hourUtc: number },
+  lastFullAt: Date | null,
+  now: Date,
+): ArchiveKind {
+  if (!cfg.tiered) return "full";
+  if (now.getUTCHours() === cfg.hourUtc) return "full";
+  if (!lastFullAt) return "full";
+  return now.getTime() - lastFullAt.getTime() >= 25 * 3_600_000 ? "full" : "db";
 }
 
 /**

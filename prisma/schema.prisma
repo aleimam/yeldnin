@@ -2143,8 +2143,21 @@ model BackupConfig {
   hourUtc         Int       @default(2) // hour of day (UTC) for DAILY/WEEKLY/MONTHLY
   weekday         Int       @default(1) // 0=Sun..6=Sat, for WEEKLY
   dayOfMonth      Int       @default(1) // 1..28, for MONTHLY
-  retentionKeep   Int       @default(30) // keep the newest N archives (0 = keep all)
+  retentionKeep   Int       @default(30) // keep the newest N archives (0 = keep all); used when tiered = false
   notifyOnFailure Boolean   @default(true)
+  // ── Tiered (grandfather-father-son) retention ──────────────────────────────
+  // When on, `frequency` is HOURLY and each run's CONTENTS depend on the hour:
+  // at `hourUtc` a FULL archive (db + uploads) is taken, every other hour a
+  // DB-ONLY one. Pruning then keeps the newest `keepHourly` db archives, the
+  // newest `keepDaily` full ones, then one full per week for `keepWeekly` weeks.
+  // This replaces `retentionKeep` while enabled.
+  tiered          Boolean   @default(false)
+  keepHourly      Int       @default(24)
+  keepDaily       Int       @default(7)
+  keepWeekly      Int       @default(8)
+  /// When the last FULL archive was taken — lets a missed full hour (app down at
+  /// hourUtc) be caught on the next run instead of skipping a whole day.
+  lastFullAt      DateTime?
   lastTestAt      DateTime?
   lastTestOk      Boolean?
   lastTestMessage String?
