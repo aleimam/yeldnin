@@ -21,9 +21,18 @@ retention. YeldnIN's live shape:
 
 | Tier | Frequency | Contents | Folder | Keep |
 |---|---|---|---|---|
-| Frequent | Hourly | database only (~5 MB) | `…/hourly` | 24 |
-| Daily | Daily 02:00 UTC | database + uploads (~50 MB) | `…/daily` | 7 |
-| Weekly | Weekly Sunday 02:00 UTC | database + uploads | `…/weekly` | 8 |
+| Frequent | Hourly (`everyN` 2) | database only (~5 MB) | `/home/hourly` | 12 |
+| Daily | Daily 02:00 UTC | database + uploads (~50 MB) | `/home/daily` | 7 |
+| Weekly | Weekly Sunday 02:00 UTC | database + uploads | `/home/weekly` | 8 |
+| **Manual** | **`OFF`** — never scheduled | database + uploads | `/home/manual` | 10 |
+
+**The MANUAL tier matters more than it looks.** Without it, "Backup now" writes
+into the *scheduled* folders, so an ad-hoc backup consumes a scheduled retention
+slot and can push out a scheduled archive. Give manual runs their own folder.
+`frequency: OFF` means it is never *due*, so the scheduler ignores it and only
+the button writes there. Give each tier its own "Run now" too — `enabled` should
+gate **scheduling only**, so an explicit request still runs a tier you have
+deliberately switched off.
 
 **Why tiers, and why the frequent one is database-only:** uploads are ~10× the
 database once compressed and barely change, so re-shipping them hourly is waste.
@@ -45,12 +54,37 @@ All three apps write to one Hetzner Storage Box. Nothing on the box enforces
 separation, so **retention in one app can delete another app's archives** if
 these rules are broken.
 
-### 2.1 Prefer a Hetzner **sub-account** per app (strongly recommended)
+### 2.1 Sub-accounts — DONE on this box, use yours
 
-The Storage Box console has a **Subaccounts** tab. Create one per app, each
-confined to its own home directory, with its own password. Then an app
-*cannot* reach another app's files even with a bug or a bad config. This is the
-only real isolation available — do this if the owner agrees.
+The owner created one sub-account per app (console → **Subaccounts**), each
+confined to its own base directory with its own password. An app therefore
+*cannot* reach another app's files even with a bug or a bad config. Use yours;
+do not use the main `u635384` account.
+
+| Sub-account | App | Base dir |
+|---|---|---|
+| `u635384-sub1` | YeldnIN | `/yeldnin/` |
+| `u635384-sub2` | veeey.net | `/veeey.net/` |
+| `u635384-sub3` | ev.com | `/ev.com/` |
+
+> ### ⚠ The one that will catch you out
+>
+> **A sub-account sees its base directory as `/home`, NOT as `/`.**
+> `/` is permission-denied and `cwd` on login is `/home`. So YeldnIN's folders
+> are `/home/hourly`, `/home/daily`, … — *not* `/yeldnin/hourly`, and not
+> `/home/yeldnin/hourly` either.
+>
+> This bit us for real: after switching to the sub-account the paths still said
+> `/home/yeldnin/hourly`, so `ensureDir` happily created a **nested**
+> `…/yeldnin/home/yeldnin/hourly` and the runs reported SUCCESS while writing to
+> the wrong place. **Always list the folder after the first run** — a green
+> status only proves a file was written *somewhere*.
+>
+> The giveaway was the Test message saying `0 item(s)` for a folder that was
+> known to be full.
+
+Either hostname works: `u635384.your-storagebox.de` or
+`u635384-sub1.your-storagebox.de`. Port is still **23**.
 
 ### 2.2 If sharing the one account, then without exception:
 
@@ -392,6 +426,35 @@ confirm the file is really there.**
 - [ ] **Restore drill** — actually unpack an archive and load the database
       somewhere. An untested backup is a hypothesis.
 
+### 11.1 The restore drill (do this; it is ~2 minutes)
+
+Nothing here touches production — it all happens in a scratch directory.
+
+1. **Download** the newest `full` archive with `fastGet`, and assert the local
+   size equals the remote size (byte-exact).
+2. **Unpack** it: `tar xzf`. Confirm the database file, `manifest.json`, and
+   `uploads/` are present, and that the manifest's `contents` matches what you
+   actually got.
+3. **Open the restored database** read-only and prove it is *valid*, not merely
+   present:
+   - `PRAGMA integrity_check` → `ok` (SQLite). Postgres: restore into a scratch
+     database with `pg_restore` and let it complete without error.
+   - Count the tables, then count rows in a few real business tables and
+     **compare against live**.
+4. **Read some actual rows.** A structurally valid but empty database passes
+   every check above.
+5. Delete the scratch directory.
+
+**Expect small differences against live** on tables that keep changing — that is
+correct for a point-in-time snapshot and is itself evidence the archive is a
+real capture. Investigate only *large* gaps or a table that is unexpectedly
+empty.
+
+YeldnIN's drill, 2026-07-20: 50.1 MB archive, byte-exact download,
+`integrity_check: ok`, 125 tables, 141 upload files, Product/User/Item/Request
+counts identical to live, Customer differing by exactly 1 (one arrived after the
+snapshot).
+
 ---
 
 ## 12. Reference implementation map (YeldnIN)
@@ -412,9 +475,16 @@ defences), `2f6a692` (path-error messages), `426d59b` (independent tiers).
 
 ---
 
-## 13. Open items on YeldnIN (do not inherit)
+## 13. Status on YeldnIN
 
-- Pre-tier archives sit loose in `/home/yeldnin` and one stray in
-  `/home/home/yeldnin` — outside every tier, so retention never reaps them.
-  Awaiting owner approval to delete.
-- No restore drill has been performed yet. **Do one before trusting any of this.**
+- ✅ Sub-account in use, all four levels on correct paths, verified by listing
+  each folder after a run.
+- ✅ Orphans cleaned (2026-07-20): 265 MB of pre-tier and mis-pathed archives
+  removed; the base folder now contains only the four tier directories.
+- ✅ **Restore drill passed** — see §11.1.
+- ⏳ Not yet observed: a schedule firing completely unattended. Every run so far
+  was triggered (by the button or by calling the cron endpoint). The cron itself
+  is installed and the due-logic is unit-tested, but confirm it in the wild.
+- One stray remains at the MAIN account's `/home/home/yeldnin` (50 MB) from an
+  early port-22 mistake. It is **outside every sub-account's base dir**, so it
+  needs main-account credentials to remove — a manual job for the owner.
