@@ -5,7 +5,8 @@ import {
   saveBackupConfig,
   saveTiers,
   testBackupConnection,
-  runAllTiersNow,
+  runTierNow,
+  MANUAL_TIER_KEY,
   type SaveBackupInput,
   type SaveTierInput,
 } from "@/lib/backup/backup-service";
@@ -32,14 +33,20 @@ export async function testBackupAction(): Promise<{ ok: boolean; message: string
   return res;
 }
 
-/** Runs EVERY enabled tier once — one click proves each folder and each
- *  contents choice end to end. */
+/** "Backup now" → the MANUAL level, so an ad-hoc backup lands in its own folder
+ *  instead of consuming a scheduled level's retention slot. */
 export async function runBackupNowAction(): Promise<{ ok: boolean; error?: string; fileName?: string }> {
   const access = await requireAdmin();
-  const results = await runAllTiersNow(access.user.id);
+  const r = await runTierNow(access.user.id, MANUAL_TIER_KEY);
   revalidatePath("/settings/backup");
-  if (!results.length) return { ok: false, error: "No tier is enabled." };
-  const failed = results.filter((r) => !r.ok);
-  if (failed.length) return { ok: false, error: failed.map((f) => `${f.tier}: ${f.error}`).join(" · ") };
-  return { ok: true, fileName: results.map((r) => `${r.tier} → ${r.fileName}`).join(" · ") };
+  return { ok: r.ok, error: r.error, fileName: r.fileName };
+}
+
+/** Run one specific level on demand — lets a single folder/contents choice be
+ *  proven without waiting for its schedule. */
+export async function runTierNowAction(key: string): Promise<{ ok: boolean; error?: string; fileName?: string }> {
+  const access = await requireAdmin();
+  const r = await runTierNow(access.user.id, key);
+  revalidatePath("/settings/backup");
+  return { ok: r.ok, error: r.error, fileName: r.fileName };
 }

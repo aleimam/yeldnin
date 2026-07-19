@@ -46,7 +46,14 @@ const DEFAULT_TIERS = [
   { key: "HOURLY", frequency: "HOURLY", contents: "DB", suffix: "/hourly", keepLast: 24, sortOrder: 1 },
   { key: "DAILY", frequency: "DAILY", contents: "FULL", suffix: "/daily", keepLast: 7, sortOrder: 2 },
   { key: "WEEKLY", frequency: "WEEKLY", contents: "FULL", suffix: "/weekly", keepLast: 8, sortOrder: 3 },
+  // Operator-triggered only: frequency OFF is never DUE, so the scheduler skips
+  // it and "Backup now" is the only thing that writes here. Keeping manual runs
+  // out of the scheduled folders stops them consuming a scheduled retention slot.
+  { key: "MANUAL", frequency: "OFF", contents: "FULL", suffix: "/manual", keepLast: 10, sortOrder: 4 },
 ];
+
+/** The tier that operator-triggered ("Backup now") runs write to. */
+export const MANUAL_TIER_KEY = "MANUAL";
 
 /** All tiers in display order, seeding the defaults on first access. */
 export async function listTiers(): Promise<TierRow[]> {
@@ -111,18 +118,20 @@ export async function saveTiers(inputs: SaveTierInput[], userId: number): Promis
   await writeAudit(userId, "settings", "backup.tiers.save", "backupTier", KEY);
 }
 
-/** Manual "Backup now": run every ENABLED tier once, so the operator proves the
- *  whole setup (each folder, each contents choice) in a single click. */
-export async function runAllTiersNow(
+/**
+ * Run ONE tier immediately, whatever its schedule says. Used both by "Backup
+ * now" (which targets the MANUAL tier) and by each level's own "Run now", so a
+ * single level can be exercised deliberately without waiting for its slot.
+ * `enabled` gates SCHEDULING only — an explicit request always runs.
+ */
+export async function runTierNow(
   userId: number | null,
-): Promise<Array<{ tier: string; ok: boolean; fileName?: string; error?: string }>> {
-  const out: Array<{ tier: string; ok: boolean; fileName?: string; error?: string }> = [];
-  for (const tier of await listTiers()) {
-    if (!tier.enabled) continue;
-    const r = await runBackup("MANUAL", userId, tier);
-    out.push({ tier: tier.key, ok: r.ok, fileName: r.fileName, error: r.error });
-  }
-  return out;
+  key: string,
+): Promise<{ ok: boolean; tier: string; fileName?: string; error?: string }> {
+  const tier = (await listTiers()).find((t) => t.key === key);
+  if (!tier) return { ok: false, tier: key, error: `Unknown backup level "${key}".` };
+  const r = await runBackup("MANUAL", userId, tier);
+  return { ok: r.ok, tier: tier.key, fileName: r.fileName, error: r.error };
 }
 
 export interface BackupConfigView {

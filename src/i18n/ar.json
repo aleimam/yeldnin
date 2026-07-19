@@ -1,7 +1,6 @@
 {
   "app.name": "يلدن",
   "app.tagline": "الشبكة الداخلية ليلدن",
-
   "common.search": "ابحث في النظام ...",
   "combo.noMatches": "لا توجد نتائج",
   "combo.more": "+{n} أخرى — تابع الكتابة للتضييق",
@@ -74,7 +73,6 @@
   "common.no": "لا",
   "common.notifications": "الإشعارات",
   "common.settings": "الإعدادات",
-
   "account.title": "الحساب",
   "account.name": "الاسم",
   "account.email": "البريد الإلكتروني",
@@ -90,7 +88,6 @@
   "notify.unsupported": "هذا المتصفح لا يدعم إشعارات الدفع.",
   "notify.notConfigured": "لم يتم إعداد إشعارات الدفع على الخادم بعد.",
   "notify.error": "حدث خطأ ما. حاول مرة أخرى.",
-
   "search.title": "بحث",
   "search.searching": "جارٍ البحث…",
   "search.noResults": "لا توجد نتائج",
@@ -98,7 +95,6 @@
   "search.items": "العناصر",
   "search.resultsFor": "نتائج البحث عن",
   "search.prompt": "اكتب للبحث في كل أنحاء النظام.",
-
   "xoonx.expenses": "المصروفات",
   "xexp.record": "تسجيل مصروف",
   "xexp.petty": "النثرية",
@@ -111,7 +107,6 @@
   "xexp.empty": "لا مصروفات مسجلة هذا الشهر.",
   "xexp.closedMonth": "هذا الشهر مُغلق — المصروفات مقفلة.",
   "xexp.deleteConfirm": "حذف هذا المصروف؟",
-
   "common.add": "إضافة",
   "xoonx.admin": "الإدارة",
   "xadm.fx": "أسعار الصرف",
@@ -127,7 +122,6 @@
   "xadm.addPartner": "إضافة شريك أرباح…",
   "xadm.removePartner": "إزالة الشريك",
   "xadm.total": "الإجمالي",
-
   "xoonx.reports": "التقارير",
   "xrep.revenue": "الإيرادات",
   "xrep.costs": "التكاليف",
@@ -252,7 +246,6 @@
   "xreq.delivered": "مُسلَّم",
   "xreq.undeliver": "تراجع",
   "xreq.buyCurrency": "عملة الشراء",
-
   "rdash.requested": "مطلوب",
   "rdash.onOrder": "قيد الطلب",
   "rdash.inStock": "في المخزون",
@@ -261,7 +254,6 @@
   "rdash.awaitApproval": "بانتظار اعتمادك: {count}",
   "rdash.review": "مراجعة",
   "rdash.thisMonth": "هذا الشهر",
-
   "products.import": "استيراد",
   "pimport.title": "استيراد المنتجات",
   "pimport.hint": "ارفع ملف .xlsx برأس أعمدة. الأعمدة المتعرَّف عليها: الاسم (مطلوب)، النوع، SKU، الوزن (جم)، المقاس، الدرجة، الرابط، ملاحظات. تُتجاهَل الصفوف بلا اسم.",
@@ -269,7 +261,6 @@
   "pimport.import": "استيراد",
   "pimport.created": "تم الإنشاء",
   "pimport.skipped": "تم التخطي",
-
   "pref.appearance": "المظهر",
   "pref.language": "اللغة",
   "pref.theme": "السمة",
@@ -277,7 +268,6 @@
   "mode.light": "فاتح",
   "mode.dark": "داكن",
   "mode.system": "النظام",
-
   "settings.appearance.title": "المظهر",
   "settings.appearance.appName": "اسم التطبيق",
   "settings.appearance.version": "رقم الإصدار",
@@ -342,6 +332,9 @@
   "backup.tier.HOURLY": "متكرّر",
   "backup.tier.DAILY": "يومي",
   "backup.tier.WEEKLY": "أسبوعي",
+  "backup.tier.MANUAL": "يدوي",
+  "backup.runTier": "شغّل الآن",
+  "backup.manualHint": "يعمل فقط عند الضغط على «نسخ احتياطي الآن» — لا يُجدول أبداً، فتحتفظ النسخ اليدوية بمجلدها وسياسة احتفاظها الخاصة.",
   "backup.everyN": "كل",
   "backup.everyNHint": "1 = كل مرة، 2 = مرة بعد مرة، وهكذا. المواعيد مثبّتة على الساعة، فلا يؤدي تأخّر تشغيل إلى إزاحة البقية.",
   "backup.tierContents": "المحتويات",
@@ -408,7 +401,6 @@
   "integ.regen": "توليد / إعادة توليد المفتاح",
   "integ.regenConfirm": "توليد مفتاح وارد جديد؟ يتوقف المفتاح السابق عن العمل فورًا.",
   "integ.endpointSoon": "ستُضاف نقطة استقبال اتصالات VEEEY في خطوة لاحقة.",
-
   "pricer.supplements": "المكملات",
   "pricer.devices": "الأجهزة",
   "pricer.history": "السجل",
@@ -456,7 +448,6 @@
   "pricer.var.multipliers": "المعاملات",
   "pricer.var.constants": "الثوابت",
   "pricer.var.saved": "تم حفظ المتغيرات.",
-
   "suppliers.title": "المورّدون",
   "suppliers.new": "مورّد جديد",
   "suppliers.name": "الاسم",
@@ -464,7 +455,6 @@
   "suppliers.countries": "الدول المتاحة",
   "suppliers.active": "نشط",
   "suppliers.saved": "تم الحفظ.",
-
   "exp.dashboard": "لوحة المعلومات",
   "exp.transactions": "المعاملات",
   "exp.reports": "التقارير",
@@ -555,10 +545,8 @@
   "exp.byCategoryChart": "المصروفات حسب الفئة",
   "exp.other": "أخرى",
   "exp.noData": "لا توجد بيانات بعد.",
-
   "dashboard.welcome": "مرحبًا بك في يلدن",
   "dashboard.choose": "اختر وحدة للعمل بها.",
-
   "module.pricing.name": "التسعير",
   "module.pricing.desc": "سعّر بذكاء، بِع بشكل أفضل",
   "module.expenses.name": "المصروفات",
@@ -717,7 +705,6 @@
   "cs.breakdown": "التفصيل",
   "cs.callsBlock": "إجمالي درجة المكالمات",
   "cs.perfBlock": "إجمالي درجة الأداء",
-  "cs.callType": "نوع المكالمة",
   "cs.weightSum": "إجمالي الأوزان",
   "cs.weightsSum100": "يجب أن يكون مجموع أوزان أنواع المكالمات 100%.",
   "cs.weightsEqualHint": "اتركها كلها 0 لوزن الأنواع بالتساوي",
@@ -907,7 +894,6 @@
   "docs.import.hint": "ارفع ملف Word ‏(.docx) لملء المحرّر بنصّه. يمكنك التعديل قبل الحفظ. (تُحذف الصور والتنسيقات غير المعتادة.)",
   "docs.letterhead.nav": "الترويسة",
   "docs.letterhead.title": "إعدادات الترويسة وملفات PDF",
-  "docs.letterhead.nav": "الترويسة",
   "docs.letterhead.intro": "يمكن تنزيل الوثائق المكتوبة عبر الإنترنت كملف PDF، موضوعةً على هذه الترويسة ضمن الهوامش أدناه. (أمّا الوثائق العربية فيُفضَّل رفعها كملفات PDF.)",
   "docs.letterhead.fileHeading": "ملف الترويسة (PDF)",
   "docs.letterhead.fileHint": "ملف PDF من صفحة واحدة يُستخدم كخلفية لكل صفحة مُولَّدة (ترويسة/تذييل العلامة التجارية). الحد الأقصى 32 ميغابايت.",
@@ -1199,7 +1185,6 @@
   "weekday.4": "خميس",
   "weekday.5": "جمعة",
   "weekday.6": "سبت",
-
   "audit.all": "الكل",
   "audit.date": "التاريخ",
   "audit.user": "المستخدم",
@@ -1209,7 +1194,6 @@
   "audit.empty": "لا توجد سجلات.",
   "audit.searchPlaceholder": "ابحث بالإجراء أو العنصر أو المعرّف…",
   "audit.allModules": "كل الوحدات",
-
   "users.users": "المستخدمون",
   "users.teams": "الأقسام",
   "users.name": "الاسم المعروض",
@@ -1261,7 +1245,6 @@
   "teams.delete": "حذف القسم",
   "teams.choosePerson": "اختر شخصًا…",
   "teams.newPlaceholder": "اسم القسم الجديد",
-
   "pages.title": "الصفحات",
   "perm.title": "الصلاحيات",
   "perm.intro": "حدد أدنى مستوى مطلوب لكل إجراء في كل وحدة. المدراء لديهم دائمًا صلاحية كاملة. المستويات الأعلى تشمل كل ما دونها.",
@@ -1410,7 +1393,7 @@
   "requests.type": "النوع",
   "requests.scope": "النطاق",
   "requests.customer": "العميل",
-  "requests.products": "المنتجات",
+  "requests.products": "المنتجات المطلوبة",
   "requests.product": "المنتج",
   "item.purchase": "الشراء",
   "item.dispatch": "الإرسالية",
@@ -1458,7 +1441,6 @@
   "req.notif.deliveredBody": "تم تحديد طلبك {ref} كمُسلَّم.",
   "requests.items": "العناصر",
   "requests.pool": "مجمع الطلبات",
-  "requests.products": "المنتجات المطلوبة",
   "requests.createdBy": "أنشأها",
   "rpool.requested": "المطلوب",
   "rpool.ongoing": "جارٍ",
@@ -1562,7 +1544,6 @@
   "tripstatus.PICKED_UP": "تم الاستلام",
   "tripstatus.PHOTOS_SENT": "تم إرسال الصور",
   "tripstatus.ON_WEBSITE": "على الموقع",
-  "tripstatus.CANCELLED": "ملغاة",
   "trip.pickUp": "استلام",
   "trip.convert": "تحويل إلى شحنات",
   "shipments.title": "الشحنات",
@@ -1790,12 +1771,10 @@
   "pages.delete": "حذف الصفحة",
   "pages.saved": "تم حفظ الصفحة.",
   "pages.empty": "لا توجد صفحات بعد.",
-
   "footer.about": "عن يلدن هيلث",
   "footer.contact": "اتصل بنا",
   "footer.privacy": "سياسة الخصوصية",
   "footer.terms": "شروط الخدمة",
-
   "login.title": "تسجيل الدخول إلى يلدن",
   "login.email": "البريد الإلكتروني",
   "login.identifier": "البريد الإلكتروني أو اسم المستخدم",

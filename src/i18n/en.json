@@ -1,7 +1,6 @@
 {
   "app.name": "YeldnIN",
   "app.tagline": "Yeldn Internal Network",
-
   "common.search": "Search system ...",
   "combo.noMatches": "No matches",
   "combo.more": "+{n} more — keep typing to narrow",
@@ -74,7 +73,6 @@
   "common.no": "No",
   "common.notifications": "Notifications",
   "common.settings": "Settings",
-
   "account.title": "Account",
   "account.name": "Name",
   "account.email": "Email",
@@ -90,7 +88,6 @@
   "notify.unsupported": "This browser doesn't support push notifications.",
   "notify.notConfigured": "Push notifications aren't configured on the server yet.",
   "notify.error": "Something went wrong. Please try again.",
-
   "search.title": "Search",
   "search.searching": "Searching…",
   "search.noResults": "No results",
@@ -98,7 +95,6 @@
   "search.items": "Items",
   "search.resultsFor": "Results for",
   "search.prompt": "Type to search across the app.",
-
   "xoonx.expenses": "Expenses",
   "xexp.record": "Record expense",
   "xexp.petty": "Petty cash",
@@ -111,7 +107,6 @@
   "xexp.empty": "No expenses recorded this month.",
   "xexp.closedMonth": "This month is closed — expenses are locked.",
   "xexp.deleteConfirm": "Delete this expense?",
-
   "common.add": "Add",
   "xoonx.admin": "Admin",
   "xadm.fx": "FX rates",
@@ -127,7 +122,6 @@
   "xadm.addPartner": "Add a profit partner…",
   "xadm.removePartner": "Remove partner",
   "xadm.total": "Total",
-
   "xoonx.reports": "Reports",
   "xrep.revenue": "Revenue",
   "xrep.costs": "Costs",
@@ -252,7 +246,6 @@
   "xreq.delivered": "Delivered",
   "xreq.undeliver": "Undo",
   "xreq.buyCurrency": "Purchase currency",
-
   "rdash.requested": "Requested",
   "rdash.onOrder": "On order",
   "rdash.inStock": "In stock",
@@ -261,7 +254,6 @@
   "rdash.awaitApproval": "Waiting for your approval: {count}",
   "rdash.review": "Review",
   "rdash.thisMonth": "This month",
-
   "products.import": "Import",
   "pimport.title": "Import products",
   "pimport.hint": "Upload an .xlsx with a header row. Recognized columns: Name (required), Type, SKU, Weight (g), Size, Grade, URL, Notes. Rows without a name are skipped.",
@@ -269,7 +261,6 @@
   "pimport.import": "Import",
   "pimport.created": "Created",
   "pimport.skipped": "Skipped",
-
   "pref.appearance": "Appearance",
   "pref.language": "Language",
   "pref.theme": "Theme",
@@ -277,7 +268,6 @@
   "mode.light": "Light",
   "mode.dark": "Dark",
   "mode.system": "System",
-
   "settings.appearance.title": "Appearance",
   "settings.appearance.appName": "Application name",
   "settings.appearance.version": "Version label",
@@ -342,6 +332,9 @@
   "backup.tier.HOURLY": "Frequent",
   "backup.tier.DAILY": "Daily",
   "backup.tier.WEEKLY": "Weekly",
+  "backup.tier.MANUAL": "Manual",
+  "backup.runTier": "Run now",
+  "backup.manualHint": "Runs only when you press Backup now — it is never scheduled, so ad-hoc backups keep their own folder and retention.",
   "backup.everyN": "Every",
   "backup.everyNHint": "1 = every time, 2 = every other, and so on. Slots are fixed to the clock, so a late run never shifts the rest.",
   "backup.tierContents": "Contents",
@@ -408,7 +401,6 @@
   "integ.regen": "Generate / regenerate key",
   "integ.regenConfirm": "Generate a new inbound key? The previous key stops working immediately.",
   "integ.endpointSoon": "The receiving endpoint for VEEEY's calls will be added in a later step.",
-
   "pricer.supplements": "Supplements",
   "pricer.devices": "Devices",
   "pricer.history": "History",
@@ -456,7 +448,6 @@
   "pricer.var.multipliers": "Multipliers",
   "pricer.var.constants": "Constants",
   "pricer.var.saved": "Variables saved.",
-
   "suppliers.title": "Suppliers",
   "suppliers.new": "New supplier",
   "suppliers.name": "Name",
@@ -464,7 +455,6 @@
   "suppliers.countries": "Available countries",
   "suppliers.active": "Active",
   "suppliers.saved": "Saved.",
-
   "exp.dashboard": "Dashboard",
   "exp.transactions": "Transactions",
   "exp.reports": "Reports",
@@ -555,10 +545,8 @@
   "exp.byCategoryChart": "Expenses by category",
   "exp.other": "Other",
   "exp.noData": "No data yet.",
-
   "dashboard.welcome": "Welcome in Yeldn",
   "dashboard.choose": "Choose a module to work in.",
-
   "module.pricing.name": "Pricing",
   "module.pricing.desc": "Price Smarter, Sell Better",
   "module.expenses.name": "Expenses",
@@ -717,7 +705,6 @@
   "cs.breakdown": "Breakdown",
   "cs.callsBlock": "Calls Overall Score",
   "cs.perfBlock": "Performance Overall Score",
-  "cs.callType": "Call type",
   "cs.weightSum": "Weights total",
   "cs.weightsSum100": "Call-type weights must total 100%.",
   "cs.weightsEqualHint": "leave all at 0 to weight types equally",
@@ -907,7 +894,6 @@
   "docs.import.hint": "Upload a Word .docx file to fill the editor with its text. You can edit before saving. (Images and unusual formatting are dropped.)",
   "docs.letterhead.nav": "Letterhead",
   "docs.letterhead.title": "Letterhead & PDF settings",
-  "docs.letterhead.nav": "Letterhead",
   "docs.letterhead.intro": "Documents written online can be downloaded as a PDF, laid out on this letterhead within the margins below. (Arabic documents should be uploaded as PDFs instead.)",
   "docs.letterhead.fileHeading": "Letterhead PDF",
   "docs.letterhead.fileHint": "A single-page PDF used as the background of every generated page (header/footer branding). Max 32 MB.",
@@ -1199,7 +1185,6 @@
   "weekday.4": "Thu",
   "weekday.5": "Fri",
   "weekday.6": "Sat",
-
   "audit.all": "All",
   "audit.date": "Date",
   "audit.user": "User",
@@ -1209,7 +1194,6 @@
   "audit.empty": "No audit entries.",
   "audit.searchPlaceholder": "Search action, item, ID…",
   "audit.allModules": "All modules",
-
   "users.users": "Users",
   "users.teams": "Departments",
   "users.name": "Display name",
@@ -1261,7 +1245,6 @@
   "teams.delete": "Delete department",
   "teams.choosePerson": "Choose a person…",
   "teams.newPlaceholder": "New department name",
-
   "pages.title": "Pages",
   "perm.title": "Permissions",
   "perm.intro": "Set the minimum level required for each action in a module. Admins always have full access. Higher levels include everything below them.",
@@ -1410,7 +1393,7 @@
   "requests.type": "Type",
   "requests.scope": "Scope",
   "requests.customer": "Customer",
-  "requests.products": "Products",
+  "requests.products": "Requested products",
   "requests.product": "Product",
   "item.purchase": "Purchase",
   "item.dispatch": "Dispatch",
@@ -1458,7 +1441,6 @@
   "req.notif.deliveredBody": "Your order {ref} was marked delivered.",
   "requests.items": "Items",
   "requests.pool": "Request Pool",
-  "requests.products": "Requested products",
   "requests.createdBy": "Created by",
   "rpool.requested": "Requested",
   "rpool.ongoing": "Ongoing",
@@ -1562,7 +1544,6 @@
   "tripstatus.PICKED_UP": "Picked up",
   "tripstatus.PHOTOS_SENT": "Photos sent",
   "tripstatus.ON_WEBSITE": "On website",
-  "tripstatus.CANCELLED": "Cancelled",
   "trip.pickUp": "Pick up",
   "trip.convert": "Convert to shipments",
   "shipments.title": "Shipments",
@@ -1790,12 +1771,10 @@
   "pages.delete": "Delete page",
   "pages.saved": "Page saved.",
   "pages.empty": "No pages yet.",
-
   "footer.about": "About Yeldn Health",
   "footer.contact": "Contact Us",
   "footer.privacy": "Privacy Policy",
   "footer.terms": "Terms of Service",
-
   "login.title": "Sign in to YeldnIN",
   "login.email": "Email",
   "login.identifier": "Email or username",

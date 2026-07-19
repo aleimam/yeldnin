@@ -5,7 +5,7 @@ import { useT } from "@/i18n/client";
 import { formatBizDate } from "@/lib/format/dates";
 import type { BackupConfigView, BackupTierView } from "@/lib/backup/backup-service";
 import { BACKUP_PROTOCOLS, TIER_CONTENTS, defaultPortFor, type BackupProtocol } from "@/lib/backup/backup-logic";
-import { saveBackupAction, testBackupAction, runBackupNowAction } from "./actions";
+import { saveBackupAction, testBackupAction, runBackupNowAction, runTierNowAction } from "./actions";
 
 const FREQUENCIES = ["OFF", "HOURLY", "DAILY", "WEEKLY", "MONTHLY"] as const;
 
@@ -102,6 +102,20 @@ export function BackupForm({ initial, initialTiers }: { initial: BackupConfigVie
       setBusy("");
     });
 
+  /** Run one level on demand — saves first so the run uses what is on screen. */
+  const runTier = (key: string) =>
+    start(async () => {
+      setBusy("run");
+      setMsg({ tone: "info", text: t("backup.running") });
+      await saveBackupAction(payload(), tierPayload());
+      const r = await runTierNowAction(key);
+      setMsg(r.ok
+        ? { tone: "ok", text: t("backup.ranOk", { file: r.fileName ?? "" }) }
+        : { tone: "err", text: r.error ?? t("common.error") });
+      router.refresh();
+      setBusy("");
+    });
+
   const runNow = () =>
     start(async () => {
       if (!confirm(t("backup.runConfirm"))) return;
@@ -187,9 +201,14 @@ export function BackupForm({ initial, initialTiers }: { initial: BackupConfigVie
                   <input type="checkbox" checked={x.enabled} onChange={(e) => setTier(x.key, "enabled", e.target.checked)} />
                   <span className="font-medium text-ink">{t(`backup.tier.${x.key}`)}</span>
                 </label>
-                {x.lastRunAt && (
-                  <span className="text-xs text-muted">{t("backup.lastRun", { when: formatBizDate(x.lastRunAt) })}</span>
-                )}
+                <div className="flex items-center gap-3">
+                  {x.lastRunAt && (
+                    <span className="text-xs text-muted">{t("backup.lastRun", { when: formatBizDate(x.lastRunAt) })}</span>
+                  )}
+                  <button type="button" onClick={() => runTier(x.key)} disabled={pending} className="btn-sm btn-secondary">
+                    {t("backup.runTier")}
+                  </button>
+                </div>
               </div>
 
               <div className="mt-3 grid gap-4 sm:grid-cols-4">
