@@ -173,10 +173,12 @@ export async function saveBackupConfig(input: SaveBackupInput, userId: number): 
       weekday: clampWeekday(input.weekday),
       dayOfMonth: clampDayOfMonth(input.dayOfMonth),
       retentionKeep: clampRetention(input.retentionKeep),
-      tiered: input.tiered,
-      keepHourly: clampKeep(input.keepHourly, 24),
-      keepDaily: clampKeep(input.keepDaily, 7),
-      keepWeekly: clampKeep(input.keepWeekly, 8),
+      // Same rule as `protocol`: a client that doesn't send these (a stale tab
+      // predating the tiering UI) must not reset them — fall back to STORED.
+      tiered: typeof input.tiered === "boolean" ? input.tiered : current.tiered,
+      keepHourly: clampKeep(input.keepHourly, current.keepHourly),
+      keepDaily: clampKeep(input.keepDaily, current.keepDaily),
+      keepWeekly: clampKeep(input.keepWeekly, current.keepWeekly),
       notifyOnFailure: input.notifyOnFailure,
       updatedById: userId,
     },
