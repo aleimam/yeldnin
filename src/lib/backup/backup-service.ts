@@ -19,6 +19,7 @@ import {
   clampPort,
   clampRetention,
   isBackupFrequency,
+  isBackupProtocol,
   type BackupFrequency,
 } from "./backup-logic";
 
@@ -111,6 +112,7 @@ export async function backupView(): Promise<{ config: BackupConfigView; runs: Ba
 
 export interface SaveBackupInput {
   enabled: boolean;
+  protocol: string;
   host?: string | null;
   port?: number | null;
   username?: string | null;
@@ -137,6 +139,7 @@ export async function saveBackupConfig(input: SaveBackupInput, userId: number): 
     where: { singleton: KEY },
     data: {
       enabled: input.enabled,
+      protocol: isBackupProtocol(input.protocol) ? input.protocol : "FTPS",
       host: clean(input.host),
       port: clampPort(input.port),
       username: clean(input.username),
@@ -157,21 +160,85 @@ export async function saveBackupConfig(input: SaveBackupInput, userId: number): 
   await writeAudit(userId, "settings", "backup.save", "backupConfig", KEY);
 }
 
-// ── FTPS transport (basic-ftp is pure-JS; loaded lazily so it never enters a
-// non-nodejs bundle) ─────────────────────────────────────────────────────────
+// ── Remote transports (basic-ftp / ssh2-sftp-client are pure-JS and loaded
+// lazily so neither ever enters a non-nodejs bundle) ─────────────────────────
 type Row = Awaited<ReturnType<typeof getRow>>;
 
-async function withFtps<T>(cfg: Row, fn: (client: import("basic-ftp").Client) => Promise<T>): Promise<T> {
-  const password = decryptSecret(cfg.passwordEnc);
-  if (!cfg.host || !cfg.username || !password) throw new Error("Enter host, username and password first.");
+/** The remote operations a backup destination must support. `dir` is always the
+ *  configured absolute remote folder; each transport adapts to its own client. */
+type Transport = {
+  ensureDir(dir: string): Promise<void>;
+  list(dir: string): Promise<string[]>;
+  upload(localPath: string, dir: string, fileName: string): Promise<void>;
+  remove(dir: string, fileName: string): Promise<void>;
+};
+
+const remoteJoin = (dir: string, name: string) => `${(dir || "/").replace(/\/+$/, "")}/${name}`;
+
+/** FTPS. NOTE: basic-ftp is cwd-based, so every op re-enters the directory.
+ *  `ensureDir` also CREATES it when missing (long-standing behaviour). */
+async function withFtps<T>(cfg: Row, password: string, fn: (t: Transport) => Promise<T>): Promise<T> {
   const { Client } = await import("basic-ftp");
   const client = new Client(30_000);
   try {
-    await client.access({ host: cfg.host, port: cfg.port, user: cfg.username, password, secure: cfg.secure });
-    return await fn(client);
+    await client.access({ host: cfg.host!, port: cfg.port, user: cfg.username!, password, secure: cfg.secure });
+    const enter = (dir: string) => client.ensureDir(dir || "/");
+    return await fn({
+      ensureDir: enter,
+      list: async (dir) => {
+        await enter(dir);
+        return (await client.list()).map((f) => f.name);
+      },
+      upload: async (localPath, dir, fileName) => {
+        await enter(dir);
+        await client.uploadFrom(localPath, fileName);
+      },
+      remove: async (dir, fileName) => {
+        await enter(dir);
+        await client.remove(fileName);
+      },
+    });
   } finally {
     client.close();
   }
+}
+
+/** SFTP over SSH — a single connection, so no passive data channel to be blocked
+ *  by an outbound firewall. Paths are absolute; no cwd to maintain. */
+async function withSftp<T>(cfg: Row, password: string, fn: (t: Transport) => Promise<T>): Promise<T> {
+  const { default: SftpClient } = await import("ssh2-sftp-client");
+  const client = new SftpClient();
+  try {
+    await client.connect({
+      host: cfg.host!,
+      port: cfg.port,
+      username: cfg.username!,
+      password,
+      readyTimeout: 30_000,
+    });
+    return await fn({
+      ensureDir: async (dir) => {
+        const d = dir || "/";
+        if (!(await client.exists(d))) await client.mkdir(d, true);
+      },
+      list: async (dir) => (await client.list(dir || "/")).map((f) => f.name),
+      upload: async (localPath, dir, fileName) => {
+        await client.fastPut(localPath, remoteJoin(dir, fileName));
+      },
+      remove: async (dir, fileName) => {
+        await client.delete(remoteJoin(dir, fileName));
+      },
+    });
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
+/** Open the configured destination and run `fn` against it. */
+async function withTransport<T>(cfg: Row, fn: (t: Transport) => Promise<T>): Promise<T> {
+  const password = decryptSecret(cfg.passwordEnc);
+  if (!cfg.host || !cfg.username || !password) throw new Error("Enter host, username and password first.");
+  return cfg.protocol === "SFTP" ? withSftp(cfg, password, fn) : withFtps(cfg, password, fn);
 }
 
 /** Validate the FTPS credentials by connecting and listing the target dir. */
@@ -180,11 +247,12 @@ export async function testBackupConnection(userId: number): Promise<{ ok: boolea
   let ok = false;
   let message = "";
   try {
-    message = await withFtps(cfg, async (client) => {
-      await client.ensureDir(cfg.remotePath || "/");
-      const list = await client.list();
+    message = await withTransport(cfg, async (t) => {
+      const dir = cfg.remotePath || "/";
+      await t.ensureDir(dir);
+      const list = await t.list(dir);
       ok = true;
-      return `Connected — ${list.length} item(s) in ${cfg.remotePath || "/"}.`;
+      return `Connected over ${cfg.protocol} — ${list.length} item(s) in ${dir}.`;
     });
   } catch (e) {
     ok = false;
@@ -250,15 +318,17 @@ async function buildArchive(cfg: Row, tmpDir: string, archivePath: string): Prom
   return contentsList(cfg);
 }
 
-/** Upload the archive over FTPS and prune old archives per the retention policy. */
+/** Upload the archive to the configured destination and prune old archives per
+ *  the retention policy. */
 async function uploadAndPrune(cfg: Row, archivePath: string, fileName: string): Promise<void> {
-  await withFtps(cfg, async (client) => {
-    await client.ensureDir(cfg.remotePath || "/"); // navigates cwd into the dir, creating it
-    await client.uploadFrom(archivePath, fileName);
+  await withTransport(cfg, async (t) => {
+    const dir = cfg.remotePath || "/";
+    await t.ensureDir(dir); // created when missing
+    await t.upload(archivePath, dir, fileName);
     if (cfg.retentionKeep > 0) {
-      const list = await client.list();
-      for (const stale of prunableArchives(list.map((f) => f.name), cfg.retentionKeep)) {
-        await client.remove(stale).catch(() => {});
+      const names = await t.list(dir);
+      for (const stale of prunableArchives(names, cfg.retentionKeep)) {
+        await t.remove(dir, stale).catch(() => {});
       }
     }
   });

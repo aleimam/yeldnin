@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/i18n/client";
 import { formatBizDate } from "@/lib/format/dates";
 import type { BackupConfigView } from "@/lib/backup/backup-service";
+import { BACKUP_PROTOCOLS, defaultPortFor, type BackupProtocol } from "@/lib/backup/backup-logic";
 import { saveBackupAction, testBackupAction, runBackupNowAction } from "./actions";
 
 const FREQUENCIES = ["OFF", "HOURLY", "DAILY", "WEEKLY", "MONTHLY"] as const;
@@ -17,6 +18,7 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
 
   const [f, setF] = useState({
     enabled: initial.enabled,
+    protocol: initial.protocol,
     host: initial.host ?? "",
     port: String(initial.port),
     username: initial.username ?? "",
@@ -34,8 +36,14 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
   });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((s) => ({ ...s, [k]: v }));
 
+  /** Switching protocol re-defaults the port (FTPS 21 / SFTP 22) so the field is
+   *  never left pointing at the previous protocol's port. */
+  const setProtocol = (p: string) =>
+    setF((s) => ({ ...s, protocol: p, port: String(defaultPortFor(p as BackupProtocol)) }));
+
   const payload = () => ({
     enabled: f.enabled,
+    protocol: f.protocol,
     host: f.host,
     port: Number(f.port) || 21,
     username: f.username,
@@ -105,6 +113,13 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
       <div className="card space-y-4 p-5">
         <h2 className="font-semibold text-ink">{t("backup.destination")}</h2>
         <p className="text-xs text-muted">{t("backup.destinationHint")}</p>
+        <div>
+          <label className="label">{t("backup.protocol")}</label>
+          <select className="input sm:max-w-xs" value={f.protocol} onChange={(e) => setProtocol(e.target.value)}>
+            {BACKUP_PROTOCOLS.map((p) => <option key={p} value={p}>{t(`backup.proto.${p}`)}</option>)}
+          </select>
+          <p className="mt-1 text-xs text-muted">{t("backup.protocolHint")}</p>
+        </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
             <label className="label">{t("backup.host")}</label>
@@ -127,10 +142,13 @@ export function BackupForm({ initial }: { initial: BackupConfigView }) {
             <input className="input" value={f.remotePath} onChange={(e) => set("remotePath", e.target.value)} placeholder="/backups" />
           </div>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={f.secure} onChange={(e) => set("secure", e.target.checked)} />
-          <span className="text-ink">{t("backup.secure")}</span>
-        </label>
+        {/* TLS is an FTPS concept — SFTP is always encrypted by SSH. */}
+        {f.protocol === "FTPS" && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={f.secure} onChange={(e) => set("secure", e.target.checked)} />
+            <span className="text-ink">{t("backup.secure")}</span>
+          </label>
+        )}
       </div>
 
       {/* Contents */}

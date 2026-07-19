@@ -3,8 +3,24 @@
 export const BACKUP_FREQUENCIES = ["OFF", "HOURLY", "DAILY", "WEEKLY", "MONTHLY"] as const;
 export type BackupFrequency = (typeof BACKUP_FREQUENCIES)[number];
 
-export const BACKUP_PROTOCOLS = ["FTPS"] as const;
+export const BACKUP_PROTOCOLS = ["FTPS", "SFTP"] as const;
 export type BackupProtocol = (typeof BACKUP_PROTOCOLS)[number];
+
+export function isBackupProtocol(v: unknown): v is BackupProtocol {
+  return typeof v === "string" && (BACKUP_PROTOCOLS as readonly string[]).includes(v);
+}
+
+/**
+ * Conventional port per protocol — FTPS 21, SFTP 22. Only a UI default: some
+ * hosts differ (a Hetzner Storage Box serves SSH/SFTP on **23**), so the field
+ * stays editable.
+ *
+ * Prefer SFTP where possible: it moves data over the SAME connection, whereas
+ * FTPS opens a second "passive" connection on a random high port — which a
+ * restrictive outbound firewall blocks, and which the kernel's FTP conntrack
+ * helper cannot rescue because TLS hides the control channel.
+ */
+export const defaultPortFor = (p: BackupProtocol): number => (p === "SFTP" ? 22 : 21);
 
 /** Archive filename prefix — how we recognise (and prune) our own files remotely. */
 export const ARCHIVE_PREFIX = "yeldnin-backup-";

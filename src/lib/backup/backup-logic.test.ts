@@ -10,6 +10,9 @@ import {
   clampHour,
   clampDayOfMonth,
   clampRetention,
+  isBackupProtocol,
+  defaultPortFor,
+  BACKUP_PROTOCOLS,
   type Schedule,
 } from "./backup-logic";
 
@@ -100,5 +103,24 @@ describe("helpers", () => {
     expect(formatBytes(512)).toBe("512 B");
     expect(formatBytes(2048)).toBe("2.0 KB");
     expect(formatBytes(5 * 1024 * 1024)).toBe("5.0 MB");
+  });
+});
+
+describe("backup protocols", () => {
+  it("offers both FTPS and SFTP", () => {
+    expect([...BACKUP_PROTOCOLS]).toEqual(["FTPS", "SFTP"]);
+  });
+
+  it("recognises only known protocols", () => {
+    expect(isBackupProtocol("FTPS")).toBe(true);
+    expect(isBackupProtocol("SFTP")).toBe(true);
+    expect(isBackupProtocol("sftp")).toBe(false); // case-sensitive: stored value is upper
+    expect(isBackupProtocol("SCP")).toBe(false);
+    expect(isBackupProtocol(null)).toBe(false);
+  });
+
+  it("defaults the port per protocol", () => {
+    expect(defaultPortFor("FTPS")).toBe(21);
+    expect(defaultPortFor("SFTP")).toBe(22);
   });
 });

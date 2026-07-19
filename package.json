@@ -46,6 +46,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "sanitize-html": "^2.17.5",
+    "ssh2-sftp-client": "^12.1.1",
     "tar": "^7.5.20",
     "web-push": "^3.6.7",
     "zod": "^3.24.1"
