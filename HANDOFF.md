@@ -24,9 +24,18 @@
   scope `"EGV"` on the wire — `toWireScope`/`fromWireScope` in
   `src/lib/integration/request-wire.ts` shim it both directions; the shim (and
   the legacy `/catalog` endpoint) retire at contract-v2 cutover. See
-  `INTEGRATION_V2_PRODUCTS_CUSTOMERS.md` + `INTEGRATION_V2_BUILD_PLAN.md`
-  (phases 2–3 pending: products/customers upsert endpoints, read-only
-  enforcement, cutover). A one-time type seed for the new Veeey was exported to
+  `INTEGRATION_V2_PRODUCTS_CUSTOMERS.md` + `INTEGRATION_V2_BUILD_PLAN.md`.
+  **Phase 2 shipped (`5212a4b`):** the v2 inbound endpoints
+  `POST /api/integration/v1/{products,customers}/upsert` are LIVE on prod
+  (SKU-keyed products, veeeyCustomerId-keyed customers; migration
+  `veeey_sync_keys` added `Customer.veeeyCustomerId` + a unique `Product.sku`
+  index). They write ONLY Veeey-owned display fields (heavy-never-downgrades),
+  scope-guard to VEEEY, and VEEEY products/customers are read-only in the UI
+  (edit forms lock Veeey fields; create excludes VEEEY). Integration is already
+  ENABLED on prod (shared HMAC secret), so the endpoints answer signed pushes
+  now and 401 unsigned ones. **Phase 3 (cutover) pending:** the new Veeey
+  builds contract §7, then a full push migrates the 2,556 products to SKU keys
+  and the legacy `/catalog` + the EGV wire shim retire. A one-time type seed for the new Veeey was exported to
   `C:\Claude\eCommerce\VEEEY_TYPE_SEED.csv` (see its README — types are mostly
   defaulted SUPPLEMENT; devices need editorial fixing on the Veeey side).
 - All modules from the blueprint are built and deployed: supply chain
