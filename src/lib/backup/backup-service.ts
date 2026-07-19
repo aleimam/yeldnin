@@ -132,14 +132,17 @@ export interface SaveBackupInput {
 
 /** Save config. Password is encrypted at rest and only replaced when non-empty. */
 export async function saveBackupConfig(input: SaveBackupInput, userId: number): Promise<void> {
-  await getRow();
+  const current = await getRow();
   const pwd = input.password?.trim();
   const frequency: BackupFrequency = isBackupFrequency(input.frequency) ? input.frequency : "DAILY";
   await prisma.backupConfig.update({
     where: { singleton: KEY },
     data: {
       enabled: input.enabled,
-      protocol: isBackupProtocol(input.protocol) ? input.protocol : "FTPS",
+      // An unknown/absent protocol KEEPS the stored one. Defaulting to FTPS here
+      // meant a stale browser tab (whose form predates the protocol selector and
+      // so omits the field) silently downgraded a working SFTP config on save.
+      protocol: isBackupProtocol(input.protocol) ? input.protocol : current.protocol,
       host: clean(input.host),
       port: clampPort(input.port),
       username: clean(input.username),
