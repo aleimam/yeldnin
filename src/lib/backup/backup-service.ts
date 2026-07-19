@@ -20,6 +20,7 @@ import {
   clampRetention,
   isBackupFrequency,
   isBackupProtocol,
+  explainPathError,
   type BackupFrequency,
 } from "./backup-logic";
 
@@ -170,6 +171,9 @@ type Row = Awaited<ReturnType<typeof getRow>>;
 /** The remote operations a backup destination must support. `dir` is always the
  *  configured absolute remote folder; each transport adapts to its own client. */
 type Transport = {
+  /** The directory the account lands in — i.e. what it may actually write to.
+   *  Used to turn a bare "permission denied" into an actionable message. */
+  homeDir: string | null;
   ensureDir(dir: string): Promise<void>;
   list(dir: string): Promise<string[]>;
   upload(localPath: string, dir: string, fileName: string): Promise<void>;
@@ -185,8 +189,10 @@ async function withFtps<T>(cfg: Row, password: string, fn: (t: Transport) => Pro
   const client = new Client(30_000);
   try {
     await client.access({ host: cfg.host!, port: cfg.port, user: cfg.username!, password, secure: cfg.secure });
+    const homeDir = await client.pwd().catch(() => null);
     const enter = (dir: string) => client.ensureDir(dir || "/");
     return await fn({
+      homeDir,
       ensureDir: enter,
       list: async (dir) => {
         await enter(dir);
@@ -219,7 +225,9 @@ async function withSftp<T>(cfg: Row, password: string, fn: (t: Transport) => Pro
       password,
       readyTimeout: 30_000,
     });
+    const homeDir = await client.cwd().catch(() => null);
     return await fn({
+      homeDir,
       ensureDir: async (dir) => {
         const d = dir || "/";
         if (!(await client.exists(d))) await client.mkdir(d, true);
@@ -241,7 +249,15 @@ async function withSftp<T>(cfg: Row, password: string, fn: (t: Transport) => Pro
 async function withTransport<T>(cfg: Row, fn: (t: Transport) => Promise<T>): Promise<T> {
   const password = decryptSecret(cfg.passwordEnc);
   if (!cfg.host || !cfg.username || !password) throw new Error("Enter host, username and password first.");
-  return cfg.protocol === "SFTP" ? withSftp(cfg, password, fn) : withFtps(cfg, password, fn);
+  const open = cfg.protocol === "SFTP" ? withSftp : withFtps;
+  return open(cfg, password, async (t) => {
+    try {
+      return await fn(t);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(explainPathError(msg, t.homeDir));
+    }
+  });
 }
 
 /** Validate the FTPS credentials by connecting and listing the target dir. */

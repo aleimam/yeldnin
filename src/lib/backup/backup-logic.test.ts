@@ -12,6 +12,7 @@ import {
   clampRetention,
   isBackupProtocol,
   defaultPortFor,
+  explainPathError,
   BACKUP_PROTOCOLS,
   type Schedule,
 } from "./backup-logic";
@@ -122,5 +123,28 @@ describe("backup protocols", () => {
   it("defaults the port per protocol", () => {
     expect(defaultPortFor("FTPS")).toBe(21);
     expect(defaultPortFor("SFTP")).toBe(22);
+  });
+});
+
+describe("explainPathError", () => {
+  it("appends the writable home to a permission error", () => {
+    const out = explainPathError("mkdir: _doMkdir: Bad path: /backup permission denied", "/home");
+    expect(out).toContain("can only write inside");
+    expect(out).toContain('"/home"');
+    expect(out).toContain("/home/backup"); // a concrete, valid example to copy
+  });
+
+  it("leaves unrelated errors alone", () => {
+    const msg = "Timeout (control socket)";
+    expect(explainPathError(msg, "/home")).toBe(msg);
+  });
+
+  it("is a no-op when the home is unknown", () => {
+    const msg = "permission denied";
+    expect(explainPathError(msg, null)).toBe(msg);
+  });
+
+  it("does not emit a doubled slash when the home is root", () => {
+    expect(explainPathError("permission denied", "/")).toContain('"/backup"');
   });
 });

@@ -24,6 +24,8 @@ declare module "ssh2-sftp-client" {
   class SftpClient {
     constructor(name?: string);
     connect(options: ConnectOptions): Promise<unknown>;
+    /** The remote working directory the session landed in. */
+    cwd(): Promise<string>;
     /** Resolves to the entry type ("d" | "-" | "l") when it exists, else false. */
     exists(remotePath: string): Promise<false | string>;
     mkdir(remotePath: string, recursive?: boolean): Promise<string>;

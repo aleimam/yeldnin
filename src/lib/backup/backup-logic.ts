@@ -109,6 +109,21 @@ export function prunableArchives(names: string[], keep: number): string[] {
   return ourArchives(names).slice(keep);
 }
 
+/**
+ * Turn a bare remote path error into an actionable one. Servers answer a path
+ * outside the account's home with just "permission denied" / "Bad path", never
+ * saying what IS writable — e.g. a Hetzner Storage Box lands you in `/home` and
+ * refuses `/backup/...` because `/` is not yours. Appending the real home turns
+ * a dead end into an obvious fix. Non-path errors pass through untouched. PURE.
+ */
+export function explainPathError(message: string, homeDir: string | null): string {
+  if (!homeDir) return message;
+  if (!/permission denied|bad path|no such file|denied|not found/i.test(message)) return message;
+  // Strip the trailing slash so a home of "/" yields "/backup", not "//backup".
+  const home = homeDir.replace(/\/+$/, "");
+  return `${message} — this account can only write inside "${homeDir}", so the remote folder must start with it (e.g. "${home}/backup").`;
+}
+
 /** The included parts as a stable csv list, e.g. ["db","uploads"]. */
 export function contentsList(c: { includeDb: boolean; includeUploads: boolean }): string[] {
   const out: string[] = [];
