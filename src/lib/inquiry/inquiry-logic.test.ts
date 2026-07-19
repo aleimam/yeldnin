@@ -72,13 +72,13 @@ describe("inquiry-logic", () => {
 });
 
 describe("canViewUnit (inquiry unit authorization)", () => {
-  it("REQUEST is scope-gated: Sales→EGV only, XOONX→XOONX only", () => {
+  it("REQUEST is scope-gated: Sales→VEEEY only, XOONX→XOONX only", () => {
     const sales = acc({ order_requests: "OPERATE" });
     const xoonx = acc({ xoonx: "OPERATE" });
-    expect(canViewUnit(sales, "REQUEST", "EGV")).toBe(true);
+    expect(canViewUnit(sales, "REQUEST", "VEEEY")).toBe(true);
     expect(canViewUnit(sales, "REQUEST", "XOONX")).toBe(false); // the leak this fix closes
     expect(canViewUnit(xoonx, "REQUEST", "XOONX")).toBe(true);
-    expect(canViewUnit(xoonx, "REQUEST", "EGV")).toBe(false);
+    expect(canViewUnit(xoonx, "REQUEST", "VEEEY")).toBe(false);
   });
   it("REQUEST with a missing record (null scope) is denied", () => {
     expect(canViewUnit(acc({ order_requests: "OPERATE" }), "REQUEST", null)).toBe(false);
@@ -103,9 +103,9 @@ describe("canViewUnit (inquiry unit authorization)", () => {
   });
   it("PURCHASE needs purchasing VIEW + a matching product scope", () => {
     const purch = acc({ purchasing: "VIEW" });
-    expect(canViewUnit(purch, "PURCHASE", "EGV")).toBe(true);
+    expect(canViewUnit(purch, "PURCHASE", "VEEEY")).toBe(true);
     expect(canViewUnit(purch, "PURCHASE", "XOONX")).toBe(true); // purchasing is cross-scope
-    expect(canViewUnit(acc({ order_requests: "MANAGE" }), "PURCHASE", "EGV")).toBe(false);
+    expect(canViewUnit(acc({ order_requests: "MANAGE" }), "PURCHASE", "VEEEY")).toBe(false);
   });
   it("unknown kinds are denied; admins pass everything", () => {
     expect(canViewUnit(acc({ logistics: "MANAGE" }), "WIDGET", null)).toBe(false);

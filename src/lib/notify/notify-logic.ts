@@ -110,10 +110,10 @@ export function splitCsv(csv: string | null | undefined): string[] {
 /**
  * Modules whose operators belong to a single business line. A scoped record must
  * never notify the *other* line's operators (the golden rule): Sales
- * (`order_requests`) only hears about EGV, XOONX only about XOONX. Every other
+ * (`order_requests`) only hears about VEEEY, XOONX only about XOONX. Every other
  * module (purchasing, logistics, operations, issues, …) is cross-scope.
  */
-export const SCOPE_BOUND_MODULE: Record<string, string> = { order_requests: "EGV", xoonx: "XOONX" };
+export const SCOPE_BOUND_MODULE: Record<string, string> = { order_requests: "VEEEY", xoonx: "XOONX" };
 
 /**
  * Drop scope-bound modules that don't match the record's scope, so resolving a

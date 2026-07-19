@@ -41,7 +41,7 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
       uid,
       type: input.type,
       scope: input.scope,
-      // EGV waits for approval before items spawn; XOONX is created already-approved.
+      // VEEEY waits for approval before items spawn; XOONX is created already-approved.
       status: gated ? "PENDING" : "APPROVED",
       approvedById: gated ? null : userId,
       approvedAt: gated ? null : new Date(),
@@ -62,7 +62,7 @@ export async function createRequest(input: CreateRequestInput, photoAssetIds: st
       photos: photoAssetIds.length ? { create: photoAssetIds.map((assetId) => ({ assetId })) } : undefined,
     },
   });
-  // Items spawn immediately only when there's no gate (XOONX). EGV items spawn on
+  // Items spawn immediately only when there's no gate (XOONX). VEEEY items spawn on
   // approval (see approveRequest); flag the approvers that one is waiting.
   if (!gated) {
     await spawnRequestItems(request.id, userId);
@@ -128,16 +128,16 @@ export interface RequestActorRef {
 }
 const ACTOR_REF_SELECT = { id: true, uid: true, scope: true, status: true, createdById: true } as const;
 
-/** Tell the EGV approvers (order_requests MANAGE + admins) a request awaits review. */
+/** Tell the VEEEY approvers (order_requests MANAGE + admins) a request awaits review. */
 async function notifyRequestPending(req: RequestActorRef, actorId: number) {
-  if (req.scope !== "EGV") return;
+  if (req.scope !== "VEEEY") return;
   const approvers = await moduleOperatorIds(["order_requests"], "MANAGE");
   await sendLocalizedCustomNotification(approvers, "req.notif.pendingTitle", "req.notif.pendingBody", { ref: req.uid ?? `#${req.id}` }, `/requests/${req.id}`, "info", actorId).catch(() => {});
 }
 
 /** Tell the XOONX managers a new (or re-edited) XOONX order needs sourcing —
  *  XOONX orders are born approved and spawn purchasable items immediately, so
- *  without this nobody is told to go buy them. Mirrors the EGV pending notify. */
+ *  without this nobody is told to go buy them. Mirrors the VEEEY pending notify. */
 async function notifyXoonxRequestNeedsSourcing(req: RequestActorRef, actorId: number) {
   if (req.scope !== "XOONX") return;
   const managers = await moduleOperatorIds(["xoonx"], "MANAGE");
@@ -188,7 +188,7 @@ export async function rejectRequest(id: number, note: string | null, userId: num
 
 /**
  * Edit a request's lines/details. Blocked once any spawned item has progressed
- * past REQUESTED. For EGV this resets the request to PENDING (re-approval) and
+ * past REQUESTED. For VEEEY this resets the request to PENDING (re-approval) and
  * un-spawns its (still-REQUESTED) items; XOONX re-spawns immediately. Returns
  * whether the request now needs (re-)approval.
  */
@@ -236,7 +236,7 @@ export async function updateRequest(
         notes: clean(input.notes),
         deposit: input.deposit ?? null,
         updatedById: userId,
-        // EGV: any edit sends the request back to the approval queue.
+        // VEEEY: any edit sends the request back to the approval queue.
         status: gated ? "PENDING" : "APPROVED",
         approvedById: gated ? null : userId,
         approvedAt: gated ? null : new Date(),

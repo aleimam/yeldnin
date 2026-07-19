@@ -5,8 +5,8 @@ import type { AccessLike, Scope } from "@/lib/products/products-logic";
 export const CONTACT_CHANNELS = ["WHATSAPP", "PHONE", "DIRECT", "FACEBOOK", "INSTAGRAM"] as const;
 export type ContactChannel = (typeof CONTACT_CHANNELS)[number];
 
-// Customers live in EGV or XOONX (no PERSONAL). Same hard boundary as requests.
-export const CUSTOMER_SCOPES: Scope[] = ["EGV", "XOONX"];
+// Customers live in VEEEY or XOONX (no PERSONAL). Same hard boundary as requests.
+export const CUSTOMER_SCOPES: Scope[] = ["VEEEY", "XOONX"];
 
 export function isContactChannel(v: unknown): v is ContactChannel {
   return typeof v === "string" && (CONTACT_CHANNELS as readonly string[]).includes(v);
@@ -18,12 +18,12 @@ export function validateCustomer(input: { name?: string }): Record<string, strin
   return e;
 }
 
-/** Scopes a user may view/manage customers in (EGV via Sales, XOONX via xoonx). */
+/** Scopes a user may view/manage customers in (VEEEY via Sales, XOONX via xoonx). */
 export function customerScopes(a: AccessLike, level: Level): Scope[] {
   if (a.isAdmin) return [...CUSTOMER_SCOPES];
   const ok = (m: string) => (level === "OPERATE" ? a.can(m, "operate") : a.canModule(m, level));
   const s = new Set<Scope>();
-  if (ok("order_requests")) s.add("EGV");
+  if (ok("order_requests")) s.add("VEEEY");
   if (ok("xoonx")) s.add("XOONX");
   return CUSTOMER_SCOPES.filter((x) => s.has(x));
 }

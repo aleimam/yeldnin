@@ -77,12 +77,12 @@ describe("isModuleOperator (notification audience)", () => {
 
 describe("modulesForScope (golden-rule notification filter)", () => {
   it("drops the other line's scope-bound module for a scoped record", () => {
-    // An EGV record must not reach XOONX operators, and vice-versa.
-    expect(modulesForScope(["order_requests", "xoonx"], "EGV")).toEqual(["order_requests"]);
+    // An VEEEY record must not reach XOONX operators, and vice-versa.
+    expect(modulesForScope(["order_requests", "xoonx"], "VEEEY")).toEqual(["order_requests"]);
     expect(modulesForScope(["order_requests", "xoonx"], "XOONX")).toEqual(["xoonx"]);
   });
   it("keeps cross-scope modules for either scope", () => {
-    expect(modulesForScope(["purchasing", "logistics", "operations"], "EGV")).toEqual(["purchasing", "logistics", "operations"]);
+    expect(modulesForScope(["purchasing", "logistics", "operations"], "VEEEY")).toEqual(["purchasing", "logistics", "operations"]);
     expect(modulesForScope(["xoonx", "purchasing"], "XOONX")).toEqual(["xoonx", "purchasing"]);
   });
   it("PERSONAL scope drops both business-line modules (admin-only records)", () => {

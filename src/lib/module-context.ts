@@ -11,11 +11,11 @@ import type { Scope } from "@/lib/products/products-logic";
 export function moduleContextScopes(moduleKey: string): Scope[] | null {
   switch (moduleKey) {
     case "order_requests":
-      return ["EGV"];
+      return ["VEEEY"];
     case "xoonx":
       return ["XOONX"];
     case "logistics":
-      return ["EGV", "XOONX"]; // logistics fulfils both operational scopes
+      return ["VEEEY", "XOONX"]; // logistics fulfils both operational scopes
     default:
       return null;
   }

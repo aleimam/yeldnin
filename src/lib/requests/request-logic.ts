@@ -10,7 +10,7 @@ export function isRequestType(v: unknown): v is RequestType {
 }
 
 // ── Approval gate (#13/#14) ─────────────────────────────────────────────────
-// EGV requests must be approved by a MANAGE-level approver before their items
+// VEEEY requests must be approved by a MANAGE-level approver before their items
 // are spawned into the purchasing pool. XOONX has no gate.
 export const REQUEST_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
@@ -18,9 +18,9 @@ export function isRequestStatus(v: unknown): v is RequestStatus {
   return typeof v === "string" && (REQUEST_STATUSES as readonly string[]).includes(v);
 }
 
-/** EGV goes through the approval gate; XOONX is created already-approved. */
+/** VEEEY goes through the approval gate; XOONX is created already-approved. */
 export function usesApprovalGate(scope: string): boolean {
-  return scope === "EGV";
+  return scope === "VEEEY";
 }
 
 /** A request's items exist only once it's APPROVED. */
@@ -47,18 +47,18 @@ export function allowsPhotos(type: string): boolean {
 
 /**
  * Scopes a user may create/view requests in. Requests are placed by Sales
- * (EGV) and XOONX (XOONX); admins all. (Purchasing does NOT place requests.)
+ * (VEEEY) and XOONX (XOONX); admins all. (Purchasing does NOT place requests.)
  */
 export function requestScopes(a: AccessLike, level: Level): Scope[] {
   if (a.isAdmin) return [...SCOPES];
   const ok = (m: string) => (level === "OPERATE" ? a.can(m, "operate") : a.canModule(m, level));
   const s = new Set<Scope>();
-  if (ok("order_requests")) s.add("EGV");
+  if (ok("order_requests")) s.add("VEEEY");
   if (ok("xoonx")) s.add("XOONX");
   // Logistics & Purchasing can VIEW requests (read-only) across the operational
   // scopes — they fulfil/buy for them. No OPERATE (creating requests stays Sales).
   if (level !== "OPERATE" && (a.canModule("logistics", "VIEW") || a.canModule("purchasing", "VIEW"))) {
-    s.add("EGV");
+    s.add("VEEEY");
     s.add("XOONX");
   }
   return SCOPES.filter((x) => s.has(x));

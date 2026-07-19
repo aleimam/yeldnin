@@ -182,7 +182,7 @@ New in `816cdd2`. Lets an admin push off-site backups to their own **FTPS** serv
 
 ## The golden rule — how it's actually enforced
 
-“Sales sees only EGV, XOONX only XOONX, neither sees the other's data nor any
+“Sales sees only VEEEY (formerly "EGV"), XOONX only XOONX, neither sees the other's data nor any
 Trip/Traveler data.” A July 2026 security review (3 parallel code audits)
 found and fixed 18 issues across 10 releases (`53dccb9` → `f36d1a0`). The map
 of the enforcement, for anyone touching these areas:
@@ -195,7 +195,7 @@ of the enforcement, for anyone touching these areas:
   admin misconfigures a rule's modules).
 - **Price visibility:** `canSeeSellingPrice` (Sales/XOONX/admin) vs
   `canSeePurchasePrice` (admin/purchasing/logistics/**xoonx** — XOONX buys its
-  own items so the buy price is its own cost basis; **only EGV Sales must
+  own items so the buy price is its own cost basis; **only VEEEY Sales must
   never see buy cost**). Both enforced in UI, page props, and server actions.
 - **XOONX capabilities** (all default MANAGE, admin-tunable in Settings →
   Permissions): `xoonx.deliver` (mark delivered = books revenue),
@@ -208,7 +208,7 @@ of the enforcement, for anyone touching these areas:
   route (product/request photos), and the History UID search are all
   scope-partitioned.
 - **Notifications:** the per-locale sender is
-  `sendLocalizedCustomNotification` (notify-message-service). EGV pending →
+  `sendLocalizedCustomNotification` (notify-message-service). VEEEY pending →
   order_requests MANAGE; XOONX created/edited → xoonx MANAGE ("needs
   sourcing"); delivered → the order's creator. Actor always skipped.
 - **Prod permission state (2026-07-17):** Rawan = xoonx MANAGE (the XOONX

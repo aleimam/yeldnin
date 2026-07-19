@@ -1,7 +1,7 @@
 // Pure product-catalog logic. No DB/IO. Unit-tested.
 import type { Level } from "@/lib/auth/access-logic";
 
-export const SCOPES = ["EGV", "XOONX", "PERSONAL"] as const;
+export const SCOPES = ["VEEEY", "XOONX", "PERSONAL"] as const;
 export type Scope = (typeof SCOPES)[number];
 
 export const PRODUCT_TYPES = ["SUPPLEMENT", "DEVICE", "INJECTION", "HEAVY_SUPPLEMENT", "XOONX"] as const;
@@ -23,8 +23,8 @@ export interface AccessLike {
 
 /**
  * Scopes a user may see/manage at the given module level, per the blueprint:
- * - Purchasing → EGV + XOONX
- * - Sales (order_requests) → EGV
+ * - Purchasing → VEEEY + XOONX
+ * - Sales (order_requests) → VEEEY
  * - XOONX → XOONX
  * - Admins → all (incl. PERSONAL)
  */
@@ -35,10 +35,10 @@ export function productScopes(a: AccessLike, level: Level): Scope[] {
   const ok = (m: string) => (level === "OPERATE" ? a.can(m, "operate") : a.canModule(m, level));
   const s = new Set<Scope>();
   if (ok("purchasing")) {
-    s.add("EGV");
+    s.add("VEEEY");
     s.add("XOONX");
   }
-  if (ok("order_requests")) s.add("EGV");
+  if (ok("order_requests")) s.add("VEEEY");
   if (ok("xoonx")) s.add("XOONX");
   return SCOPES.filter((x) => s.has(x));
 }
@@ -59,7 +59,7 @@ export function canSeeSellingPrice(a: AccessLike): boolean {
 }
 
 /**
- * Purchase (buy) prices. EGV Sales is the sell side and must never see the
+ * Purchase (buy) prices. VEEEY Sales is the sell side and must never see the
  * supply-chain buy cost — the golden rule. Purchasing/Logistics are the buy-side
  * back office (cross-scope). XOONX sources and pays for its own items, so the
  * buy price is that operator's own cost basis (it drives the XOONX P&L) and

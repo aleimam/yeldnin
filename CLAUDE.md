@@ -1,7 +1,7 @@
 # YeldnIN — internal operations platform for Yeldn Health
 
 Internal back-office platform (the storefront "Veeey" is a separate app). Two
-business lines: **EGV** (Egypt Vitamins — supplements/devices) and **XOONX**
+business lines: **VEEEY** (the Veeey storefront line, formerly "EGV" — supplements/devices) and **XOONX**
 (global "order anything" service). See `APP_BLUEPRINT.md` for the full spec and
 `PDD.docx` for the product design doc. (The pricing math from the original
 `Pricing.xlsx` is long since implemented in the Pricing module; the file is gone.)
@@ -61,8 +61,8 @@ Default super-admin (dev only): `admin@yeldn.local` / `ChangeMe!2026`.
 - **4-level per-user module permissions**: NONE / VIEW / OPERATE / MANAGE
   (`UserModulePermission`). Permissions are **purely per-user** (teams group
   users but do not auto-grant).
-- **Scope** (EGV / XOONX / PERSONAL) is a hard data boundary — Sales sees only
-  EGV, XOONX only XOONX; neither sees Trips/Travelers.
+- **Scope** (VEEEY / XOONX / PERSONAL) is a hard data boundary — Sales sees only
+  VEEEY, XOONX only XOONX; neither sees Trips/Travelers.
 - Soft-delete (`archivedAt`) over hard-delete; double-confirm destructive ops.
 - UIDs: `<PREFIX><YY><MM><seq3>` via the `Counter` table.
 

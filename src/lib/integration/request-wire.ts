@@ -24,7 +24,7 @@ export type WireRequest = {
   uid: string;
   type: string; // SPECIAL_ORDER | OUT_OF_STOCK | RESTOCK | OPTIONAL
   status: string; // PENDING | APPROVED | REJECTED
-  scope: string; // EGV | XOONX
+  scope: string; // ON THE WIRE: "EGV" | "XOONX" (legacy contract v1 value — see shim below)
   notes: string | null;
   depositEgp: number | null;
   autoOptional: boolean;
@@ -36,6 +36,17 @@ export type WireRequest = {
 };
 
 const egp = (n: number | null | undefined): number | null => (typeof n === "number" && Number.isFinite(n) ? n : null);
+
+/**
+ * Legacy wire-scope shim. The LIVE legacy channel (old storefront, contract v1)
+ * speaks scope "EGV"; internally the scope was renamed to "VEEEY". Map at the
+ * wire boundary in both directions so the other side never sees the rename.
+ * Contract v2 (the new Veeey) uses "VEEEY" natively — this shim retires with
+ * the legacy /catalog channel at cutover (see INTEGRATION_V2 §6).
+ */
+const LEGACY_WIRE_SCOPE = "EGV";
+export const toWireScope = (scope: string): string => (scope === "VEEEY" ? LEGACY_WIRE_SCOPE : scope);
+export const fromWireScope = (scope: string): string => (scope === LEGACY_WIRE_SCOPE ? "VEEEY" : scope);
 
 /**
  * A loaded (already-fetched) YeldnIN request → wire payload. Pure.
@@ -61,7 +72,7 @@ export function requestToWire(r: {
     uid: r.uid ?? "",
     type: r.type,
     status: r.status,
-    scope: r.scope,
+    scope: toWireScope(r.scope),
     notes: r.notes,
     depositEgp: egp(r.deposit),
     autoOptional: false,
@@ -121,7 +132,7 @@ export function parseWireRequest(input: unknown): WireRequest | null {
     uid,
     type,
     status,
-    scope: typeof p.scope === "string" ? p.scope : "EGV",
+    scope: typeof p.scope === "string" ? fromWireScope(p.scope) : "VEEEY",
     notes: typeof p.notes === "string" ? p.notes : null,
     depositEgp: typeof dep === "number" && Number.isFinite(dep) && dep >= 0 ? dep : null,
     autoOptional: p.autoOptional === true,

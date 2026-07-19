@@ -37,7 +37,7 @@ export function PurchaseForm({
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [scope, setScope] = useState<string>(allowedScopes[0] ?? "EGV");
+  const [scope, setScope] = useState<string>(allowedScopes[0] ?? "VEEEY");
   const [country, setCountry] = useState<string>(countries[0] ?? "");
   const [supplierId, setSupplierId] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");

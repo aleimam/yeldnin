@@ -28,7 +28,7 @@ async function checkLineProducts(scope: string, lines: { productId: number }[]):
   return requestLineProductError(scope, refs);
 }
 
-/** Buy price is hidden from EGV Sales (golden rule). Drop any line purchase
+/** Buy price is hidden from VEEEY Sales (golden rule). Drop any line purchase
  *  price a user who can't see it might have sent — defense-in-depth behind the
  *  hidden field, so it can't be set or wiped from a crafted request. */
 function stripHiddenPurchase<T extends { purchasePrice?: number | null }>(lines: T[], canSeePurchase: boolean): T[] {
@@ -68,7 +68,7 @@ export async function createRequestAction(p: RequestPayload): Promise<RequestRes
   return { ok: true, id: req.id };
 }
 
-/** Edit a request (any in-scope OPERATE user). EGV edits return it to PENDING. */
+/** Edit a request (any in-scope OPERATE user). VEEEY edits return it to PENDING. */
 export async function updateRequestAction(id: number, p: RequestPayload): Promise<RequestResult> {
   const access = await requireUser();
   const existing = await getRequest(id);
@@ -109,7 +109,7 @@ export async function updateRequestAction(id: number, p: RequestPayload): Promis
   return { ok: true, id };
 }
 
-/** Approve a pending EGV request → spawns its items into the purchasing pool. */
+/** Approve a pending VEEEY request → spawns its items into the purchasing pool. */
 export async function approveRequestAction(id: number): Promise<{ ok: boolean; error?: string }> {
   const access = await requireCapability("order_requests", "approve");
   try {
@@ -123,7 +123,7 @@ export async function approveRequestAction(id: number): Promise<{ ok: boolean; e
   return { ok: true };
 }
 
-/** Reject a pending EGV request (no items spawned). */
+/** Reject a pending VEEEY request (no items spawned). */
 export async function rejectRequestAction(id: number, note: string | null): Promise<{ ok: boolean; error?: string }> {
   const access = await requireCapability("order_requests", "approve");
   try {

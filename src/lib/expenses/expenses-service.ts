@@ -1,5 +1,5 @@
 // ⚠ Scope boundary: this is the **Operations** cash ledger — company-wide and
-// intentionally scope-less (it has no EGV/XOONX dimension). It is gated solely by
+// intentionally scope-less (it has no VEEEY/XOONX dimension). It is gated solely by
 // the `expenses` module (Operations / Finance / Admin). It is NOT XOONX finance:
 // XOONX has its own scope-isolated `XoonxExpense` under `/xoonx/expenses` (the
 // `xoonx.operate` "create requests & expenses" capability points there, never

@@ -14,7 +14,7 @@ export default async function IssueDetailPage({ params }: { params: Promise<{ id
   if (!vis) redirect("/");
   const { id } = await params;
   const issue = await getIssue(Number(id));
-  // Domain-scoped: an off-scope issue is invisible (XOONX never sees EGV or
+  // Domain-scoped: an off-scope issue is invisible (XOONX never sees VEEEY or
   // unscoped back-office issues, Sales never sees any).
   if (!issue || !issueVisible(vis, issue.scope)) notFound();
   const canManage = access.can("issues", "operate");

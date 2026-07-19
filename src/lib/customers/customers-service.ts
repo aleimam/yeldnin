@@ -12,7 +12,7 @@ export interface CustomerInput {
   notes?: string | null;
 }
 const channel = (c: string) => (isContactChannel(c) ? c : "WHATSAPP");
-const scopeOf = (s: string) => (s === "XOONX" ? "XOONX" : "EGV");
+const scopeOf = (s: string) => (s === "XOONX" ? "XOONX" : "VEEEY");
 
 export async function listCustomers(opts: { search?: string; scopes?: string[]; sort?: string; skip?: number; take?: number } = {}) {
   const where = {

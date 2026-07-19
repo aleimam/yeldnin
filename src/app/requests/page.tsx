@@ -40,10 +40,10 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   const sort = (SORT_KEYS as readonly string[]).includes(sp.sort ?? "") ? (sp.sort as RequestSortKey) : "created";
   const dir = sp.dir === "asc" ? "asc" : "desc";
 
-  // Landing cues: approvers get a pending-EGV banner; XOONX report viewers get a
+  // Landing cues: approvers get a pending-VEEEY banner; XOONX report viewers get a
   // this-month revenue/net strip (same gate as the Reports page). Both are
   // fetched only when the viewer actually qualifies.
-  const canApprove = access.can("order_requests", "approve") && scopes.includes("EGV");
+  const canApprove = access.can("order_requests", "approve") && scopes.includes("VEEEY");
   const showXoonxSnap = moduleKey === "xoonx" && access.can("xoonx", "viewReports");
   const now = new Date();
   const month = monthKey(now);
@@ -53,7 +53,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
     listRequestsPaged({ scopes, search: sp.q, type: sp.type, status: sp.status, onlyUnfulfilled: sp.all !== "1", sort, dir, skip, take }),
     itemStatusSummary(scopes),
     listRequestSlaInputs({ scopes }),
-    canApprove ? countPendingRequests(["EGV"]) : Promise.resolve(0),
+    canApprove ? countPendingRequests(["VEEEY"]) : Promise.resolve(0),
     showXoonxSnap ? monthlyReport(month, now) : Promise.resolve(null),
   ]);
   const [slaByReq, counts, creators] = await Promise.all([

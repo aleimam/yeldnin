@@ -9,7 +9,7 @@ export function ImportForm({ scopes }: { scopes: string[] }) {
   const t = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [scope, setScope] = useState(scopes[0] ?? "EGV");
+  const [scope, setScope] = useState(scopes[0] ?? "VEEEY");
   const [result, setResult] = useState<{ created: number; skipped: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 

@@ -10,19 +10,19 @@ const mk = (mods: string[], isAdmin = false): AccessLike => ({
 
 describe("historyScopes (golden-rule history partition)", () => {
   it("admins see every scope, including PERSONAL", () => {
-    expect(historyScopes(mk([], true))).toEqual(["EGV", "XOONX", "PERSONAL"]);
+    expect(historyScopes(mk([], true))).toEqual(["VEEEY", "XOONX", "PERSONAL"]);
   });
-  it("the physical-handling back office is cross-scope over EGV + XOONX", () => {
-    expect(historyScopes(mk(["logistics"]))).toEqual(["EGV", "XOONX"]);
-    expect(historyScopes(mk(["operations"]))).toEqual(["EGV", "XOONX"]);
-    expect(historyScopes(mk(["purchasing"]))).toEqual(["EGV", "XOONX"]);
+  it("the physical-handling back office is cross-scope over VEEEY + XOONX", () => {
+    expect(historyScopes(mk(["logistics"]))).toEqual(["VEEEY", "XOONX"]);
+    expect(historyScopes(mk(["operations"]))).toEqual(["VEEEY", "XOONX"]);
+    expect(historyScopes(mk(["purchasing"]))).toEqual(["VEEEY", "XOONX"]);
   });
-  it("Sales sees only EGV, XOONX only XOONX", () => {
-    expect(historyScopes(mk(["order_requests"]))).toEqual(["EGV"]);
+  it("Sales sees only VEEEY, XOONX only XOONX", () => {
+    expect(historyScopes(mk(["order_requests"]))).toEqual(["VEEEY"]);
     expect(historyScopes(mk(["xoonx"]))).toEqual(["XOONX"]);
   });
   it("never surfaces PERSONAL to a non-admin, even cross-scope roles", () => {
-    expect(historyScopes(mk(["logistics", "order_requests", "xoonx"]))).toEqual(["EGV", "XOONX"]);
+    expect(historyScopes(mk(["logistics", "order_requests", "xoonx"]))).toEqual(["VEEEY", "XOONX"]);
   });
   it("a history-only user with no scope-granting module sees nothing", () => {
     expect(historyScopes(mk(["history"]))).toEqual([]);

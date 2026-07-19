@@ -33,7 +33,7 @@ export function CustomerForm({
   const [active, setActive] = useState(initial.active);
   const [f, setF] = useState({
     name: initial.name,
-    scope: initial.scope || allowedScopes[0] || "EGV",
+    scope: initial.scope || allowedScopes[0] || "VEEEY",
     contactChannel: initial.contactChannel || "WHATSAPP",
     contactNumber: initial.contactNumber,
     notes: initial.notes,

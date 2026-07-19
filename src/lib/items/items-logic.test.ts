@@ -131,21 +131,21 @@ describe("dashboard buckets", () => {
 });
 
 describe("category buckets", () => {
-  it("scope wins for personal/xoonx, then product type under EGV", () => {
+  it("scope wins for personal/xoonx, then product type under VEEEY", () => {
     expect(categoryBucket("PERSONAL", "DEVICE")).toBe("personal");
     expect(categoryBucket("XOONX", "SUPPLEMENT")).toBe("xoonx");
-    expect(categoryBucket("EGV", "INJECTION")).toBe("injection");
-    expect(categoryBucket("EGV", "DEVICE")).toBe("devices");
-    expect(categoryBucket("EGV", "SUPPLEMENT")).toBe("items");
-    expect(categoryBucket("EGV", "HEAVY_SUPPLEMENT")).toBe("items");
-    expect(categoryBucket("EGV", null)).toBe("items");
+    expect(categoryBucket("VEEEY", "INJECTION")).toBe("injection");
+    expect(categoryBucket("VEEEY", "DEVICE")).toBe("devices");
+    expect(categoryBucket("VEEEY", "SUPPLEMENT")).toBe("items");
+    expect(categoryBucket("VEEEY", "HEAVY_SUPPLEMENT")).toBe("items");
+    expect(categoryBucket("VEEEY", null)).toBe("items");
   });
   it("tally is exclusive — buckets sum to the total", () => {
     const c = tallyCategories([
-      { scope: "EGV", productType: "SUPPLEMENT" },
-      { scope: "EGV", productType: "SUPPLEMENT" },
-      { scope: "EGV", productType: "INJECTION" },
-      { scope: "EGV", productType: "DEVICE" },
+      { scope: "VEEEY", productType: "SUPPLEMENT" },
+      { scope: "VEEEY", productType: "SUPPLEMENT" },
+      { scope: "VEEEY", productType: "INJECTION" },
+      { scope: "VEEEY", productType: "DEVICE" },
       { scope: "XOONX", productType: "XOONX" },
       { scope: "PERSONAL", productType: "SUPPLEMENT" },
     ]);

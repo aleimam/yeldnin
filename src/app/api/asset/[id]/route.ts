@@ -28,11 +28,11 @@ export async function GET(
 
     // Per-object gates. Expense receipts (→ Expenses VIEW) and HR documents like
     // national-ID scans (→ the owning employee, their manager/HR, or admin) are
-    // gated by object. Product & request photos carry the EGV/XOONX scope, so they
+    // gated by object. Product & request photos carry the VEEEY/XOONX scope, so they
     // follow the golden rule — gated by the same scope check as their detail pages,
     // since Sales/XOONX hold those modules and could otherwise cross-fetch with a
     // leaked id. Asset ids are unguessable cuids; other photos (pricing/CS/avatars,
-    // which aren't EGV/XOONX-scoped, and logistics-domain photos whose modules
+    // which aren't VEEEY/XOONX-scoped, and logistics-domain photos whose modules
     // Sales/XOONX lack) stay logged-in-only.
     const [expenseAtt, empPhoto, eventPhoto, chatAtt, inqAtt, productPhoto, requestPhoto] = await Promise.all([
       prisma.expenseAttachment.findFirst({ where: { assetId: id }, select: { id: true } }),

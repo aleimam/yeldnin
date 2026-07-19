@@ -451,7 +451,7 @@ model CsEvaluationPhoto {
 
 // ─── Supply chain: master data ────────────────────────────────────────────────
 
-// Product catalog. scope: EGV | XOONX | PERSONAL.
+// Product catalog. scope: VEEEY | XOONX | PERSONAL.
 // type: SUPPLEMENT | DEVICE | INJECTION | HEAVY_SUPPLEMENT | XOONX.
 model Product {
   id                Int       @id @default(autoincrement())
@@ -502,7 +502,7 @@ model Customer {
   id             Int       @id @default(autoincrement())
   uid            String?   @unique // CUS<YY><MM><seq3>
   name           String
-  scope          String    @default("EGV") // EGV | XOONX (hard boundary, like requests/products)
+  scope          String    @default("VEEEY") // VEEEY | XOONX (hard boundary, like requests/products)
   contactChannel String    @default("WHATSAPP")
   contactNumber  String?
   notes          String?
@@ -674,7 +674,7 @@ model Compensation {
 
 // Shipment (Operations) — created by splitting a picked-up Trip by scope/size.
 // Its contents are the Items pointing at it (containerType=SHIPMENT). Scope
-// drives who can see it (EGV→EGV+admin, XOONX→XOONX+admin, PERSONAL→admin).
+// drives who can see it (VEEEY→VEEEY+admin, XOONX→XOONX+admin, PERSONAL→admin).
 // Courier (Couriers) — last-mile delivery PEOPLE who deliver our orders to
 // customers. Master data for the (future) customer-delivery flow. Distinct from
 // Carrier below; the two never mix.
@@ -762,7 +762,7 @@ model Item {
   uid                 String?   @unique // ITM<YY><MM><seq3>
   productId           Int
   product             Product   @relation(fields: [productId], references: [id])
-  scope               String // EGV | XOONX | PERSONAL (denormalized for fast filtering)
+  scope               String // VEEEY | XOONX | PERSONAL (denormalized for fast filtering)
   status              String    @default("REQUESTED")
   containerType       String? // REQUEST | PURCHASE | PATCH | TRANSFER | TRIP | HUB | TRAVELER | SHIPMENT | ORDER
   containerId         Int?
@@ -822,13 +822,13 @@ model Request {
   uid         String?   @unique // REQ<YY><MM><seq3>
   type        String
   scope       String
-  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED — EGV approval gate; XOONX is created APPROVED
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED — VEEEY approval gate; XOONX is created APPROVED
   customerId  Int?
   customer    Customer? @relation(fields: [customerId], references: [id])
   notes       String?
   deposit     Float?    // special order: agreed deposit (EGP), per request
   deliveredAt DateTime? // XOONX: set when the order is delivered → revenue recognised that month
-  approvedById Int?      // who approved (EGV gate)
+  approvedById Int?      // who approved (VEEEY gate)
   approvedAt   DateTime?
   rejectedNote String?   // optional reason captured on reject
   archivedAt  DateTime?
@@ -1054,7 +1054,7 @@ model WorkflowConfig {
 }
 
 // Singleton holding the special-order delivery SLA config: grace days per source
-// class (injection / standard / fast retailer) for each scope (EGV, XOONX) and
+// class (injection / standard / fast retailer) for each scope (VEEEY, XOONX) and
 // the risk window. `config` is JSON shaped as SlaSettings (lib/sla/sla-logic).
 model SlaConfig {
   id        Int      @id @default(1)

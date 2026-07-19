@@ -59,7 +59,7 @@ export async function handleCatalogUpsert(payload: unknown): Promise<CatalogUpse
       sku: wire.sku ?? String(wire.wpId),
       name: wire.name,
       type: wire.type,
-      scope: "EGV",
+      scope: "VEEEY",
       active: wire.active,
     },
     select: { id: true },

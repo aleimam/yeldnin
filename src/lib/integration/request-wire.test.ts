@@ -5,7 +5,7 @@ const loaded = {
   uid: "REQ2607014",
   type: "SPECIAL_ORDER",
   status: "PENDING",
-  scope: "EGV",
+  scope: "VEEEY",
   notes: "From order VO-1001",
   deposit: 880, // EGP (YeldnIN stores Float EGP directly — no piastres)
   archivedAt: null,
@@ -18,6 +18,15 @@ const loaded = {
 };
 
 describe("requestToWire", () => {
+  it("legacy wire shim: internal VEEEY scope travels as EGV and parses back to VEEEY", () => {
+    const w = requestToWire(loaded);
+    expect(w.scope).toBe("EGV"); // contract v1 wire value — old site never sees the rename
+    const parsed = parseWireRequest(JSON.parse(JSON.stringify(w)));
+    expect(parsed!.scope).toBe("VEEEY"); // internal value on the way back in
+    // non-VEEEY scopes pass through untouched
+    expect(requestToWire({ ...loaded, scope: "XOONX" }).scope).toBe("XOONX");
+  });
+
   it("maps YeldnIN Float EGP straight onto the wire and flattens the loaded shape", () => {
     const w = requestToWire(loaded);
     expect(w.uid).toBe("REQ2607014");

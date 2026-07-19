@@ -30,11 +30,11 @@ describe("request type rules", () => {
 });
 
 describe("requestScopes (no purchasing)", () => {
-  it("sales→EGV, xoonx→XOONX, admin→all", () => {
-    expect(requestScopes(mk(["order_requests"]), "OPERATE")).toEqual(["EGV"]);
+  it("sales→VEEEY, xoonx→XOONX, admin→all", () => {
+    expect(requestScopes(mk(["order_requests"]), "OPERATE")).toEqual(["VEEEY"]);
     expect(requestScopes(mk(["xoonx"]), "OPERATE")).toEqual(["XOONX"]);
     expect(requestScopes(mk(["purchasing"]), "OPERATE")).toEqual([]);
-    expect(requestScopes(mk([], true), "OPERATE")).toEqual(["EGV", "XOONX", "PERSONAL"]);
+    expect(requestScopes(mk([], true), "OPERATE")).toEqual(["VEEEY", "XOONX", "PERSONAL"]);
   });
   it("primary module prefers sales then xoonx", () => {
     expect(primaryRequestModule(mk(["xoonx"]))).toBe("xoonx");
@@ -45,15 +45,15 @@ describe("requestScopes (no purchasing)", () => {
 describe("validateRequest", () => {
   const line = [{ productId: 1, count: 2 }];
   it("requires type, scope and at least one line", () => {
-    expect(validateRequest({ type: "BAD", scope: "EGV", lines: line })).toHaveProperty("type");
+    expect(validateRequest({ type: "BAD", scope: "VEEEY", lines: line })).toHaveProperty("type");
     expect(validateRequest({ type: "RESTOCK", scope: "X", lines: line })).toHaveProperty("scope");
-    expect(validateRequest({ type: "RESTOCK", scope: "EGV", lines: [] })).toHaveProperty("lines");
-    expect(validateRequest({ type: "RESTOCK", scope: "EGV", lines: line })).toEqual({});
+    expect(validateRequest({ type: "RESTOCK", scope: "VEEEY", lines: [] })).toHaveProperty("lines");
+    expect(validateRequest({ type: "RESTOCK", scope: "VEEEY", lines: line })).toEqual({});
   });
   it("special order needs a customer (id or new name)", () => {
-    expect(validateRequest({ type: "SPECIAL_ORDER", scope: "EGV", lines: line })).toHaveProperty("customer");
-    expect(validateRequest({ type: "SPECIAL_ORDER", scope: "EGV", customerId: 5, lines: line })).toEqual({});
-    expect(validateRequest({ type: "SPECIAL_ORDER", scope: "EGV", newCustomerName: "Ada", lines: line })).toEqual({});
+    expect(validateRequest({ type: "SPECIAL_ORDER", scope: "VEEEY", lines: line })).toHaveProperty("customer");
+    expect(validateRequest({ type: "SPECIAL_ORDER", scope: "VEEEY", customerId: 5, lines: line })).toEqual({});
+    expect(validateRequest({ type: "SPECIAL_ORDER", scope: "VEEEY", newCustomerName: "Ada", lines: line })).toEqual({});
   });
 });
 
@@ -77,8 +77,8 @@ describe("approval gate", () => {
     expect(isRequestStatus("NEW")).toBe(false);
     expect(isRequestStatus(null)).toBe(false);
   });
-  it("gates EGV but not XOONX", () => {
-    expect(usesApprovalGate("EGV")).toBe(true);
+  it("gates VEEEY but not XOONX", () => {
+    expect(usesApprovalGate("VEEEY")).toBe(true);
     expect(usesApprovalGate("XOONX")).toBe(false);
     expect(usesApprovalGate("PERSONAL")).toBe(false);
   });
@@ -98,17 +98,17 @@ describe("approval gate", () => {
 describe("requestLineProductError", () => {
   const p = (name: string, scope: string, type: string) => ({ name, scope, type });
   it("accepts in-scope products; XOONX additionally requires the XOONX type", () => {
-    expect(requestLineProductError("EGV", [p("Zinc", "EGV", "SUPPLEMENT"), p("Pump", "EGV", "DEVICE")])).toBeNull();
+    expect(requestLineProductError("VEEEY", [p("Zinc", "VEEEY", "SUPPLEMENT"), p("Pump", "VEEEY", "DEVICE")])).toBeNull();
     expect(requestLineProductError("XOONX", [p("iPhone", "XOONX", "XOONX")])).toBeNull();
     expect(requestLineProductError("XOONX", [])).toBeNull();
   });
   it("rejects out-of-scope products", () => {
-    expect(requestLineProductError("EGV", [p("iPhone", "XOONX", "XOONX")])).toContain("iPhone");
-    expect(requestLineProductError("XOONX", [p("Zinc", "EGV", "SUPPLEMENT")])).toContain("Zinc");
+    expect(requestLineProductError("VEEEY", [p("iPhone", "XOONX", "XOONX")])).toContain("iPhone");
+    expect(requestLineProductError("XOONX", [p("Zinc", "VEEEY", "SUPPLEMENT")])).toContain("Zinc");
   });
   it("rejects non-XOONX-type products in XOONX requests", () => {
     expect(requestLineProductError("XOONX", [p("iPhone", "XOONX", "XOONX"), p("Zinc D", "XOONX", "SUPPLEMENT")])).toContain("Zinc D");
-    // EGV doesn't care about type
-    expect(requestLineProductError("EGV", [p("Odd", "EGV", "XOONX")])).toBeNull();
+    // VEEEY doesn't care about type
+    expect(requestLineProductError("VEEEY", [p("Odd", "VEEEY", "XOONX")])).toBeNull();
   });
 });

@@ -13,10 +13,10 @@ describe("validatePurchase", () => {
   const line = [{ productId: 1, count: 2 }];
   it("requires scope, a destination and at least one line", () => {
     expect(validatePurchase({ scope: "BAD", destinationType: "HUB", destinationId: 1, lines: line })).toHaveProperty("scope");
-    expect(validatePurchase({ scope: "EGV", destinationType: "WAT", destinationId: 1, lines: line })).toHaveProperty("destinationType");
-    expect(validatePurchase({ scope: "EGV", destinationType: "HUB", destinationId: null, lines: line })).toHaveProperty("destination");
-    expect(validatePurchase({ scope: "EGV", destinationType: "HUB", destinationId: 1, lines: [] })).toHaveProperty("lines");
-    expect(validatePurchase({ scope: "EGV", destinationType: "HUB", destinationId: 1, lines: line })).toEqual({});
+    expect(validatePurchase({ scope: "VEEEY", destinationType: "WAT", destinationId: 1, lines: line })).toHaveProperty("destinationType");
+    expect(validatePurchase({ scope: "VEEEY", destinationType: "HUB", destinationId: null, lines: line })).toHaveProperty("destination");
+    expect(validatePurchase({ scope: "VEEEY", destinationType: "HUB", destinationId: 1, lines: [] })).toHaveProperty("lines");
+    expect(validatePurchase({ scope: "VEEEY", destinationType: "HUB", destinationId: 1, lines: line })).toEqual({});
   });
 });
 

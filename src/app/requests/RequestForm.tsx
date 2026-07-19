@@ -43,7 +43,7 @@ export function RequestForm({
   products: { id: number; name: string; sku: string | null; scope: string; type: string; sellingPrice: number | null; purchasePrice: number | null }[];
   customers: { id: number; name: string; scope: string }[];
   depositPct: number;
-  /** Buy price is hidden from EGV Sales (golden rule); shown to XOONX/purchasing/admin. */
+  /** Buy price is hidden from VEEEY Sales (golden rule); shown to XOONX/purchasing/admin. */
   canSeePurchase: boolean;
   editId?: number;
   initial?: RequestFormInitial;
@@ -53,7 +53,7 @@ export function RequestForm({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [type, setType] = useState(initial?.type ?? "RESTOCK");
-  const [scope, setScope] = useState<string>(initial?.scope ?? allowedScopes[0] ?? "EGV");
+  const [scope, setScope] = useState<string>(initial?.scope ?? allowedScopes[0] ?? "VEEEY");
   const [customerId, setCustomerId] = useState(initial?.customerId ?? "");
   const [newMode, setNewMode] = useState(false);
   const [newCust, setNewCust] = useState({ name: "", contactNumber: "" });

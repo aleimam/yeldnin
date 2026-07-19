@@ -42,14 +42,14 @@ describe("sourceClass", () => {
 
 describe("graceDays", () => {
   it("picks per scope + class", () => {
-    expect(graceDays("EGV", "INJECTION", DEFAULT_SLA)).toBe(40);
-    expect(graceDays("EGV", "STANDARD", DEFAULT_SLA)).toBe(30);
-    expect(graceDays("EGV", "FAST", DEFAULT_SLA)).toBe(20);
+    expect(graceDays("VEEEY", "INJECTION", DEFAULT_SLA)).toBe(40);
+    expect(graceDays("VEEEY", "STANDARD", DEFAULT_SLA)).toBe(30);
+    expect(graceDays("VEEEY", "FAST", DEFAULT_SLA)).toBe(20);
   });
   it("uses the XOONX grace set for XOONX scope", () => {
     const sla = resolveSla({ xoonx: { injection: 50, standard: 35, fast: 25 } });
     expect(graceDays("XOONX", "INJECTION", sla)).toBe(50);
-    expect(graceDays("EGV", "INJECTION", sla)).toBe(40); // egv unchanged
+    expect(graceDays("VEEEY", "INJECTION", sla)).toBe(40); // egv unchanged
   });
 });
 
@@ -91,9 +91,9 @@ describe("slaStatus", () => {
 });
 
 describe("computeItemSla", () => {
-  it("injection EGV: 40-day promise, healthy early, no trip", () => {
+  it("injection VEEEY: 40-day promise, healthy early, no trip", () => {
     const r = computeItemSla({
-      scope: "EGV",
+      scope: "VEEEY",
       productType: "INJECTION",
       supplierSlaClass: "FAST",
       createdAt: D("2026-01-01"),
@@ -108,7 +108,7 @@ describe("computeItemSla", () => {
   });
   it("prefers a stored promise snapshot over recomputing", () => {
     const r = computeItemSla({
-      scope: "EGV",
+      scope: "VEEEY",
       productType: "DEVICE",
       supplierSlaClass: "STANDARD",
       createdAt: D("2026-01-01"),

@@ -63,13 +63,13 @@ describe("issueVisible (one issue under a visibility)", () => {
     expect(issueVisible(null, null)).toBe(false);
   });
   it("'all' sees every issue including unscoped ones", () => {
-    expect(issueVisible("all", "EGV")).toBe(true);
+    expect(issueVisible("all", "VEEEY")).toBe(true);
     expect(issueVisible("all", "XOONX")).toBe(true);
     expect(issueVisible("all", null)).toBe(true);
   });
   it("a scoped viewer sees only its scope, never unscoped back-office issues", () => {
     expect(issueVisible(["XOONX"], "XOONX")).toBe(true);
-    expect(issueVisible(["XOONX"], "EGV")).toBe(false);
+    expect(issueVisible(["XOONX"], "VEEEY")).toBe(false);
     expect(issueVisible(["XOONX"], null)).toBe(false);
   });
 });

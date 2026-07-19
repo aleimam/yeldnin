@@ -71,7 +71,7 @@ export function statusLabelKey(status: string): string {
 /** Minimal access shape needed to authorize which units a user may reach. */
 export type UnitViewAccess = AccessLike & { hidesTripTraveler: boolean };
 
-/** Whether a unit kind's visibility depends on the record's own EGV/XOONX scope
+/** Whether a unit kind's visibility depends on the record's own VEEEY/XOONX scope
  *  (so the caller must load that scope before deciding). */
 export function unitNeedsScope(unitKind: string): boolean {
   return unitKind === "REQUEST" || unitKind === "PURCHASE";

@@ -173,7 +173,7 @@ export const PRE_RECEIPT_STATUSES: ItemStatus[] = ITEM_STATUS_ORDER.slice(0, ITE
 /**
  * Exclusive category buckets shown in container item-count summaries. An item
  * lands in exactly one, so the buckets sum to the total:
- *   PERSONAL scope → personal · XOONX scope → xoonx · else (EGV) by product
+ *   PERSONAL scope → personal · XOONX scope → xoonx · else (VEEEY) by product
  *   type → injection / devices / items (supplements & everything else).
  */
 export const CATEGORY_BUCKETS = ["items", "injection", "devices", "xoonx", "personal"] as const;

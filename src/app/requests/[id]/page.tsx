@@ -29,7 +29,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
   const canSeeSelling = canSeeSellingPrice(access);
   const canSeePurchase = canSeePurchasePrice(access);
   const isSpecial = req.type === "SPECIAL_ORDER";
-  const canApprove = req.status === "PENDING" && req.scope === "EGV" && access.can("order_requests", "approve");
+  const canApprove = req.status === "PENDING" && req.scope === "VEEEY" && access.can("order_requests", "approve");
   const inScopeOperate = requestScopes(access, "OPERATE").includes(req.scope as Scope);
   // XOONX requests are born approved — editing one needs xoonx.editRequest.
   const canEditScope = req.scope === "XOONX" ? access.can("xoonx", "editRequest") : inScopeOperate;

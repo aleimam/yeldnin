@@ -15,24 +15,24 @@ function items(spec: { scope: string; type: string; productId: number; n: number
 const COUNTED = new Set(["SUPPLEMENT", "HEAVY_SUPPLEMENT"]);
 
 describe("scope separation", () => {
-  it("splits XOONX, PERSONAL and EGV into their own shipments", () => {
+  it("splits XOONX, PERSONAL and VEEEY into their own shipments", () => {
     const input = items([
       { scope: "XOONX", type: "XOONX", productId: 1, n: 3 },
       { scope: "PERSONAL", type: "DEVICE", productId: 2, n: 2 },
-      { scope: "EGV", type: "SUPPLEMENT", productId: 3, n: 4 },
+      { scope: "VEEEY", type: "SUPPLEMENT", productId: 3, n: 4 },
     ]);
     const groups = splitTripIntoShipments(input);
     expect(groups.filter((g) => g.scope === "XOONX")).toHaveLength(1);
     expect(groups.filter((g) => g.scope === "PERSONAL")).toHaveLength(1);
-    expect(groups.filter((g) => g.scope === "EGV")).toHaveLength(1);
+    expect(groups.filter((g) => g.scope === "VEEEY")).toHaveLength(1);
   });
 });
 
-describe("EGV below threshold", () => {
+describe("VEEEY below threshold", () => {
   it("keeps everything (incl. devices) in one shipment when counted < 20", () => {
     const input = items([
-      { scope: "EGV", type: "SUPPLEMENT", productId: 1, n: 10 },
-      { scope: "EGV", type: "DEVICE", productId: 2, n: 4 },
+      { scope: "VEEEY", type: "SUPPLEMENT", productId: 1, n: 10 },
+      { scope: "VEEEY", type: "DEVICE", productId: 2, n: 4 },
     ]);
     const groups = splitTripIntoShipments(input);
     expect(groups).toHaveLength(1);
@@ -40,9 +40,9 @@ describe("EGV below threshold", () => {
   });
 });
 
-describe("EGV split invariants (≥20 counted)", () => {
+describe("VEEEY split invariants (≥20 counted)", () => {
   const check = (input: SplitItem[]) => {
-    const groups = splitTripIntoShipments(input).filter((g) => g.scope === "EGV");
+    const groups = splitTripIntoShipments(input).filter((g) => g.scope === "VEEEY");
     const typeOf = new Map(input.map((i) => [i.id, i.type]));
     const prodOf = new Map(input.map((i) => [i.id, i.productId]));
     for (const g of groups) {
@@ -59,13 +59,13 @@ describe("EGV split invariants (≥20 counted)", () => {
   };
 
   it("many products, few each → even split, all caps held", () => {
-    const spec = Array.from({ length: 12 }, (_, p) => ({ scope: "EGV", type: "SUPPLEMENT", productId: p + 1, n: 2 }));
+    const spec = Array.from({ length: 12 }, (_, p) => ({ scope: "VEEEY", type: "SUPPLEMENT", productId: p + 1, n: 2 }));
     const groups = check(items(spec)); // 24 counted
     expect(groups.length).toBeGreaterThanOrEqual(2);
   });
 
   it("all the same product (25) → forces ≥5 shipments to honor ≤5/product", () => {
-    const groups = check(items([{ scope: "EGV", type: "SUPPLEMENT", productId: 1, n: 25 }]));
+    const groups = check(items([{ scope: "VEEEY", type: "SUPPLEMENT", productId: 1, n: 25 }]));
     expect(groups.length).toBeGreaterThanOrEqual(5);
   });
 
@@ -73,8 +73,8 @@ describe("EGV split invariants (≥20 counted)", () => {
     // 19 counted < 20 → single shipment despite 27 physical items
     const groups = splitTripIntoShipments(
       items([
-        { scope: "EGV", type: "SUPPLEMENT", productId: 1, n: 19 },
-        { scope: "EGV", type: "DEVICE", productId: 2, n: 8 },
+        { scope: "VEEEY", type: "SUPPLEMENT", productId: 1, n: 19 },
+        { scope: "VEEEY", type: "DEVICE", productId: 2, n: 8 },
       ]),
     );
     expect(groups).toHaveLength(1);
@@ -83,11 +83,11 @@ describe("EGV split invariants (≥20 counted)", () => {
 
   it("20 counted + devices → splits, devices distributed across shipments", () => {
     const input = items([
-      { scope: "EGV", type: "SUPPLEMENT", productId: 1, n: 5 },
-      { scope: "EGV", type: "SUPPLEMENT", productId: 2, n: 5 },
-      { scope: "EGV", type: "SUPPLEMENT", productId: 3, n: 5 },
-      { scope: "EGV", type: "SUPPLEMENT", productId: 4, n: 5 },
-      { scope: "EGV", type: "DEVICE", productId: 9, n: 3 },
+      { scope: "VEEEY", type: "SUPPLEMENT", productId: 1, n: 5 },
+      { scope: "VEEEY", type: "SUPPLEMENT", productId: 2, n: 5 },
+      { scope: "VEEEY", type: "SUPPLEMENT", productId: 3, n: 5 },
+      { scope: "VEEEY", type: "SUPPLEMENT", productId: 4, n: 5 },
+      { scope: "VEEEY", type: "DEVICE", productId: 9, n: 3 },
     ]);
     const groups = check(input); // 20 counted, 3 devices
     const total = groups.flatMap((g) => g.itemIds).length;
