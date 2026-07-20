@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { requestToWire, parseWireRequest } from "./request-wire";
+import { requestToWire, parseWireRequest, isVeeeyWireScope } from "./request-wire";
 
 const loaded = {
   uid: "REQ2607014",
@@ -23,7 +23,9 @@ describe("requestToWire", () => {
     expect(w.scope).toBe("EGV"); // contract v1 wire value — old site never sees the rename
     const parsed = parseWireRequest(JSON.parse(JSON.stringify(w)));
     expect(parsed!.scope).toBe("VEEEY"); // internal value on the way back in
-    // non-VEEEY scopes pass through untouched
+    // requestToWire is a pure mapper and still passes other scopes through; the
+    // boundary is enforced by its CALLER (emitRequestSync returns early for any
+    // non-VEEEY request) and by parseWireRequest below, not here.
     expect(requestToWire({ ...loaded, scope: "XOONX" }).scope).toBe("XOONX");
   });
 
@@ -44,6 +46,36 @@ describe("requestToWire", () => {
     expect(w.customer).toBeNull();
     expect(w.depositEgp).toBeNull();
     expect(w.archived).toBe(true);
+  });
+});
+
+describe("wire scope boundary (Codex pass 2, F1 — golden rule across the network)", () => {
+  const payload = (scope?: unknown) => {
+    const w = JSON.parse(JSON.stringify(requestToWire(loaded))) as Record<string, unknown>;
+    if (scope === undefined) delete w.scope;
+    else w.scope = scope;
+    return w;
+  };
+  it("accepts only VEEEY, its legacy EGV alias, or an absent scope", () => {
+    expect(isVeeeyWireScope("VEEEY")).toBe(true);
+    expect(isVeeeyWireScope("EGV")).toBe(true);
+    expect(isVeeeyWireScope(null)).toBe(true);
+    expect(isVeeeyWireScope(undefined)).toBe(true);
+    expect(isVeeeyWireScope("XOONX")).toBe(false);
+    expect(isVeeeyWireScope("PERSONAL")).toBe(false);
+    expect(isVeeeyWireScope("veeey")).toBe(false); // exact match — no case fallback
+    expect(isVeeeyWireScope(42)).toBe(false);
+  });
+  it("REJECTS an off-line payload rather than coercing it to VEEEY", () => {
+    // Coercion would be worse than it looks: it would silently file a XOONX
+    // record onto the VEEEY line instead of refusing the write.
+    expect(parseWireRequest(payload("XOONX"))).toBeNull();
+    expect(parseWireRequest(payload("PERSONAL"))).toBeNull();
+  });
+  it("pins the parsed scope to VEEEY for every payload it does accept", () => {
+    expect(parseWireRequest(payload("VEEEY"))!.scope).toBe("VEEEY");
+    expect(parseWireRequest(payload("EGV"))!.scope).toBe("VEEEY");
+    expect(parseWireRequest(payload(undefined))!.scope).toBe("VEEEY");
   });
 });
 

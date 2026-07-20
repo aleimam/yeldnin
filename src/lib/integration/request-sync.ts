@@ -34,6 +34,11 @@ export async function emitRequestSync(requestId: number): Promise<void> {
       },
     });
     if (!r) return;
+    // GOLDEN RULE, OUTBOUND: Veeey is the VEEEY storefront. Every request write
+    // called this — so approving a XOONX order shipped that customer's name,
+    // phone, line items and prices across the network to the other business
+    // line's system. Scope is a hard boundary; a network hop doesn't soften it.
+    if (r.scope !== "VEEEY") return;
     const wire = requestToWire({
       uid: r.uid,
       type: r.type,
@@ -88,7 +93,11 @@ export async function handleRequestUpsert(payload: unknown): Promise<RequestUpse
   if (!wire) return { ok: false, skipped: "invalid" };
 
   const skus = wire.lines.map((l) => l.sku).filter((s): s is string => !!s);
-  const products = skus.length ? await prisma.product.findMany({ where: { sku: { in: skus } }, select: { id: true, sku: true } }) : [];
+  // SKU match is restricted to VEEEY products: an unqualified lookup let a wire
+  // payload attach a XOONX product to a request line by guessing its SKU.
+  const products = skus.length
+    ? await prisma.product.findMany({ where: { sku: { in: skus }, scope: "VEEEY" }, select: { id: true, sku: true } })
+    : [];
   const bySku = new Map(products.map((p) => [p.sku, p.id] as const));
   const lineCreates = wire.lines
     .map((l) => {
@@ -113,7 +122,13 @@ export async function handleRequestUpsert(payload: unknown): Promise<RequestUpse
     customerId: null as number | null,
   };
 
-  const existing = await prisma.request.findUnique({ where: { uid: wire.uid }, select: { id: true } });
+  // Scope guard on the EXISTING row — same shape as product-sync/customer-sync.
+  // uids are minted independently on both sides from a `<PREFIX><YY><MM><seq3>`
+  // counter, so a Veeey uid colliding with a local XOONX one isn't exotic, it's
+  // expected. This path deletes the row's lines and photos before rewriting it,
+  // so an unguarded collision doesn't just leak a XOONX request — it destroys it.
+  const existing = await prisma.request.findUnique({ where: { uid: wire.uid }, select: { id: true, scope: true } });
+  if (existing && existing.scope !== "VEEEY") return { ok: false, uid: wire.uid, skipped: "request_scope_mismatch" };
   if (existing) {
     await prisma.$transaction(async (tx) => {
       await tx.requestLine.deleteMany({ where: { requestId: existing.id } });

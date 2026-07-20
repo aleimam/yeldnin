@@ -49,6 +49,22 @@ export const toWireScope = (scope: string): string => (scope === "VEEEY" ? LEGAC
 export const fromWireScope = (scope: string): string => (scope === LEGACY_WIRE_SCOPE ? "VEEEY" : scope);
 
 /**
+ * GOLDEN RULE AT THE WIRE: this channel carries exactly ONE business line.
+ *
+ * Veeey is the VEEEY storefront; XOONX and PERSONAL are YeldnIN-only and have no
+ * representation over there. The scope field therefore has exactly two legal
+ * values ("VEEEY", or its legacy alias "EGV") and one legal omission (absent →
+ * VEEEY). Anything else is a payload trying to reach across the boundary, and is
+ * rejected rather than normalized — silently coercing it to VEEEY would let the
+ * other side steer which line a record lands on, which is the same hole viewed
+ * from the opposite end.
+ */
+export function isVeeeyWireScope(wireScope: unknown): boolean {
+  if (wireScope == null) return true; // absent → the handler defaults to VEEEY
+  return typeof wireScope === "string" && fromWireScope(wireScope) === "VEEEY";
+}
+
+/**
  * A loaded (already-fetched) YeldnIN request → wire payload. Pure.
  *
  * `autoOptional` and `veeeyOrderId` have no YeldnIN column (they are Veeey-side
@@ -106,6 +122,9 @@ export function parseWireRequest(input: unknown): WireRequest | null {
   const type = asType(p.type);
   const status = asStatus(p.status) ?? "PENDING";
   if (!uid || !type) return null;
+  // Reject before any further work — an off-line payload is not a partially
+  // usable request, it's one that should never have been sent.
+  if (!isVeeeyWireScope(p.scope)) return null;
   const rawLines = Array.isArray(p.lines) ? p.lines : [];
   const lines: WireRequestLine[] = rawLines
     .map((l): WireRequestLine | null => {
@@ -132,7 +151,7 @@ export function parseWireRequest(input: unknown): WireRequest | null {
     uid,
     type,
     status,
-    scope: typeof p.scope === "string" ? fromWireScope(p.scope) : "VEEEY",
+    scope: "VEEEY", // guarded by isVeeeyWireScope above — the only value this channel can produce
     notes: typeof p.notes === "string" ? p.notes : null,
     depositEgp: typeof dep === "number" && Number.isFinite(dep) && dep >= 0 ? dep : null,
     autoOptional: p.autoOptional === true,
