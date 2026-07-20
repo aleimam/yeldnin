@@ -6,6 +6,8 @@ import { displayName } from "@/lib/users/users-logic";
 import { productScopes } from "@/lib/products/products-logic";
 import { requestScopes } from "@/lib/requests/request-logic";
 import { customerScopes } from "@/lib/customers/customers-logic";
+import { historyScopes } from "@/lib/history/history-logic";
+import { issueVisibility } from "@/lib/issues/issues-logic";
 import { parseQuery, isSearchable, uidPrefix, UID_PREFIX_TYPE, type ParsedQuery } from "./search-logic";
 import { formatBizDate } from "@/lib/format/dates";
 
@@ -45,6 +47,13 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
   const pScopes = productScopes(access, "VIEW");
   const rScopes = requestScopes(access, "VIEW");
   const cScopes = customerScopes(access, "VIEW");
+  // GOLDEN RULE: search was gated by MODULE only, so a XOONX user with Issues
+  // VIEW could surface a VEEEY issue's uid/title, and a Sales user with History
+  // VIEW could surface a XOONX item's uid and product name — both linking to
+  // pages that then 404. Search must apply the SAME visibility the destination
+  // list applies, or it becomes a discovery channel for off-scope records.
+  const iVis = issueVisibility(access);
+  const hScopes = historyScopes(access);
 
   const defs: EntityDef[] = [];
 
@@ -218,13 +227,20 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
     });
   }
 
-  if (can("issues")) {
+  // `iVis === null` means this viewer sees no issues at all — omit the group
+  // entirely rather than running a query that would return other lines' rows.
+  if (can("issues") && iVis) {
     defs.push({
       type: "issue",
       labelKey: "issues.title",
       run: async () => {
         const rows = await prisma.issue.findMany({
-          where: { ...clause(parsed, ["title", "uid", "note"]) },
+          where: {
+            ...clause(parsed, ["title", "uid", "note"]),
+            // "all" also covers the unscoped back-office issues; a scoped
+            // viewer gets only their own line and never the unscoped ones.
+            ...(iVis === "all" ? {} : { scope: { in: iVis } }),
+          },
           select: { id: true, uid: true, title: true, status: true },
           take: perType,
           orderBy: { createdAt: "desc" },
@@ -234,15 +250,17 @@ export async function globalSearch(access: Access, raw: string, perType = 6): Pr
     });
   }
 
-  if (can("history")) {
+  if (can("history") && hScopes.length) {
     defs.push({
       type: "item",
       labelKey: "search.items",
       run: async () => {
-        const where =
+        const match =
           parsed.kind === "uid"
             ? { uid: { startsWith: parsed.uid! } }
             : { OR: [{ uid: { contains: parsed.text } }, { product: { name: { contains: parsed.text } } }] };
+        // Same scope set the History list and item detail page enforce.
+        const where = { ...match, scope: { in: hScopes } };
         const rows = await prisma.item.findMany({
           where,
           select: { id: true, uid: true, product: { select: { name: true } } },

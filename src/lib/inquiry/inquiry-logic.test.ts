@@ -94,12 +94,24 @@ describe("canViewUnit (inquiry unit authorization)", () => {
     expect(canViewUnit(logi, "TRAVELER", null)).toBe(true);
     expect(canViewUnit(ops, "TRAVELER", null)).toBe(false); // traveler is logistics-only
   });
-  it("container kinds map to their module; ITEM→history", () => {
+  it("container kinds map to their module", () => {
     expect(canViewUnit(acc({ logistics: "VIEW" }), "HUB", null)).toBe(true);
     expect(canViewUnit(acc({ logistics: "VIEW" }), "TRANSFER", null)).toBe(true);
     expect(canViewUnit(acc({ operations: "VIEW" }), "SHIPMENT", null)).toBe(true);
-    expect(canViewUnit(acc({ history: "VIEW" }), "ITEM", null)).toBe(true);
-    expect(canViewUnit(acc({ order_requests: "MANAGE" }), "ITEM", null)).toBe(false);
+  });
+  it("ITEM needs the item's own scope, not just the history module", () => {
+    // Codex pass 2 (P0): this previously returned true on the MODULE alone, so a
+    // Sales user could enumerate the people who handled a XOONX item and open a
+    // persistent inquiry against it. ITEM is scope-bound like REQUEST/PURCHASE.
+    const sales = acc({ history: "VIEW", order_requests: "MANAGE" }); // historyScopes → [VEEEY]
+    expect(canViewUnit(sales, "ITEM", "VEEEY")).toBe(true);
+    expect(canViewUnit(sales, "ITEM", "XOONX")).toBe(false);
+    expect(canViewUnit(sales, "ITEM", null)).toBe(false); // missing record → denied
+    const xoonx = acc({ history: "VIEW", xoonx: "MANAGE" }); // historyScopes → [XOONX]
+    expect(canViewUnit(xoonx, "ITEM", "XOONX")).toBe(true);
+    expect(canViewUnit(xoonx, "ITEM", "VEEEY")).toBe(false);
+    // back office sees both lines
+    expect(canViewUnit(acc({ history: "VIEW", logistics: "VIEW" }), "ITEM", "XOONX")).toBe(true);
   });
   it("PURCHASE needs purchasing VIEW + a matching product scope", () => {
     const purch = acc({ purchasing: "VIEW" });
@@ -117,6 +129,6 @@ describe("canViewUnit (inquiry unit authorization)", () => {
     expect(unitNeedsScope("REQUEST")).toBe(true);
     expect(unitNeedsScope("PURCHASE")).toBe(true);
     expect(unitNeedsScope("TRIP")).toBe(false);
-    expect(unitNeedsScope("ITEM")).toBe(false);
+    expect(unitNeedsScope("ITEM")).toBe(true); // Item carries a denormalized scope
   });
 });

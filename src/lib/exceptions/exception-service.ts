@@ -7,6 +7,7 @@ import { autoAdvanceSchedule } from "@/lib/workflow/workflow-logic";
 import { poolOpensIssue } from "./exception-logic";
 import { sendLocalizedToUsers, resolveRecipients } from "@/lib/notify/notify-service";
 import { itemsFlaggedPayload, issueOpenedPayload } from "@/lib/notify/notify-logic";
+import { issueEventRecipients } from "@/lib/issues/issues-service";
 
 const titleCase = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 const itemLabel = (it: { uid: string | null; id: number; product: { name: string } | null }) =>
@@ -49,7 +50,7 @@ export async function flagToPool(
       },
     });
     issueId = issue.id;
-    await sendLocalizedToUsers(await resolveRecipients("issue.opened"), (t) => issueOpenedPayload(t, issue)).catch(() => {});
+    await sendLocalizedToUsers(await issueEventRecipients("issue.opened", issue.scope), (t) => issueOpenedPayload(t, issue)).catch(() => {});
   }
 
   for (const it of items) {

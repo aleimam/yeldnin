@@ -65,7 +65,9 @@ export async function canViewInquiryUnit(access: UnitViewAccess, unitKind: strin
     const row =
       unitKind === "REQUEST"
         ? await prisma.request.findUnique({ where: { id: unitId }, select: { scope: true } })
-        : await prisma.purchase.findUnique({ where: { id: unitId }, select: { scope: true } });
+        : unitKind === "ITEM"
+          ? await prisma.item.findUnique({ where: { id: unitId }, select: { scope: true } })
+          : await prisma.purchase.findUnique({ where: { id: unitId }, select: { scope: true } });
     recordScope = row?.scope ?? null;
   }
   return canViewUnit(access, unitKind, recordScope);

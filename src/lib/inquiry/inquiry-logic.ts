@@ -3,6 +3,7 @@
 // first reply from the recipient side flips OPEN → ANSWERED; anyone on the
 // initiator's team CLOSES it with a disposition.
 import { requestScopes } from "@/lib/requests/request-logic";
+import { historyScopes } from "@/lib/history/history-logic";
 import { productScopes, type AccessLike, type Scope } from "@/lib/products/products-logic";
 
 export const INQUIRY_STATUSES = ["OPEN", "ANSWERED", "CLOSED"] as const;
@@ -74,7 +75,11 @@ export type UnitViewAccess = AccessLike & { hidesTripTraveler: boolean };
 /** Whether a unit kind's visibility depends on the record's own VEEEY/XOONX scope
  *  (so the caller must load that scope before deciding). */
 export function unitNeedsScope(unitKind: string): boolean {
-  return unitKind === "REQUEST" || unitKind === "PURCHASE";
+  // ITEM belongs here: an Item carries a denormalized scope, and the History
+  // list/detail already enforce it. Omitting ITEM meant the inquiry actions
+  // authorized the MODULE only, so a Sales user could enumerate the people who
+  // handled a XOONX item and open a persistent inquiry against it.
+  return unitKind === "REQUEST" || unitKind === "PURCHASE" || unitKind === "ITEM";
 }
 
 /**
@@ -95,7 +100,8 @@ export function canViewUnit(access: UnitViewAccess, unitKind: string, recordScop
     case "PURCHASE":
       return recordScope != null && access.canModule("purchasing", "VIEW") && productScopes(access, "VIEW").includes(recordScope as Scope);
     case "ITEM":
-      return access.canModule("history", "VIEW");
+      // Same scope set the History list and /history/items/[id] enforce.
+      return recordScope != null && historyScopes(access).includes(recordScope as Scope);
     case "HUB":
     case "PATCH":
     case "TRANSFER":

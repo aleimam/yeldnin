@@ -4,6 +4,46 @@ import { clean } from "@/lib/text";
 import { nextUid } from "@/lib/uid";
 import { sendLocalizedToUsers, resolveRecipients } from "@/lib/notify/notify-service";
 import { issueOpenedPayload } from "@/lib/notify/notify-logic";
+import { issueVisibility, issueVisible } from "@/lib/issues/issues-logic";
+import type { AccessLike } from "@/lib/products/products-logic";
+
+const RANK = { NONE: 0, VIEW: 1, OPERATE: 2, MANAGE: 3 } as const;
+
+/**
+ * GOLDEN RULE: recipients for an issue event, narrowed to users who could
+ * actually SEE that issue.
+ *
+ * `resolveRecipients(ctx.scope)` drops scope-BOUND modules, but `issues` is
+ * cross-scope by design — so a XOONX operator with Issues OPERATE was still
+ * receiving a VEEEY issue's UID and product-derived title by push, even though
+ * the issue list and detail page correctly hide it from them.
+ *
+ * Module membership alone can't answer this: visibility depends on the
+ * COMBINATION a user holds (xoonx ⇒ XOONX only; logistics/operations/purchasing
+ * ⇒ all). So resolve the candidates, then filter each by their own effective
+ * `issueVisibility`.
+ */
+export async function issueEventRecipients(event: string, scope: string | null): Promise<number[]> {
+  const ids = await resolveRecipients(event, { scope });
+  if (!ids.length) return ids;
+  const users = await prisma.user.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, tier: true, modulePerms: { select: { moduleKey: true, level: true } } },
+  });
+  return users
+    .filter((u) => {
+      const isAdmin = u.tier === "ADMIN" || u.tier === "SUPER_ADMIN";
+      const lvl = new Map(u.modulePerms.map((p) => [p.moduleKey, p.level]));
+      const rank = (k: string) => RANK[(lvl.get(k) ?? "NONE") as keyof typeof RANK];
+      const a: AccessLike = {
+        isAdmin,
+        canModule: (k, min = "VIEW") => isAdmin || rank(k) >= RANK[min],
+        can: (k) => isAdmin || rank(k) > 0,
+      };
+      return issueVisible(issueVisibility(a), scope);
+    })
+    .map((u) => u.id);
+}
 
 export async function createIssue(
   input: { title: string; note?: string | null; scope?: string | null },
@@ -24,7 +64,7 @@ export async function createIssue(
       items: itemRefs.length ? { create: itemRefs.map((r) => ({ itemId: r.itemId, label: r.label })) } : undefined,
     },
   });
-  await sendLocalizedToUsers(await resolveRecipients("issue.opened"), (t) => issueOpenedPayload(t, issue)).catch(() => {});
+  await sendLocalizedToUsers(await issueEventRecipients("issue.opened", issue.scope), (t) => issueOpenedPayload(t, issue)).catch(() => {});
   return issue;
 }
 
@@ -43,7 +83,7 @@ export async function openIssueForMark(
   const issue = await prisma.issue.create({
     data: { uid, title: input.title, note: clean(input.note), sourceType: "TRIP_MARK", sourceId: markId, createdById: userId },
   });
-  await sendLocalizedToUsers(await resolveRecipients("issue.opened"), (t) => issueOpenedPayload(t, issue)).catch(() => {});
+  await sendLocalizedToUsers(await issueEventRecipients("issue.opened", issue.scope), (t) => issueOpenedPayload(t, issue)).catch(() => {});
   return issue.id;
 }
 
