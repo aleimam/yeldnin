@@ -34,7 +34,7 @@ export const MODULES: ModuleDef[] = [
   { key: "purchasing", route: "/purchasing", section: "main", category: "supply_chain", icon: "🛒", foldedInto: "logistics" },
   { key: "logistics", route: "/logistics", section: "main", category: "supply_chain", icon: "🚚" },
   { key: "operations", route: "/operations", section: "main", category: "supply_chain", icon: "💼" },
-  { key: "couriers", route: "/couriers", section: "main", category: "supply_chain", icon: "🛵" },
+  { key: "couriers", route: "/deliveries", section: "main", category: "supply_chain", icon: "🛵" },
   { key: "issues", route: "/issues", section: "main", category: "supply_chain", icon: "⚠️" },
   { key: "history", route: "/history", section: "main", category: "supply_chain", icon: "🕐" },
   { key: "pricing", route: "/pricing", section: "main", category: "services", icon: "🧮" },

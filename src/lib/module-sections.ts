@@ -78,7 +78,13 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "pos.title", icon: "🗂️", href: "/hr/positions", capability: "manage" },
     { labelKey: "hr.setup", icon: "⚙️", href: "/hr/setup", capability: "manage" },
   ],
-  couriers: [{ labelKey: "couriers.title", icon: "🛵", href: "/couriers" }],
+  // Module KEY stays `couriers` (permissions are keyed by it — renaming would
+  // void every grant); the module is LABELLED "Deliveries" and the courier
+  // roster becomes a tab inside it. See INTEGRATION_V2_DELIVERIES.md §10.
+  couriers: [
+    { labelKey: "dlv.title", icon: "📦", href: "/deliveries" },
+    { labelKey: "couriers.title", icon: "🛵", href: "/couriers" },
+  ],
   issues: [{ labelKey: "issues.title", icon: "⚠️", href: "/issues" }],
   history: [{ labelKey: "history.title", icon: "🕐", href: "/history" }],
   documents: [
