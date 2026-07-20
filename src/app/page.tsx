@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getT } from "@/i18n/server";
 import { TopBar } from "@/components/shell/TopBar";
 import { MODULES, MODULE_CATEGORIES, childModules, type ModuleDef } from "@/lib/modules";
@@ -30,6 +31,11 @@ function ModuleCard({ m, t }: { m: ModuleDef; t: TFunction }) {
 
 export default async function DashboardPage() {
   const access = await requireUser();
+  // A courier (THIRD_PARTY) has only Deliveries — send them straight there rather
+  // than to a module grid of things they can't open (§5.1). Guarded by the
+  // couriers check so a non-courier THIRD_PARTY can't ping-pong: /deliveries
+  // bounces a user without couriers back here, which would otherwise loop.
+  if (access.user.tier === "THIRD_PARTY" && access.canModule("couriers")) redirect("/deliveries");
   const t = await getT();
 
   const canSee = (key: string) =>

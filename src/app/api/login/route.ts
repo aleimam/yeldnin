@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/session";
+import { normalizePhone } from "@/lib/couriers/courier-login-logic";
 
 // A real bcrypt hash to compare against when the email is unknown, so the
 // response time doesn't reveal whether an account exists.
@@ -54,9 +55,16 @@ export async function POST(req: Request) {
   const fail = () => seeOther("/login?error=1");
   if (!identifier || !password) return fail();
 
-  const user = await prisma.user.findFirst({
-    where: { OR: [{ email: identifier.toLowerCase() }, { username: identifier }] },
-  });
+  // Couriers sign in with a phone (stored canonically in `username`). Accept it
+  // typed any way — `+20…`, `0100 123 4567`, `00201…` — by also matching the
+  // canonical form. Staff still sign in by email or plain username unchanged.
+  const phone = normalizePhone(identifier);
+  const orClauses: { email?: string; username?: string }[] = [
+    { email: identifier.toLowerCase() },
+    { username: identifier },
+  ];
+  if (phone && phone !== identifier) orClauses.push({ username: phone });
+  const user = await prisma.user.findFirst({ where: { OR: orClauses } });
 
   // Temporarily locked after too many failures — fail generically (don't reveal
   // the account exists; the lock auto-expires).
@@ -82,5 +90,8 @@ export async function POST(req: Request) {
   // user's current tokenVersion (revocation check on every request).
   await prisma.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil: null } });
   await setSessionCookie(user.id, user.tokenVersion);
-  return seeOther("/");
+  // A courier (THIRD_PARTY) lands on their delivery queue, not the module grid
+  // — they have only Deliveries and would otherwise see a dashboard of things
+  // they can't open (§5.1). The root page makes the same jump defensively.
+  return seeOther(user.tier === "THIRD_PARTY" ? "/deliveries" : "/");
 }
