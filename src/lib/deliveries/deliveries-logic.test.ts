@@ -16,6 +16,7 @@ import {
   collectionMismatch,
   canSeeAllDeliveries,
   deliveryCourierFilter,
+  canOperateDeliveries,
   FAILURE_REASONS,
 } from "./deliveries-logic";
 import type { AccessLike } from "@/lib/products/products-logic";
@@ -146,23 +147,34 @@ describe("money is integer piastres", () => {
 
 describe("access — a courier sees ONLY their own", () => {
   const ops = mk({ couriers: "OPERATE" });
-  const courier = mk({ couriers: "VIEW" });
+  const opsViewer = mk({ couriers: "VIEW" });
+  const courier = mk({ couriers: "OPERATE" }); // a courier who can do his job
 
   it("gives Ops and admins every delivery", () => {
-    expect(canSeeAllDeliveries(ops)).toBe(true);
-    expect(canSeeAllDeliveries(mk({}, true))).toBe(true);
-    expect(deliveryCourierFilter(ops, 4)).toBeNull(); // null = unfiltered
+    expect(canSeeAllDeliveries(ops, "MEMBER")).toBe(true);
+    expect(canSeeAllDeliveries(opsViewer, "MEMBER")).toBe(true); // VIEW is enough to watch the queue
+    expect(canSeeAllDeliveries(mk({}, true), "SUPER_ADMIN")).toBe(true);
+    expect(deliveryCourierFilter(ops, "MEMBER", 4)).toBeNull(); // null = unfiltered
   });
 
-  it("pins a VIEW-level courier to their own courier id", () => {
-    expect(canSeeAllDeliveries(courier)).toBe(false);
-    expect(deliveryCourierFilter(courier, 4)).toBe(4);
+  it("pins a THIRD_PARTY courier to their own id EVEN AT OPERATE", () => {
+    // The trap this replaces: keying "sees everything" off OPERATE. A courier
+    // needs OPERATE to update his own delivery's status, so that rule handed him
+    // the entire queue — every customer's address, phone and cash amount — the
+    // moment he was given enough permission to do his job.
+    expect(canSeeAllDeliveries(courier, "THIRD_PARTY")).toBe(false);
+    expect(deliveryCourierFilter(courier, "THIRD_PARTY", 4)).toBe(4);
+    expect(canOperateDeliveries(courier, "THIRD_PARTY")).toBe(true); // still able to work
   });
 
-  it("shows ZERO — not everything — to a viewer who is not on the roster", () => {
-    // The dangerous default: a filter of `null` here would mean "no filter", and
-    // hand every customer's address, phone and cash amount to any signed-in
-    // account holding VIEW.
-    expect(deliveryCourierFilter(courier, null)).toBe(-1);
+  it("does not use roster membership as the discriminator", () => {
+    // Ops staff are couriers too — they hold Courier rows and take deliveries
+    // themselves — so "is on the roster" would wrongly narrow Ops to their own.
+    expect(deliveryCourierFilter(ops, "MEMBER", 9)).toBeNull();
+  });
+
+  it("shows ZERO — not everything — to a courier who is not on the roster", () => {
+    // The dangerous default: a filter of `null` here would mean "no filter".
+    expect(deliveryCourierFilter(courier, "THIRD_PARTY", null)).toBe(-1);
   });
 });

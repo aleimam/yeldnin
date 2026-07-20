@@ -177,15 +177,34 @@ export function collectionMismatch(expectedPiastres: number, collectedPiastres: 
  *
  * Within their own deliveries a courier sees EVERYTHING — address, phone, lines,
  * COD amount. The restriction is *which* deliveries, never *how much* of one.
+ *
+ * ⚠ THE DISCRIMINATOR IS TIER, AND IT HAS TO BE. Two tempting alternatives are
+ * both wrong here:
+ *   - Permission LEVEL cannot separate them: a dedicated courier needs OPERATE
+ *     to update his own delivery's status, so keying "sees everything" off
+ *     OPERATE would hand him the whole queue the moment he can do his job.
+ *   - Roster MEMBERSHIP cannot separate them either, because Ops staff are
+ *     couriers too — they carry `Courier` rows and take deliveries themselves.
+ * A dedicated courier is a THIRD_PARTY account (§5); Ops are MEMBER/ADMIN.
  */
-export function canSeeAllDeliveries(a: AccessLike): boolean {
-  return a.isAdmin || a.canModule(DELIVERIES_MODULE, "OPERATE");
+export function canSeeAllDeliveries(a: AccessLike, tier: string): boolean {
+  if (tier === "THIRD_PARTY") return false;
+  return a.isAdmin || a.canModule(DELIVERIES_MODULE, "VIEW");
 }
 
 /** Which courier's rows this user may see; null = all of them (Ops/admin). */
-export function deliveryCourierFilter(a: AccessLike, ownCourierId: number | null): number | null {
-  if (canSeeAllDeliveries(a)) return null;
-  return ownCourierId ?? -1; // -1 matches nothing: a non-Ops user off the roster sees zero, not everything
+export function deliveryCourierFilter(a: AccessLike, tier: string, ownCourierId: number | null): number | null {
+  if (canSeeAllDeliveries(a, tier)) return null;
+  return ownCourierId ?? -1; // -1 matches nothing: a THIRD_PARTY off the roster sees zero, not everything
+}
+
+/**
+ * May this user act on a delivery at all? A courier acts on his own (already
+ * narrowed by the filter above); Ops need the module's operate capability.
+ */
+export function canOperateDeliveries(a: AccessLike, tier: string): boolean {
+  if (tier === "THIRD_PARTY") return a.canModule(DELIVERIES_MODULE, "OPERATE");
+  return a.isAdmin || a.can(DELIVERIES_MODULE, "operate");
 }
 
 export function canViewDeliveries(a: AccessLike, level: Level = "VIEW"): boolean {

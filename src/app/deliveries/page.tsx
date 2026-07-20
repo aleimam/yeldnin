@@ -31,11 +31,13 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
 
   // GOLDEN RULE (§5.1): Ops see every delivery, a courier sees ONLY their own.
   // The filter is applied in the service, server-side — never by hiding a link.
+  const tier = access.user.tier;
   const ownCourierId = await courierIdForUser(access.user.id);
+  const seesAll = canSeeAllDeliveries(access, tier);
   const [t, { rows, total }, counts] = await Promise.all([
     getT(),
-    listDeliveriesPaged(access, ownCourierId, { search: sp.q, status: sp.status, skip, take }),
-    deliveryStatusCounts(access, ownCourierId),
+    listDeliveriesPaged(access, tier, ownCourierId, { search: sp.q, status: sp.status, skip, take }),
+    deliveryStatusCounts(access, tier, ownCourierId),
   ]);
 
   const tab = (key: string | undefined, label: string, count: number) => {
@@ -69,7 +71,7 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
               <th className="th">{t("dlv.order")}</th>
               <th className="th">{t("dlv.customer")}</th>
               <th className="th">{t("dlv.promised")}</th>
-              {canSeeAllDeliveries(access) && <th className="th">{t("dlv.courier")}</th>}
+              {seesAll && <th className="th">{t("dlv.courier")}</th>}
               <th className="th">{t("dlv.collect")}</th>
             </tr>
           </thead>
@@ -98,7 +100,7 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
                   {formatBizDate(d.promisedDate)}
                   {d.promisedSlot && <div className="text-xs">{d.promisedSlot}</div>}
                 </td>
-                {canSeeAllDeliveries(access) && (
+                {seesAll && (
                   <td className="td text-muted" data-label={t("dlv.courier")}>
                     {d.courier?.name ?? <span className="text-amber-700">{t("dlv.unassigned")}</span>}
                   </td>
@@ -114,7 +116,7 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
             ))}
             {rows.length === 0 && (
               <tr>
-                <td className="td text-muted" colSpan={canSeeAllDeliveries(access) ? 5 : 4}>
+                <td className="td text-muted" colSpan={seesAll ? 5 : 4}>
                   {t("dlv.empty")}
                 </td>
               </tr>

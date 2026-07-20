@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import type { AccessLike } from "@/lib/products/products-logic";
-import { deliveryCourierFilter, isDeliveryStatus } from "@/lib/deliveries/deliveries-logic";
+import { deliveryCourierFilter, isDeliveryStatus, isBounceTransition, isTerminal, collectionMismatch } from "@/lib/deliveries/deliveries-logic";
 
 /**
  * Delivery reads. Every list and lookup here goes through `scopeWhere`, which
@@ -21,10 +21,10 @@ export async function courierIdForUser(userId: number): Promise<number | null> {
   return c?.id ?? null;
 }
 
-function scopeWhere(ownCourierId: number | null, access: AccessLike) {
-  const courierId = deliveryCourierFilter(access, ownCourierId);
+function scopeWhere(access: AccessLike, tier: string, ownCourierId: number | null) {
+  const courierId = deliveryCourierFilter(access, tier, ownCourierId);
   // null = Ops/admin, unfiltered. A number pins to that courier; -1 deliberately
-  // matches nothing (a VIEW-level user who is not on the roster sees zero).
+  // matches nothing (a THIRD_PARTY courier who is not on the roster sees zero).
   return courierId == null ? {} : { courierId };
 }
 
@@ -35,10 +35,10 @@ export interface DeliveryListOpts {
   take?: number;
 }
 
-export async function listDeliveriesPaged(access: AccessLike, ownCourierId: number | null, opts: DeliveryListOpts) {
+export async function listDeliveriesPaged(access: AccessLike, tier: string, ownCourierId: number | null, opts: DeliveryListOpts) {
   const where = {
     archivedAt: null,
-    ...scopeWhere(ownCourierId, access),
+    ...scopeWhere(access, tier, ownCourierId),
     ...(isDeliveryStatus(opts.status) ? { status: opts.status } : {}),
     ...(opts.search
       ? {
@@ -83,9 +83,9 @@ export async function listDeliveriesPaged(access: AccessLike, ownCourierId: numb
 
 /** By-id read, scoped. Returns null for someone else's delivery so the caller
  *  can 404 — NOT 403, which would confirm the delivery exists. */
-export async function getDeliveryFor(access: AccessLike, ownCourierId: number | null, id: number) {
+export async function getDeliveryFor(access: AccessLike, tier: string, ownCourierId: number | null, id: number) {
   return prisma.delivery.findFirst({
-    where: { id, archivedAt: null, ...scopeWhere(ownCourierId, access) },
+    where: { id, archivedAt: null, ...scopeWhere(access, tier, ownCourierId) },
     include: {
       lines: true,
       photos: { select: { id: true, assetId: true } },
@@ -96,11 +96,100 @@ export async function getDeliveryFor(access: AccessLike, ownCourierId: number | 
 }
 
 /** Counts per status for the queue tabs — same scoping as the list. */
-export async function deliveryStatusCounts(access: AccessLike, ownCourierId: number | null) {
+export async function deliveryStatusCounts(access: AccessLike, tier: string, ownCourierId: number | null) {
   const rows = await prisma.delivery.groupBy({
     by: ["status"],
-    where: { archivedAt: null, ...scopeWhere(ownCourierId, access) },
+    where: { archivedAt: null, ...scopeWhere(access, tier, ownCourierId) },
     _count: { _all: true },
   });
   return Object.fromEntries(rows.map((r) => [r.status, r._count._all])) as Record<string, number>;
+}
+
+// ── Writes ─────────────────────────────────────────────────────────────────
+
+export interface StatusChangeInput {
+  to: string;
+  courierId?: number | null;
+  failureReason?: string | null;
+  cancelReason?: string | null;
+  promisedDate?: string | null;
+  promisedSlot?: string | null;
+  collectedPiastres?: number | null;
+  note?: string | null;
+  reviewFlag?: boolean;
+  reviewNote?: string | null;
+}
+
+/**
+ * Apply a validated status change. The CALLER must already have loaded the
+ * delivery through `getDeliveryFor` (so the courier scope is proven) and run
+ * `validateStatusChange` — this function trusts neither the id nor the payload
+ * on its own, it only writes.
+ *
+ * One transaction so the delivery row and its event can never disagree: a status
+ * with no event is an untraceable change, and an event with no status is a lie.
+ */
+export async function applyStatusChange(
+  current: { id: number; status: string; bounceCount: number; collectPiastres: number },
+  input: StatusChangeInput,
+  userId: number,
+) {
+  const bounced = isBounceTransition(current.status, input.to);
+  const closing = isTerminal(input.to);
+  // A courier handing over a different amount than the order says is the
+  // commonest Yellow Flag trigger — raise it automatically rather than relying
+  // on someone remembering to tick a box. An explicit flag still wins.
+  const mismatch = input.to === "DELIVERED" && collectionMismatch(current.collectPiastres, input.collectedPiastres ?? null);
+  const at = new Date();
+
+  return prisma.$transaction(async (tx) => {
+    const d = await tx.delivery.update({
+      where: { id: current.id },
+      data: {
+        status: input.to,
+        ...(input.courierId !== undefined ? { courierId: input.courierId } : {}),
+        ...(input.promisedDate ? { promisedDate: new Date(input.promisedDate) } : {}),
+        ...(input.promisedSlot ? { promisedSlot: input.promisedSlot } : {}),
+        // Reasons are cleared on any move that doesn't carry one, so a retried
+        // delivery cannot keep displaying why a PREVIOUS attempt failed.
+        failureReason: input.to === "FAILED" ? (input.failureReason ?? null) : null,
+        cancelReason: input.to === "CANCELLED" ? (input.cancelReason ?? null) : null,
+        ...(input.collectedPiastres != null ? { collectedPiastres: input.collectedPiastres } : {}),
+        ...(input.note ? { courierNote: input.note } : {}),
+        ...(bounced ? { bounceCount: { increment: 1 } } : {}),
+        ...(input.to === "DELIVERED" ? { deliveredAt: at } : {}),
+        ...(closing ? { closedAt: at } : {}),
+        ...(input.reviewFlag || mismatch ? { reviewFlag: true, reviewNote: input.reviewNote ?? null } : {}),
+        updatedById: userId,
+      },
+    });
+    await tx.deliveryEvent.create({
+      data: {
+        deliveryId: current.id,
+        status: input.to,
+        at,
+        byUserId: userId,
+        reason: input.failureReason ?? input.cancelReason ?? null,
+        note: input.note ?? null,
+      },
+    });
+    return d;
+  });
+}
+
+/** Active couriers for the assignment picker. */
+export function listCouriersForAssignment() {
+  return prisma.courier.findMany({
+    where: { archivedAt: null, active: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+}
+
+/** Raise or clear the Yellow Flag on its own, without a status change. */
+export async function setReviewFlag(id: number, flag: boolean, note: string | null, userId: number) {
+  return prisma.delivery.update({
+    where: { id },
+    data: { reviewFlag: flag, reviewNote: flag ? note : null, updatedById: userId },
+  });
 }
