@@ -383,10 +383,24 @@ Reuses contract v1 §1 auth (HMAC-SHA256, timestamp + nonce) and §2 idempotency
 
 ## 9. Prerequisites before any of this can run
 
-1. **veeey.net has no integration link.** The v2 channel ships OFF there, it is a
-   different box (178.105.234.110, not YeldnIN's), and needs its own shared
-   secret and `YELDNIN_BASE_URL`. Secret exchange plus a signed round-trip test
-   is a prerequisite, not a detail.
+1. ~~**veeey.net has no integration link.**~~ ✅ **DONE (verified 2026-07-20).**
+   The live `ApiIntegration` row on in.yeldn.com is `enabled`, holds a stored
+   secret, and its `baseUrl` is `https://veeey.net`, with `lastTestOk = true` at
+   2026-07-19 18:59 UTC. The secret exchange and signed round-trip happened.
+
+   > Two consequences worth stating, because they change the plan:
+   >
+   > - **No multi-client work is needed.** `ApiIntegration` is a table keyed by
+   >   `provider`, but every read hardcodes `"VEEEY"` and `verifyInbound`
+   >   resolves one secret regardless of `X-Client-Id`. That is fine while
+   >   exactly ONE store is connected, which is the case: the single row points
+   >   at veeey.net. Multi-client only becomes real when veeey.com is linked
+   >   *alongside* it — and it will need more than a second row, because both
+   >   stores run the same codebase and would send the same `X-Client-Id`, so the
+   >   client id must become env-driven on their side before a secret can be
+   >   resolved per store. Do not build this until that day arrives.
+   > - **The outbox is empty**, so nothing has traversed the channel in anger —
+   >   `lastTestOk` reflects the health test, not a real payload.
 2. **YeldnIN needs the Deliveries module** — the `couriers` module relabelled
    (see §10), plus the delivery model, Ops screens and the courier view.
 3. **Veeey needs** the VEEEY Express carrier option, the Ops "mark shipped"
