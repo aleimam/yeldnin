@@ -198,15 +198,32 @@ values with orders that never had a payment — and COD is most of the volume.
 Group `Returned + Refunded` in reporting queries if a single "closed" view is
 wanted; don't collapse them in the data.
 
-### ⚠️ 4.1 Stock restore must fire exactly once
+### ⚠️ 4.1 Stock restore — fires once, on one of two triggers
 
-Veeey already restores stock on `committed → CANCELLED/REFUNDED` via
-`enqueueWriteback` → `NetStockOutbox`. An order now walking **Cancelled →
-Returned → Refunded** could fire **three restores for one order**.
+Veeey currently restores stock on `committed → CANCELLED/REFUNDED`. With the
+order now able to walk **Cancelled → Returned → Refunded**, that would fire
+**three restores for one order**, so the rule changes.
 
-`NetStockOutbox` has a unique key `(orderId, wpId, direction)`, so exactly-once
-*should* hold — but it must be **verified against the new statuses, not assumed**.
-This is the class of bug that silently inflates stock for weeks.
+Restock when the goods become available again — which happens in exactly two ways:
+
+| Transition | Restock? | Why |
+|---|---|---|
+| `Cancelled` **before dispatch** | ✅ | Never left the warehouse; available immediately |
+| `Cancelled` **after dispatch** | ❌ | Goods are with the courier — wait for `Returned` |
+| `Returned` | ✅ | Physically back |
+| `Refunded` | ❌ never | Money-only event; the goods were already handled |
+
+It fires **once**, on whichever comes first: cancelled-while-undispatched, or
+returned.
+
+> **⚠️ "Restock only at `Returned`" is not sufficient.** An order cancelled
+> before it ships never reaches `Returned` — nothing comes back, because nothing
+> left — so its committed stock would stay decremented permanently. That is
+> likely the most common cancellation of all.
+
+`NetStockOutbox`'s unique key `(orderId, wpId, direction)` gives exactly-once,
+but it must be **verified against the new statuses, not assumed**. This is the
+class of bug that silently distorts stock for weeks before anyone notices.
 
 ### 4.2 What the customer sees
 
@@ -263,7 +280,9 @@ Therefore:
 - Every module except Deliveries is NONE; the courier lands directly on
   "My deliveries", never a dashboard of things they cannot open.
 
-A courier sees **everything about their own delivery**, COD amount included.
+**Ops see every delivery; a courier sees only their own.** Within their own, a
+courier sees **everything** — address, phone, line items and COD amount included.
+The restriction is *which* deliveries, never *how much* of one.
 
 ---
 
