@@ -15,9 +15,32 @@
 |---|---|
 | Pass 2 defects reported | 11 |
 | Verified by me directly | 3 (all **confirmed** — none were false positives) |
-| **Fixed and deployed** | **4** (`fa05d6a`) |
-| Open defects | 7 |
-| Pass 1 questions triaged | 9 → 4 answered, 5 real items |
+| **Fixed and deployed** | **11 — all of them** |
+| Open defects | **0** |
+| Pass 1 questions triaged | 9 → 4 answered, 5 real items (still open, non-security) |
+
+**All 11 pass-2 defects are fixed, on `main`, and live on `in.yeldn.com`** as of
+prod HEAD `1856578`. Five commits, one per root-cause pattern:
+
+| Pattern | Commit | Covers |
+|---|---|---|
+| 1. Authorize the stored record, not the payload | `fa05d6a` | F2, F3, F4, F10 |
+| 2. Module-gated but not scope-filtered queries | `e7828b6` | F6, F7, F8 |
+| 3. Direct-id serving without owner authorisation | `262e813` | F5 |
+| 4. Error messages as oracles | `443ec42` | F9, F11 |
+| 5. Integration boundary | `1856578` | F1 |
+
+**Three tests had to be rewritten because they asserted the buggy behaviour** —
+`unitNeedsScope("ITEM")`, `canViewUnit(history VIEW, "ITEM", null)`, and
+`requestLineProductError` requiring the error to *contain* the off-scope product
+name. In each case the test encoded the same wrong assumption as the code, so the
+suite could never have caught the bug. Worth remembering when reading a green
+suite as evidence.
+
+**One known gap is documented, not fixed:** ownerless assets (images embedded in
+rich-text documents via `RichTextEditor.tsx`) have no owning row to authorise
+against, so `/api/asset/[id]` still serves them to any signed-in user. Noted in
+the pattern-3 commit; closing it needs an owner column on the asset.
 
 **Assessment of the audit itself:** high quality. Precise line numbers, correct
 mechanics, honest confidence levels, and a coverage log that states what it
@@ -52,7 +75,7 @@ exact reported case. Verified: typecheck · 433 tests · i18n parity · build.
 > **Honest note:** F2 lives in a function I was editing hours earlier for the
 > VEEEY read-only work. I did not spot the pre-existing hole beside my change.
 
-### 🔴 OPEN — P0, cross-scope WRITE
+### ✅ FIXED — pattern 5, was the last P0, cross-scope WRITE (`1856578`)
 
 **F1 — the request integration can export, create and overwrite non-VEEEY records.**
 Outbound emits any request's customer, lines, prices and photos without
@@ -61,7 +84,16 @@ checking the stored request's scope. Crosses the boundary **in both directions**
 Shares pattern 1's root cause but reaches into the wire contract and outbound
 emission, so it is its own fix (**pattern 5**) rather than a half-measure.
 
-### 🟠 OPEN — P1, disclosure
+**Fixed** in four places: outbound returns unless the request is VEEEY; inbound
+*rejects* a non-VEEEY scope instead of coercing it; the existing-uid lookup now
+loads `scope` and refuses a mismatch; SKU matching is restricted to VEEEY
+products. The uid guard turned out to matter most — both sides mint uids from
+independent counters and the upsert **deletes lines and photos** before
+rewriting, so a collision destroyed a XOONX request rather than merely exposing
+it. The request sync simply predated the guard convention that `product-sync`
+and `customer-sync` were built with in contract v2.
+
+### ✅ FIXED — patterns 2 & 3, were P1 disclosure (`e7828b6`, `262e813`)
 
 | # | Defect | Fix pattern |
 |---|---|---|
@@ -77,7 +109,7 @@ emission, so it is its own fix (**pattern 5**) rather than a half-measure.
 > visibility. My own audit brief warns about exactly this ("anything addressable
 > by id"); I applied the rule inconsistently.
 
-### 🟡 OPEN — P2, enumeration oracles
+### ✅ FIXED — pattern 4, were P2 enumeration oracles (`443ec42`)
 
 | # | Defect | Fix pattern |
 |---|---|---|
@@ -86,14 +118,20 @@ emission, so it is its own fix (**pattern 5**) rather than a half-measure.
 
 ---
 
-## Remaining fix patterns
+## Fix patterns — all shipped
 
-| Pattern | Covers | Note |
+| Pattern | Covers | What it turned out to be |
 |---|---|---|
-| **2. Module-gated but not scope-filtered queries** | F6, F7, F8 | The scope helpers (`historyScopes`, `issueVisibility`) already exist — these call sites simply don't use them. Best value next. |
-| **3. Direct-id serving without owner authorisation** | F5 | Resolve every owning relation; default-deny unknown owners. |
-| **4. Error messages as oracles** | F9, F11 | Identical response for missing and forbidden. |
-| **5. Integration boundary** | F1 | Both directions; touches the wire contract. |
+| **2. Module-gated but not scope-filtered queries** | F6, F7, F8 | The scope helpers (`historyScopes`, `issueVisibility`) already existed — the call sites just didn't use them. Issue notifications needed the most care: recipients are now filtered by *each recipient's own* effective visibility, not the sender's. |
+| **3. Direct-id serving without owner authorisation** | F5 | 15 owner tables resolved in one pass; every 403 became a 404 so the endpoint stops confirming which ids exist. |
+| **4. Error messages as oracles** | F9, F11 | Identical response for missing and forbidden, and no record names in the message. |
+| **5. Integration boundary** | F1 | Both directions, plus a uid-collision path that *deleted* off-scope data. |
+
+**The recurring shape across all five:** the code checked whether the caller
+*may perform an operation* and then skipped checking whether they may perform it
+*on this record* — and where it did check, it answered differently for "absent"
+and "forbidden", which handed back the existence of the other business line's
+records for free.
 
 ---
 
