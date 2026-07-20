@@ -396,7 +396,23 @@ else
 fi
 ```
 
-### 10.3 Stale clients must not silently rewrite settings
+### 10.3 `server-only` breaks a standalone worker
+
+If your scheduler is a **separate process** (a tsx/node worker) rather than an
+HTTP route inside Next, the backup service must **not** `import 'server-only'`.
+That package is supplied by Next's bundler and is usually not a real dependency,
+so it resolves inside the app but throws **"Cannot find module 'server-only'"**
+in the worker — which is exactly the process that runs the schedule.
+
+This bit Veeey: manual backups (server action → inside Next) succeeded while
+every scheduled job failed. **A green manual backup proves nothing about the
+scheduled path** — check that a *scheduled* run has actually happened.
+
+Symptom to look for: levels stuck at `lastRunAt = never` while the queue shows
+FAILED jobs and the worker's own log is silent (the throw happens inside the
+job handler, not at boot).
+
+### 10.4 Stale clients must not silently rewrite settings
 
 A browser holding an older version of the form posts a payload missing the newer
 fields. If you default those to a constant, a save from that tab **silently
