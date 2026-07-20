@@ -5,6 +5,7 @@ import { requestScopes, validateRequest, requestLineProductError, type RequestTy
 import { type Scope, canSeePurchasePrice } from "@/lib/products/products-logic";
 import { createRequest, updateRequest, approveRequest, rejectRequest, getRequest, getLineProductRefs } from "@/lib/requests/request-service";
 import { markRequestDelivered, unmarkRequestDelivered } from "@/lib/xoonx/xoonx-finance-service";
+import { getCustomer } from "@/lib/customers/customers-service";
 import { writeAudit } from "@/lib/audit";
 
 export interface RequestPayload {
@@ -26,6 +27,19 @@ async function checkLineProducts(scope: string, lines: { productId: number }[]):
   const refs = await getLineProductRefs(ids);
   if (refs.length !== ids.length) return "One of the products no longer exists.";
   return requestLineProductError(scope, refs);
+}
+
+/** GOLDEN RULE: a request may only reference a customer on its OWN business
+ *  line. The foreign key proves the id exists but says nothing about scope, so
+ *  an off-scope customer id was being persisted and then rendered on the request
+ *  page — disclosing the other line's customer identity.
+ *
+ *  Missing and off-scope deliberately return the SAME message; distinguishing
+ *  them would turn this into an existence oracle for the other line. */
+async function checkCustomerScope(scope: string, customerId?: number | null): Promise<string | null> {
+  if (!customerId) return null;
+  const c = await getCustomer(customerId);
+  return c && c.scope === scope ? null : "That customer isn't available.";
 }
 
 /** Buy price is hidden from VEEEY Sales (golden rule). Drop any line purchase
@@ -50,6 +64,8 @@ export async function createRequestAction(p: RequestPayload): Promise<RequestRes
   }
   const prodErr = await checkLineProducts(p.scope, p.lines);
   if (prodErr) return { ok: false, error: prodErr };
+  const custErr = await checkCustomerScope(p.scope, p.customerId);
+  if (custErr) return { ok: false, error: custErr };
   const req = await createRequest(
     {
       type: p.type as RequestType,
@@ -85,6 +101,8 @@ export async function updateRequestAction(id: number, p: RequestPayload): Promis
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
   const prodErr = await checkLineProducts(existing.scope, p.lines);
   if (prodErr) return { ok: false, error: prodErr };
+  const custErr = await checkCustomerScope(existing.scope, p.customerId);
+  if (custErr) return { ok: false, error: custErr };
   try {
     await updateRequest(
       id,
@@ -109,9 +127,21 @@ export async function updateRequestAction(id: number, p: RequestPayload): Promis
   return { ok: true, id };
 }
 
+/** GOLDEN RULE: the approve capability says the caller may approve — not that
+ *  they may approve THIS record. Without loading the request, an approver could
+ *  confirm any id's existence (success vs "not found") and mutate an off-scope
+ *  PENDING row into spawned items. Missing and off-scope answer identically. */
+async function assertRequestInScope(access: Awaited<ReturnType<typeof requireUser>>, id: number): Promise<string | null> {
+  const existing = await getRequest(id);
+  if (!existing || !requestScopes(access, "OPERATE").includes(existing.scope as Scope)) return "Request not found.";
+  return null;
+}
+
 /** Approve a pending VEEEY request → spawns its items into the purchasing pool. */
 export async function approveRequestAction(id: number): Promise<{ ok: boolean; error?: string }> {
   const access = await requireCapability("order_requests", "approve");
+  const scopeErr = await assertRequestInScope(access, id);
+  if (scopeErr) return { ok: false, error: scopeErr };
   try {
     await approveRequest(id, access.user.id);
   } catch (e) {
@@ -126,6 +156,8 @@ export async function approveRequestAction(id: number): Promise<{ ok: boolean; e
 /** Reject a pending VEEEY request (no items spawned). */
 export async function rejectRequestAction(id: number, note: string | null): Promise<{ ok: boolean; error?: string }> {
   const access = await requireCapability("order_requests", "approve");
+  const scopeErr = await assertRequestInScope(access, id);
+  if (scopeErr) return { ok: false, error: scopeErr };
   try {
     await rejectRequest(id, note, access.user.id);
   } catch (e) {

@@ -27,6 +27,26 @@ export function issueVisible(vis: "all" | Scope[] | null, scope: string | null):
   return scope != null && vis.includes(scope as Scope);
 }
 
+/**
+ * The scope a NEW issue may carry, or null when the caller may not create it.
+ *
+ * Creation was previously unvalidated: a XOONX operator submitting the ordinary
+ * form created an UNSCOPED back-office issue they then could not open (the
+ * redirect 404s), and a crafted call could set `scope: "VEEEY"` outright. A
+ * single-line viewer may therefore only create issues on their own line, and
+ * defaults to it when the form omits one. PURE.
+ */
+export function newIssueScope(
+  vis: "all" | Scope[] | null,
+  submitted: string | null | undefined,
+): { ok: true; scope: string | null } | { ok: false } {
+  if (!vis) return { ok: false };
+  if (vis === "all") return { ok: true, scope: submitted ?? null };
+  // Scoped viewer: fall back to their own line when nothing was submitted.
+  const scope = submitted ?? (vis.length === 1 ? vis[0] : null);
+  return issueVisible(vis, scope) ? { ok: true, scope } : { ok: false };
+}
+
 export const ISSUE_STATUSES = ["OPEN", "SOLVED"] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateIssue, validateCompensation, isCompensationType, issueVisibility, issueVisible } from "./issues-logic";
+import { validateIssue, validateCompensation, isCompensationType, issueVisibility, issueVisible, newIssueScope } from "./issues-logic";
 import type { AccessLike } from "@/lib/products/products-logic";
 
 const mk = (mods: Record<string, "VIEW" | "OPERATE" | "MANAGE">, isAdmin = false): AccessLike => {
@@ -71,5 +71,30 @@ describe("issueVisible (one issue under a visibility)", () => {
     expect(issueVisible(["XOONX"], "XOONX")).toBe(true);
     expect(issueVisible(["XOONX"], "VEEEY")).toBe(false);
     expect(issueVisible(["XOONX"], null)).toBe(false);
+  });
+});
+
+describe("newIssueScope — golden rule on CREATE (Codex pass 2, P0)", () => {
+  it("a cross-scope viewer may create anything they can see, unscoped included", () => {
+    expect(newIssueScope("all", null)).toEqual({ ok: true, scope: null });
+    expect(newIssueScope("all", "VEEEY")).toEqual({ ok: true, scope: "VEEEY" });
+    expect(newIssueScope("all", "XOONX")).toEqual({ ok: true, scope: "XOONX" });
+  });
+
+  it("a XOONX operator submitting the plain form gets XOONX, not an unscoped issue", () => {
+    // the reported bug: the form omits scope, so an UNSCOPED issue was created
+    // that the creator then could not open (its redirect 404s)
+    expect(newIssueScope(["XOONX"], undefined)).toEqual({ ok: true, scope: "XOONX" });
+    expect(newIssueScope(["XOONX"], null)).toEqual({ ok: true, scope: "XOONX" });
+  });
+
+  it("a XOONX operator cannot create on the other line", () => {
+    expect(newIssueScope(["XOONX"], "VEEEY")).toEqual({ ok: false });
+    expect(newIssueScope(["XOONX"], "PERSONAL")).toEqual({ ok: false });
+  });
+
+  it("a viewer with no issue visibility cannot create at all", () => {
+    expect(newIssueScope(null, "XOONX")).toEqual({ ok: false });
+    expect(newIssueScope(null, null)).toEqual({ ok: false });
   });
 });

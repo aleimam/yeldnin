@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireCapability, type Access } from "@/lib/auth/access";
-import { validateIssue, validateCompensation, issueVisibility, issueVisible } from "@/lib/issues/issues-logic";
+import { validateIssue, validateCompensation, issueVisibility, issueVisible, newIssueScope } from "@/lib/issues/issues-logic";
 import { createIssue, resolveIssue, reopenIssue, addCompensation, getIssueScope } from "@/lib/issues/issues-service";
 import { writeAudit } from "@/lib/audit";
 
@@ -24,7 +24,13 @@ export async function createIssueAction(p: IssuePayload): Promise<IssueResult> {
   const access = await requireCapability("issues", "operate");
   const errs = validateIssue(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
-  const issue = await createIssue({ title: p.title, note: p.note ?? null, scope: p.scope ?? null }, p.photoIds ?? [], [], access.user.id);
+  // GOLDEN RULE: the operate capability doesn't say WHICH scope may be created.
+  // Derive/validate against what this caller can actually see, so a scoped
+  // operator can neither create an issue on the other line nor an unscoped
+  // back-office one they'd be unable to open.
+  const resolved = newIssueScope(issueVisibility(access), p.scope);
+  if (!resolved.ok) return { ok: false, error: "You can't create issues in that scope." };
+  const issue = await createIssue({ title: p.title, note: p.note ?? null, scope: resolved.scope }, p.photoIds ?? [], [], access.user.id);
   await writeAudit(access.user.id, "issues", "issue.create", "issue", issue.id, { title: p.title });
   revalidatePath("/issues");
   return { ok: true, id: issue.id };

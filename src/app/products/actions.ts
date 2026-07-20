@@ -61,11 +61,22 @@ export async function saveProductAction(p: ProductPayload & { id: number; active
   const access = await requireUser();
   const errs = validateProduct(p);
   if (Object.keys(errs).length) return { ok: false, error: Object.values(errs)[0] };
-  if (!productScopes(access, "OPERATE").includes(p.scope as Scope)) {
+  // GOLDEN RULE: authorize the STORED record, not the submitted payload. Checking
+  // `p.scope` first let a Sales user post a XOONX product id with scope "VEEEY" —
+  // the check passed on the value they chose, and the write then overwrote and
+  // re-scoped an off-scope product. Load first, then authorize what is really there.
+  const existing = await getProduct(p.id);
+  const allowed = productScopes(access, "OPERATE");
+  // Missing and off-scope must be indistinguishable, or this becomes an
+  // existence oracle for the other business line.
+  if (!existing || !allowed.includes(existing.scope as Scope)) {
+    return { ok: false, error: "Product not found." };
+  }
+  // Moving a product between scopes requires rights in BOTH — the one it is
+  // leaving and the one it is entering.
+  if (p.scope !== existing.scope && !allowed.includes(p.scope as Scope)) {
     return { ok: false, error: "You can't manage products in that scope." };
   }
-  const existing = await getProduct(p.id);
-  if (!existing) return { ok: false, error: "Product not found." };
   // Purchase price is Purchasing/Logistics-only: a user who can't see it can't
   // change it — preserve the stored value rather than the (absent) client one.
   const purchasePrice = canSeePurchasePrice(access) ? p.purchasePrice ?? null : existing.purchasePrice ?? null;
