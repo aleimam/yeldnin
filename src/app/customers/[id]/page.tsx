@@ -11,8 +11,10 @@ export default async function EditCustomerPage({ params }: { params: Promise<{ i
   const allowed = customerScopes(access, "OPERATE");
   const { id } = await params;
   const c = await getCustomer(Number(id));
-  if (!c) notFound();
-  if (!allowed.includes(c.scope as never)) redirect("/customers");
+  // GOLDEN RULE: 404 for BOTH missing and off-scope. Redirecting only the
+  // off-scope case told a Sales user which customer ids exist in XOONX — they
+  // could distinguish the two outcomes by the response alone.
+  if (!c || !allowed.includes(c.scope as never)) notFound();
   const t = await getT();
   return (
     <AppShell access={access} moduleKey={primaryCustomerModule(access)} pageTitle={c.name} backHref="/customers">

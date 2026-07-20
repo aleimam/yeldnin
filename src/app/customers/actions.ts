@@ -31,8 +31,12 @@ export async function createCustomerAction(p: CustomerPayload): Promise<SaveResu
 export async function saveCustomerAction(p: CustomerPayload & { id: number; active: boolean }): Promise<SaveResult> {
   const access = await requireUser();
   const existing = await getCustomer(p.id);
-  if (!existing) return { ok: false, error: "Not found." };
-  if (!canManage(access, existing.scope) || !canManage(access, p.scope)) {
+  // Missing and off-scope answer identically — a distinct "wrong scope" message
+  // confirmed the id existed on the other business line.
+  if (!existing || !canManage(access, existing.scope)) return { ok: false, error: "Not found." };
+  // Moving a customer to another scope is a different matter: the caller has
+  // already proved they may see this record, so naming the reason leaks nothing.
+  if (!canManage(access, p.scope)) {
     return { ok: false, error: "You can't manage customers in that scope." };
   }
   const errs = validateCustomer(p);

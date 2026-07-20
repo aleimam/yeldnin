@@ -11,6 +11,7 @@ import {
   hasSpawnedItems,
   requestLinesEditable,
   requestLineProductError,
+  UNAVAILABLE_PRODUCT,
 } from "./request-logic";
 import type { AccessLike } from "@/lib/products/products-logic";
 
@@ -102,9 +103,16 @@ describe("requestLineProductError", () => {
     expect(requestLineProductError("XOONX", [p("iPhone", "XOONX", "XOONX")])).toBeNull();
     expect(requestLineProductError("XOONX", [])).toBeNull();
   });
-  it("rejects out-of-scope products", () => {
-    expect(requestLineProductError("VEEEY", [p("iPhone", "XOONX", "XOONX")])).toContain("iPhone");
-    expect(requestLineProductError("XOONX", [p("Zinc", "VEEEY", "SUPPLEMENT")])).toContain("Zinc");
+  it("rejects out-of-scope products WITHOUT naming them (Codex pass 2, P0)", () => {
+    // This test previously asserted the error CONTAINED the product name, which
+    // is precisely the leak: it handed a Sales user the other line's product
+    // names, and differed from the missing-product message so ids could be probed.
+    const veeey = requestLineProductError("VEEEY", [p("iPhone", "XOONX", "XOONX")]);
+    expect(veeey).toBe(UNAVAILABLE_PRODUCT);
+    expect(veeey).not.toContain("iPhone");
+    const xoonx = requestLineProductError("XOONX", [p("Zinc", "VEEEY", "SUPPLEMENT")]);
+    expect(xoonx).toBe(UNAVAILABLE_PRODUCT);
+    expect(xoonx).not.toContain("Zinc");
   });
   it("rejects non-XOONX-type products in XOONX requests", () => {
     expect(requestLineProductError("XOONX", [p("iPhone", "XOONX", "XOONX"), p("Zinc D", "XOONX", "SUPPLEMENT")])).toContain("Zinc D");

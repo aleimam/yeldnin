@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireUser, requireCapability } from "@/lib/auth/access";
-import { requestScopes, validateRequest, requestLineProductError, type RequestType } from "@/lib/requests/request-logic";
+import { requestScopes, validateRequest, requestLineProductError, UNAVAILABLE_PRODUCT, type RequestType } from "@/lib/requests/request-logic";
 import { type Scope, canSeePurchasePrice } from "@/lib/products/products-logic";
 import { createRequest, updateRequest, approveRequest, rejectRequest, getRequest, getLineProductRefs } from "@/lib/requests/request-service";
 import { markRequestDelivered, unmarkRequestDelivered } from "@/lib/xoonx/xoonx-finance-service";
@@ -25,7 +25,7 @@ export type RequestResult = { ok: true; id: number } | { ok: false; error: strin
 async function checkLineProducts(scope: string, lines: { productId: number }[]): Promise<string | null> {
   const ids = [...new Set(lines.map((l) => l.productId).filter(Boolean))];
   const refs = await getLineProductRefs(ids);
-  if (refs.length !== ids.length) return "One of the products no longer exists.";
+  if (refs.length !== ids.length) return UNAVAILABLE_PRODUCT;
   return requestLineProductError(scope, refs);
 }
 

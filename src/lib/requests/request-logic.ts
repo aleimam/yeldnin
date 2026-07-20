@@ -77,9 +77,21 @@ export function primaryRequestModule(a: AccessLike): string {
  * requests may only contain products of the XOONX product type. Returns the
  * first offending product's error, or null when all lines are valid.
  */
+/**
+ * GOLDEN RULE: one message for a MISSING product and for an OFF-SCOPE one.
+ *
+ * Naming the off-scope product ("<X>" isn't a VEEEY product) handed a Sales user
+ * the other line's product NAMES, and answering differently from the
+ * missing-product case let them probe which ids exist over there. Same answer
+ * for both, and no name.
+ */
+export const UNAVAILABLE_PRODUCT = "One of the products is unavailable.";
+
 export function requestLineProductError(scope: string, products: { name: string; scope: string; type: string }[]): string | null {
   const offScope = products.find((p) => p.scope !== scope);
-  if (offScope) return `"${offScope.name}" isn't a ${scope} product.`;
+  if (offScope) return UNAVAILABLE_PRODUCT;
+  // The type rule fires only for products already IN scope, so naming one here
+  // discloses nothing the caller can't already see.
   if (scope === "XOONX") {
     const offType = products.find((p) => p.type !== "XOONX");
     if (offType) return `"${offType.name}" isn't a XOONX-type product — XOONX requests may only contain XOONX products.`;
