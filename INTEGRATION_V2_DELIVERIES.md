@@ -41,33 +41,62 @@ text. Back-office systems must not dictate storefront copy.
 ## 1. Delivery lifecycle
 
 ```
-                    ┌──────────────┐
-   Ops marks order  │   ASSIGNED   │  courier has it, going out
-   shipped + VEEEY  └──────┬───────┘
-   Express                 │
+   Veeey Ops mark      ┌─────────┐
+   order shipped  ───► │   NEW   │  in YeldnIN, no courier yet
+   + VEEEY Express     └────┬────┘
+                            │  YeldnIN Ops assign a courier
+                    ┌───────▼──────┐
+                    │   ASSIGNED   │  courier has it, going out today
+                    └──────┬───────┘
                     ┌──────▼────────────┐
                     │ OUT_FOR_DELIVERY  │  he has actually left
                     └──────┬────────────┘
         ┌──────────┬───────┼─────────┬──────────┐
         ▼          ▼       ▼         ▼          ▼
    DELIVERED  RESCHEDULED DELAYED  FAILED   CANCELLED
-      ✅       (customer)  (courier)  │          │
-                  └────┬────┘         │     goods return
-                   back to            │
-              OUT_FOR_DELIVERY   Ops decides
+      ✅       (customer)  (courier)  │      (customer
+                  └────┬────┘         │       doesn't want it)
+                   back to       Ops decides       │
+              OUT_FOR_DELIVERY                goods return
 ```
 
+- **`NEW`** — the delivery exists but no courier is chosen. Veeey Ops create it;
+  YeldnIN Ops assign. Without this state there is nowhere to put a delivery
+  between those two moments.
 - **`ASSIGNED` and `OUT_FOR_DELIVERY` are deliberately separate.** A customer
   seeing "out for delivery" for six hours in the Cairo summer assumes something
   is wrong. The customer only sees the second state.
 - **`RESCHEDULED` (customer asked) vs `DELAYED` (courier didn't make it)** are
   distinct so customer-caused and courier-caused slippage can be told apart.
   Both are non-terminal and return to `OUT_FOR_DELIVERY`.
-- **`FAILED`** = couldn't deliver; Ops decides retry or return.
-- **`CANCELLED`** = customer declined; goods come back.
 
-Failure carries a **reason code** — `NOT_HOME | REFUSED | WRONG_ADDRESS |
-UNREACHABLE | DAMAGED | OTHER` — because free text never aggregates.
+### 1.1 `FAILED` vs `CANCELLED` — one rule, no overlap
+
+These two are easy to conflate, and if couriers record the same situation
+differently the failure statistics become meaningless. The dividing line is
+**whether the customer declined**:
+
+- **`CANCELLED`** — the customer doesn't want it. **Refusal at the door counts
+  here.** Goods return.
+- **`FAILED`** — the courier could not complete the attempt and the customer
+  never declined: nobody home, unreachable, wrong address.
+
+Failure reason codes: `NOT_HOME | UNREACHABLE | WRONG_ADDRESS | NO_CASH |
+DAMAGED | OTHER`. Free text never aggregates.
+
+> `REFUSED` is deliberately **absent** — refusal is `CANCELLED`, never `FAILED`.
+> `NO_CASH` (customer has nothing to pay with) is its own code because it is a
+> common COD outcome that fits none of the others.
+
+### 1.2 Retrying
+
+A delivery may bounce between `RESCHEDULED`/`DELAYED` and `OUT_FOR_DELIVERY`
+**with no hard limit**, until Sales, the courier or Ops decide it is `CANCELLED`
+or `FAILED`. Humans close it, not a counter.
+
+> Suggested (not required): flag a delivery for Ops attention after **3** bounces.
+> Not a block — just visibility, so a delivery cannot quietly cycle for weeks
+> with nobody noticing.
 
 ### 1.1 Promised date + slot
 
@@ -206,15 +235,26 @@ order now able to walk **Cancelled → Returned → Refunded**, that would fire
 
 Restock when the goods become available again — which happens in exactly two ways:
 
+**Stock is deducted at order confirmation.** So the boundary is simply whether
+the order has since reached **shipped**:
+
 | Transition | Restock? | Why |
 |---|---|---|
-| `Cancelled` **before dispatch** | ✅ | Never left the warehouse; available immediately |
-| `Cancelled` **after dispatch** | ❌ | Goods are with the courier — wait for `Returned` |
+| `Cancelled` **before shipped** | ✅ | Never left the warehouse; available immediately |
+| `Cancelled` **after shipped** | ❌ | Goods are with the courier — wait for `Returned` |
 | `Returned` | ✅ | Physically back |
 | `Refunded` | ❌ never | Money-only event; the goods were already handled |
 
-It fires **once**, on whichever comes first: cancelled-while-undispatched, or
+It fires **once**, on whichever comes first: cancelled-while-unshipped, or
 returned.
+
+Two guards:
+- The test is the **order's shipped state**, not "does a delivery record exist" —
+  orders shipped via Aramex or SMSA never have one, and must behave identically.
+- Restock only if a **SALE was actually recorded** for that order. An order
+  cancelled *before* confirmation never deducted stock, so restoring it would
+  invent inventory. Veeey's outbox already records SALE on the first
+  CONFIRMED/SHIPPED/DELIVERED entry, so it knows.
 
 > **⚠️ "Restock only at `Returned`" is not sufficient.** An order cancelled
 > before it ships never reaches `Returned` — nothing comes back, because nothing
@@ -234,6 +274,7 @@ date reassures far more than the label does**.
 
 | Delivery status | Customer sees |
 |---|---|
+| `NEW` | Preparing your delivery |
 | `ASSIGNED` | Scheduled for delivery — Tuesday |
 | `OUT_FOR_DELIVERY` | Out for delivery today |
 | `RESCHEDULED` | Rescheduled at your request — Thursday |
