@@ -63,6 +63,7 @@ model User {
   inquiriesInitiated  Inquiry[]            @relation("InquiryInitiator")
   inquiriesReceived   Inquiry[]            @relation("InquiryRecipient")
   inquiryMessages     InquiryMessage[]
+  courier             Courier? // set when this user is on the courier roster (Ops staff, or a THIRD_PARTY courier)
 }
 
 model PasswordResetToken {
@@ -680,16 +681,149 @@ model Compensation {
 // customers. Master data for the (future) customer-delivery flow. Distinct from
 // Carrier below; the two never mix.
 model Courier {
-  id          Int       @id @default(autoincrement())
-  uid         String?   @unique // CUR<YY><MM><seq3>
+  id          Int        @id @default(autoincrement())
+  uid         String?    @unique // CUR<YY><MM><seq3>
   name        String
   contact     String?
-  active      Boolean   @default(true)
+  active      Boolean    @default(true)
+  // Set for Ops staff who are also couriers (they log in normally); null for a
+  // dedicated courier who signs in with phone + PIN as a THIRD_PARTY user.
+  // One roster, one assignment picker, both populations (DELIVERIES §5).
+  userId      Int?       @unique
+  user        User?      @relation(fields: [userId], references: [id])
   archivedAt  DateTime?
   createdById Int?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime   @default(now())
   updatedById Int?
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime   @updatedAt
+  deliveries  Delivery[]
+}
+
+/// An order travelling to a customer by our own courier (contract v2 Deliveries,
+/// see INTEGRATION_V2_DELIVERIES.md). NOT a "shipment" — that word is reserved
+/// for supply-chain stock movements, deliberately, so nobody has to ask which is
+/// meant.
+///
+/// DELIBERATELY SELF-CONTAINED: the customer is denormalised and lines carry sku
+/// and name as LABELS, not foreign keys. YeldnIN's VEEEY catalogue came from
+/// veeey.com (numeric SKUs) while veeey.net has its own `VEY-…` space, and both
+/// stores hold ~16k customers who are largely the same people under different
+/// ids — linking would collide on both. Veeey owns the order and the customer;
+/// YeldnIN owns only this record (the one-writer rule, §0.1).
+model Delivery {
+  id       Int    @id @default(autoincrement())
+  uid      String @unique // DLV<YY><MM><seq3>
+  /// Which store the order lives in ("veeey.net" | "veeey.com"). Part of the
+  /// idempotency key: order numbers are only unique WITHIN a store.
+  storeKey String
+  /// Veeey's order number — the correlation key both sides quote.
+  orderNumber String
+  /// Always VEEEY today. Explicit rather than implied: the Codex audit showed
+  /// that scope assumed but never stored is exactly what leaks across lines.
+  scope    String @default("VEEEY")
+  status   String @default("NEW") // NEW|ASSIGNED|OUT_FOR_DELIVERY|DELIVERED|RESCHEDULED|DELAYED|FAILED|CANCELLED
+
+  placedAt DateTime?
+
+  // ── Customer + address (denormalised copies owned by Veeey) ───────────────
+  customerName     String
+  customerPhone    String?
+  customerAltPhone String?
+  addressZone      String?
+  addressSubArea   String?
+  addressText      String
+  addressMapUrl    String?
+
+  // ── Money, in PIASTRES (integer) ─────────────────────────────────────────
+  // Money is stored as an integer minor unit here, unlike the older Float EGP
+  // columns elsewhere in this schema: a delivery's figure is cash a courier
+  // physically counts, and cash reconciliation must not inherit binary-float
+  // rounding. The wire calls these `collectAmountEgp`/`collectedAmountEgp`
+  // while sending piastres; the names here say what is actually stored.
+  collectPiastres   Int    @default(0) // 0 = prepaid, nothing to collect
+  collectedPiastres Int? // what the courier actually collected, on DELIVERED
+  paymentMethod     String @default("COD") // COD | PREPAID
+
+  // ── The promise ──────────────────────────────────────────────────────────
+  promisedDate DateTime?
+  promisedSlot String? // 10:00-14:00 | 14:00-18:00 | 18:00-22:00
+
+  // ── Assignment + outcome ─────────────────────────────────────────────────
+  courierId     Int?
+  courier       Courier?  @relation(fields: [courierId], references: [id])
+  failureReason String? // NOT_HOME|UNREACHABLE|WRONG_ADDRESS|NO_CASH|DAMAGED|OTHER — never free text, so failures aggregate
+  cancelReason  String?
+  notes         String? // from Veeey ("call before arriving")
+  courierNote   String? // added on our side
+  deliveredAt   DateTime?
+  closedAt      DateTime? // DELIVERED, FAILED or CANCELLED — when it stopped moving
+
+  /// The Yellow Flag (§3): something didn't match — partial hand-over, wrong
+  /// item, different amount. It marks the order for a HUMAN to review in Veeey.
+  /// The sync never edits an order; it only reports.
+  reviewFlag Boolean @default(false)
+  reviewNote String?
+
+  /// RESCHEDULED/DELAYED → OUT_FOR_DELIVERY round trips. No hard limit — humans
+  /// close a delivery, not a counter — but Ops get visibility after 3 so one
+  /// cannot quietly cycle for weeks.
+  bounceCount Int @default(0)
+
+  archivedAt  DateTime?
+  createdById Int?
+  createdAt   DateTime        @default(now())
+  updatedById Int?
+  updatedAt   DateTime        @updatedAt
+  lines       DeliveryLine[]
+  photos      DeliveryPhoto[]
+  events      DeliveryEvent[]
+
+  @@unique([storeKey, orderNumber]) // idempotency: a retried push must never create a second delivery
+  @@index([status])
+  @@index([courierId, status])
+  @@index([promisedDate])
+}
+
+/// A line as the courier needs to see it. `sku` and `name` are LABELS copied
+/// from Veeey — deliberately not a Product relation (see Delivery's note).
+model DeliveryLine {
+  id         Int      @id @default(autoincrement())
+  deliveryId Int
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  sku        String?
+  name       String
+  qty        Int      @default(1)
+
+  @@index([deliveryId])
+}
+
+/// Optional proof of delivery. Retained 180 days on both sides — these are
+/// photographs of customers' homes.
+model DeliveryPhoto {
+  id         Int      @id @default(autoincrement())
+  deliveryId Int
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  assetId    String
+  createdAt  DateTime @default(now())
+
+  @@index([deliveryId])
+}
+
+/// Status history. A delivery may bounce between RESCHEDULED/DELAYED and
+/// OUT_FOR_DELIVERY any number of times, so the current status alone cannot
+/// answer "how many times did we try, and when" — which is the question asked
+/// whenever a delivery is disputed.
+model DeliveryEvent {
+  id         Int      @id @default(autoincrement())
+  deliveryId Int
+  delivery   Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  status     String
+  at         DateTime @default(now()) // when it HAPPENED, not when it was sent
+  byUserId   Int?
+  reason     String?
+  note       String?
+
+  @@index([deliveryId, at])
 }
 
 // Carrier (Carriers) — a shipping COMPANY that moves dispatches/transfers from
