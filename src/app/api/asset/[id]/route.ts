@@ -44,7 +44,7 @@ export async function GET(
     const [
       expenseAtt, empPhoto, eventPhoto, chatAtt, inqAtt, productPhoto, requestPhoto,
       issuePhoto, travelerPhoto, tripMarkPhoto, hubPhoto, patchPhoto, transferPhoto,
-      pricingPhoto, csPhoto,
+      pricingPhoto, csPhoto, shipmentPhoto,
     ] = await Promise.all([
       prisma.expenseAttachment.findFirst({ where: { assetId: id }, select: { id: true } }),
       prisma.employeePhoto.findFirst({ where: { assetId: id }, select: { employeeId: true } }),
@@ -61,6 +61,7 @@ export async function GET(
       prisma.transferPhoto.findFirst({ where: { assetId: id }, select: { id: true } }),
       prisma.pricingPhoto.findFirst({ where: { assetId: id }, select: { id: true } }),
       prisma.csEvaluationPhoto.findFirst({ where: { assetId: id }, select: { id: true } }),
+      prisma.shipmentPhoto.findFirst({ where: { assetId: id }, select: { id: true } }),
     ]);
     const deny = () => new NextResponse("Not found", { status: 404 });
 
@@ -79,6 +80,10 @@ export async function GET(
     if (hubPhoto && !logistics) return deny();
     if (patchPhoto && !logistics && !access.canModule("purchasing", "VIEW")) return deny();
     if (transferPhoto && !logistics) return deny();
+    // Shipment photos are stock-in evidence — same gate as the shipment page
+    // itself. Without this they'd land in the "no owner" gap below and be
+    // served to any signed-in user.
+    if (shipmentPhoto && !operations) return deny();
 
     if (pricingPhoto && !access.canModule("pricing", "VIEW")) return deny();
     if (csPhoto && !access.canModule("cs_quality", "VIEW")) return deny();
