@@ -859,8 +859,23 @@ model Shipment {
   updatedById Int?
   updatedAt   DateTime  @updatedAt
 
+  photos ShipmentPhoto[]
+
   @@index([scope])
   @@index([status])
+}
+
+/// Photos of an incoming shipment's contents. Veeey's Sales team reviews the
+/// entered expiry dates AGAINST these before approving the stock in, so they are
+/// part of the approval evidence — not decoration.
+model ShipmentPhoto {
+  id         Int      @id @default(autoincrement())
+  shipmentId Int
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  assetId    String
+  createdAt  DateTime @default(now())
+
+  @@index([shipmentId])
 }
 
 // Hub (Logistics) — an abroad receiving point with inventory. country: USA | UK | EU.
@@ -920,6 +935,12 @@ model Item {
   sellingPrice        Float?
   purchasePrice       Float?
   purchaseCurrency    String? // XOONX: USD|GBP|EUR for the purchase cost (EGP when null)
+  // Incoming Shipments: expiry/lot are PER UNIT — items of the same product in
+  // one shipment often carry different expiries, so this can't live on the
+  // shipment or a per-product line. Veeey groups (product, expiryDate) into its
+  // own lots when Sales approve the shipment.
+  expiryDate          DateTime? // null = non-perishable (devices) or not yet entered
+  lotCode             String? // supplier batch/lot reference as printed on the box
   receivedAt          DateTime? // set when status → HUB; drives the timers
   promisedDeliveryAt  DateTime? // special order: delivery guarantee (createdAt + grace), frozen at creation
   transitAt           DateTime? // scheduled auto-advance → TRANSIT
