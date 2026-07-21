@@ -23,9 +23,18 @@ export async function handleCustomerUpsert(payload: unknown): Promise<CustomerUp
   const w = parseWireCustomer(payload);
   if (!w) return { ok: false, skipped: "validation_failed" };
 
-  let existing = await prisma.customer.findUnique({ where: { veeeyCustomerId: w.veeeyCustomerId }, select: { id: true, scope: true } });
+  // Match order (contract v2, cross-store):
+  //  1. by EMAIL — the durable identity shared by the SAME person across the two
+  //     Veeey stores. This is FIRST so a veeey.net push reconciles onto the
+  //     existing (veeey.com-sourced) customer instead of creating a duplicate.
+  //  2. by veeeyCustomerId — the per-store account id (works within one store).
+  //  3. by exact name where no id is set — legacy first-link adoption.
+  let existing =
+    (w.email
+      ? await prisma.customer.findFirst({ where: { email: w.email, scope: "VEEEY" }, select: { id: true, scope: true } })
+      : null) ??
+    (await prisma.customer.findUnique({ where: { veeeyCustomerId: w.veeeyCustomerId }, select: { id: true, scope: true } }));
   if (!existing) {
-    // First-link adoption: an existing scope-VEEEY customer with the exact name.
     const byName = await prisma.customer.findFirst({ where: { name: w.name, scope: "VEEEY", veeeyCustomerId: null }, select: { id: true, scope: true } });
     if (byName) existing = byName;
   }
@@ -33,8 +42,12 @@ export async function handleCustomerUpsert(payload: unknown): Promise<CustomerUp
   // Guard: never touch a non-VEEEY (e.g. XOONX) customer via the sync.
   if (existing && existing.scope !== "VEEEY") return { ok: false, skipped: "customer_scope_mismatch" };
 
+  // On match we RE-KEY veeeyCustomerId to the inbound id: veeey.net is the main
+  // store now, so it becomes the identity owner (owner-approved). Email is stored
+  // so future matches are cheap.
   const data = {
     veeeyCustomerId: w.veeeyCustomerId,
+    email: w.email,
     name: w.name,
     contactNumber: w.phone,
     ...(w.archived ? { archivedAt: new Date(), active: false } : {}),

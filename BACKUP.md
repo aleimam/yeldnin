@@ -50,7 +50,7 @@ archives cover total server loss.
 
 ## 2. ⚠ Shared storage — MANDATORY rules
 
-All three apps write to one Hetzner Storage Box. Nothing on the box enforces
+Several apps write to one Hetzner Storage Box. Nothing on the box enforces
 separation, so **retention in one app can delete another app's archives** if
 these rules are broken.
 
@@ -61,11 +61,14 @@ confined to its own base directory with its own password. An app therefore
 *cannot* reach another app's files even with a bug or a bad config. Use yours;
 do not use the main `u635384` account.
 
-| Sub-account | App | Base dir |
-|---|---|---|
-| `u635384-sub1` | YeldnIN | `/yeldnin/` |
-| `u635384-sub2` | veeey.net | `/veeey.net/` |
-| `u635384-sub3` | ev.com | `/ev.com/` |
+| Sub-account | App | Base dir | Status |
+|---|---|---|---|
+| `u635384-sub1` | YeldnIN | `/yeldnin/` | in use |
+| `u635384-sub2` | veeey.net | `/veeey.net/` | assigned — configure at veeey.net's `/admin/backup` |
+| `u635384-sub3` | ev.com | `/ev.com/` | reserved |
+| `u635384-sub4` | veeey.com | `/veeey.com/` | **in use** — 4 levels verified, restore drill passed 2026-07-20 |
+| `u635384-sub5` | ev.net | `/ev.net/` | reserved |
+| `u635384-sub6` | NOC | `/noc/` | reserved |
 
 > ### ⚠ The one that will catch you out
 >
@@ -93,6 +96,20 @@ Either hostname works: `u635384.your-storagebox.de` or
 2. **Own filename prefix.** YeldnIN writes `yeldnin-backup-…`. Yours MUST be
    `veeey-backup-…` / `noc-backup-…`. The prefix is what the pruner matches;
    it is the last line of defence if two apps ever share a folder.
+
+   > ⚠ **One codebase serving two stores defeats this by default.** Veeey runs
+   > veeey.com and veeey.net from the same repo, so both emitted
+   > `veeey-backup-…` — and because both are configured with the *same*
+   > `/home/*` folder paths (correct: the sub-account supplies the isolation),
+   > a single wrong host field would put one store's retention in the other's
+   > tree, where the matching prefix offers no protection at all.
+   >
+   > Veeey now resolves the prefix per deployment from `BACKUP_ARCHIVE_PREFIX`
+   > (veeey.net sets `veeey-net-backup-`; veeey.com keeps the default).
+   > **Changing this on a store that already has archives orphans them** — the
+   > parser stops recognising the old names, so they are never pruned and
+   > retention starts counting from zero. Set it only on a store whose
+   > destination is still empty.
 3. **Never point two apps (or two tiers) at the same folder.** Retention is
    "keep newest N *in this folder*" — two writers means each prunes the other.
 4. **The pruner must ignore anything it cannot parse.** Foreign files are never
@@ -411,6 +428,21 @@ scheduled path** — check that a *scheduled* run has actually happened.
 Symptom to look for: levels stuck at `lastRunAt = never` while the queue shows
 FAILED jobs and the worker's own log is silent (the throw happens inside the
 job handler, not at boot).
+
+> **Resolved on Veeey, 2026-07-20** — and the blast radius was wider than the
+> backup service. `server-only` was unresolvable there (absent from
+> `package.json`; `require.resolve` fails), and the worker also reached
+> `gsc-service` (daily sitemap submit), `watermark-service` (batch watermark)
+> and `rich-text` (via `attribute-bulk-service`), so those scheduled jobs had
+> been dying at import too. **If your scheduler is a separate process, grep the
+> whole worker-reachable import graph for `server-only`, not just the backup
+> service.** Proof that a removal actually worked: `npx tsx -e
+> "import('@/lib/<mod>')"` in the worker's own runtime — a module that still
+> has the import fails there while a fixed one resolves.
+>
+> With that fixed, a scheduled run fired unattended on veeey.com at 02:00:33 UTC
+> and succeeded — so §13's open item is now confirmed at least once in the wild,
+> on Veeey.
 
 ### 10.4 Stale clients must not silently rewrite settings
 

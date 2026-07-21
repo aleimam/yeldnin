@@ -503,6 +503,9 @@ model Customer {
   id             Int       @id @default(autoincrement())
   uid            String?   @unique // CUS<YY><MM><seq3>
   veeeyCustomerId String?  @unique // Veeey account id — correlation key for the customer sync (contract v2)
+  email          String? // normalized (lowercase) — the CROSS-STORE match key: the same
+  //                        real person from veeey.com and veeey.net shares an email, so
+  //                        matching on it reconciles them to ONE customer (no duplicates)
   name           String
   scope          String    @default("VEEEY") // VEEEY | XOONX (hard boundary, like requests/products)
   contactChannel String    @default("WHATSAPP")
@@ -518,6 +521,7 @@ model Customer {
   requests Request[]
 
   @@index([scope])
+  @@index([email])
 }
 
 // Traveler (Logistics). allowedProductTypes is a CSV of ProductType keys.
