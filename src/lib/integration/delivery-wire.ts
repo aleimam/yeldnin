@@ -127,3 +127,69 @@ export function parseDeliveryCancel(input: unknown): ParseResult<WireDeliveryCan
   if (!orderNumber) return { ok: false, code: "missing_order_number" };
   return { ok: true, value: { storeKey: p.storeKey, orderNumber, reason: str(p.reason) } };
 }
+
+// ── Outbound: delivery.tracking (YeldnIN → Veeey, §2.3) ─────────────────────
+
+export interface WireDeliveryTracking {
+  storeKey: string;
+  orderNumber: string;
+  deliveryUid: string;
+  status: string;
+  at: string; // ISO — when it HAPPENED, not when it was sent
+  courierName: string | null;
+  promisedDate: string | null; // YYYY-MM-DD
+  promisedSlot: string | null;
+  reason: string | null; // failures only
+  collectedAmountEgp: number | null; // piastres; only on DELIVERED
+  reviewFlag: boolean;
+  note: string | null;
+  photoUrl: string | null; // after §5 upload; null until then
+}
+
+/** The loaded delivery a tracking event is built from. Kept as a plain shape (not
+ *  a Prisma type) so this stays pure and unit-testable. */
+export interface TrackingSource {
+  uid: string;
+  storeKey: string;
+  orderNumber: string;
+  scope: string;
+  status: string;
+  failureReason: string | null;
+  collectedPiastres: number | null;
+  reviewFlag: boolean;
+  courierNote: string | null;
+  reviewNote: string | null;
+  promisedDate: Date | null;
+  promisedSlot: string | null;
+  courierName: string | null;
+  photoUrl: string | null;
+}
+
+/**
+ * Build a `delivery.tracking` wire event. Pure. `at` is passed in (the moment the
+ * change happened) rather than read from a clock, so the caller controls it and
+ * the function stays testable.
+ *
+ * `reason` is emitted only for a FAILED attempt and `collectedAmountEgp` only on
+ * DELIVERED — the same field discipline the courier UI enforces, so a stale
+ * reason from a prior attempt never rides along on a later status.
+ */
+export function buildTrackingWire(d: TrackingSource, at: Date): WireDeliveryTracking {
+  return {
+    storeKey: d.storeKey,
+    orderNumber: d.orderNumber,
+    deliveryUid: d.uid,
+    status: d.status,
+    at: at.toISOString(),
+    courierName: d.courierName,
+    promisedDate: d.promisedDate ? d.promisedDate.toISOString().slice(0, 10) : null,
+    promisedSlot: d.promisedSlot,
+    reason: d.status === "FAILED" ? d.failureReason : null,
+    collectedAmountEgp: d.status === "DELIVERED" ? d.collectedPiastres : null,
+    reviewFlag: d.reviewFlag,
+    // The courier's note wins over an Ops flag note — it's the closer account of
+    // what happened at the door.
+    note: d.courierNote ?? d.reviewNote ?? null,
+    photoUrl: d.photoUrl,
+  };
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseDeliveryCreated, parseDeliveryCancel, isStoreKey, STORE_KEYS } from "./delivery-wire";
+import { parseDeliveryCreated, parseDeliveryCancel, isStoreKey, STORE_KEYS, buildTrackingWire, type TrackingSource } from "./delivery-wire";
 
 const good = {
   storeKey: "veeey.net",
@@ -84,5 +84,56 @@ describe("parseDeliveryCancel", () => {
     });
     expect(parseDeliveryCancel({ storeKey: "x", orderNumber: "V-1" })).toEqual({ ok: false, code: "unknown_store" });
     expect(parseDeliveryCancel({ storeKey: "veeey.net" })).toEqual({ ok: false, code: "missing_order_number" });
+  });
+});
+
+describe("buildTrackingWire", () => {
+  const base: TrackingSource = {
+    uid: "DLV2607001",
+    storeKey: "veeey.net",
+    orderNumber: "V-10432",
+    scope: "VEEEY",
+    status: "OUT_FOR_DELIVERY",
+    failureReason: null,
+    collectedPiastres: null,
+    reviewFlag: false,
+    courierNote: null,
+    reviewNote: null,
+    promisedDate: new Date("2026-07-22T00:00:00Z"),
+    promisedSlot: "18:00-22:00",
+    courierName: "Mahmoud A.",
+    photoUrl: null,
+  };
+  const at = new Date("2026-07-20T15:40:00Z");
+
+  it("carries identity, the change time, and the promise as YYYY-MM-DD", () => {
+    const w = buildTrackingWire(base, at);
+    expect(w).toMatchObject({ storeKey: "veeey.net", orderNumber: "V-10432", deliveryUid: "DLV2607001", status: "OUT_FOR_DELIVERY" });
+    expect(w.at).toBe("2026-07-20T15:40:00.000Z"); // when it HAPPENED
+    expect(w.promisedDate).toBe("2026-07-22"); // date only
+    expect(w.courierName).toBe("Mahmoud A.");
+  });
+
+  it("emits the failure reason ONLY on FAILED", () => {
+    expect(buildTrackingWire({ ...base, status: "FAILED", failureReason: "NOT_HOME" }, at).reason).toBe("NOT_HOME");
+    // a reason lingering on the row must not ride along on a non-failure status
+    expect(buildTrackingWire({ ...base, status: "OUT_FOR_DELIVERY", failureReason: "NOT_HOME" }, at).reason).toBeNull();
+  });
+
+  it("emits collectedAmountEgp (piastres) ONLY on DELIVERED", () => {
+    expect(buildTrackingWire({ ...base, status: "DELIVERED", collectedPiastres: 145000 }, at).collectedAmountEgp).toBe(145000);
+    expect(buildTrackingWire({ ...base, status: "RESCHEDULED", collectedPiastres: 145000 }, at).collectedAmountEgp).toBeNull();
+  });
+
+  it("prefers the courier's note over an Ops flag note", () => {
+    expect(buildTrackingWire({ ...base, courierNote: "took 3 of 5", reviewNote: "flagged" }, at).note).toBe("took 3 of 5");
+    expect(buildTrackingWire({ ...base, courierNote: null, reviewNote: "flagged" }, at).note).toBe("flagged");
+    expect(buildTrackingWire({ ...base, reviewFlag: true }, at).reviewFlag).toBe(true);
+  });
+
+  it("carries a null promise cleanly", () => {
+    const w = buildTrackingWire({ ...base, promisedDate: null, promisedSlot: null }, at);
+    expect(w.promisedDate).toBeNull();
+    expect(w.promisedSlot).toBeNull();
   });
 });

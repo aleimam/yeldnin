@@ -3,7 +3,9 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { isTerminal } from "@/lib/deliveries/deliveries-logic";
 import { sendLocalizedToUsers } from "@/lib/notify/notify-service";
-import { parseDeliveryCreated, parseDeliveryCancel } from "@/lib/integration/delivery-wire";
+import { integrationEnabled } from "@/lib/integration/config";
+import { recordOutbox } from "@/lib/integration/integration-service";
+import { parseDeliveryCreated, parseDeliveryCancel, buildTrackingWire } from "@/lib/integration/delivery-wire";
 
 /**
  * Inbound Deliveries channel (Veeey → YeldnIN), contract v2 §2.1/§2.2.
@@ -119,5 +121,76 @@ export async function handleDeliveryCancel(payload: unknown): Promise<DeliveryCa
       /* best-effort */
     }
   }
+  // DELIBERATELY no tracking emit here. This cancel ORIGINATED at Veeey; echoing
+  // a delivery.tracking(CANCELLED) straight back is the loop the request sync's
+  // "inbound writes directly, never emit" rule exists to prevent. Veeey already
+  // knows — it told us.
   return { ok: true, uid: d.uid, status: "CANCELLED" };
+}
+
+// ── Outbound: delivery.tracking (YeldnIN → Veeey, §2.3) ─────────────────────
+
+/**
+ * Emit a `delivery.tracking` for a YeldnIN-originated status change. Best-effort
+ * and never throws — it must not break the status write it trails — and a no-op
+ * while the integration is off (recordOutbox drops it). Call AFTER the write
+ * commits, and ONLY from YeldnIN-side changes (courier/Ops actions), never from
+ * the inbound path (see handleDeliveryCancel).
+ *
+ * `at` is the moment the change happened, so a status recorded now but emitted on
+ * a later cron tick still reports its true time.
+ */
+export async function emitDeliveryTracking(deliveryId: number, at: Date): Promise<void> {
+  try {
+    if (!(await integrationEnabled())) return;
+    const d = await prisma.delivery.findUnique({
+      where: { id: deliveryId },
+      select: {
+        uid: true,
+        storeKey: true,
+        orderNumber: true,
+        scope: true,
+        status: true,
+        failureReason: true,
+        collectedPiastres: true,
+        reviewFlag: true,
+        courierNote: true,
+        reviewNote: true,
+        promisedDate: true,
+        promisedSlot: true,
+        courier: { select: { name: true } },
+        photos: { orderBy: { id: "desc" }, take: 1, select: { assetId: true } },
+      },
+    });
+    if (!d) return;
+    // GOLDEN RULE: deliveries are VEEEY-only, but guard anyway — the audit showed
+    // that "can't happen" is exactly what leaks when it does.
+    if (d.scope !== "VEEEY") return;
+    // A photo's assetId holds a public URL only once §5 upload exists; until then
+    // it's an internal asset id we must NOT hand to Veeey, so emit only http(s).
+    const photo = d.photos[0]?.assetId ?? null;
+    const photoUrl = photo && /^https?:\/\//.test(photo) ? photo : null;
+    const wire = buildTrackingWire(
+      {
+        uid: d.uid,
+        storeKey: d.storeKey,
+        orderNumber: d.orderNumber,
+        scope: d.scope,
+        status: d.status,
+        failureReason: d.failureReason,
+        collectedPiastres: d.collectedPiastres,
+        reviewFlag: d.reviewFlag,
+        courierNote: d.courierNote,
+        reviewNote: d.reviewNote,
+        promisedDate: d.promisedDate,
+        promisedSlot: d.promisedSlot,
+        courierName: d.courier?.name ?? null,
+        photoUrl,
+      },
+      at,
+    );
+    await recordOutbox("delivery.tracking", wire.deliveryUid, wire);
+  } catch {
+    // best-effort — tracking must never break the status change it follows
+  }
 }

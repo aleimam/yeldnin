@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import type { AccessLike } from "@/lib/products/products-logic";
 import { deliveryCourierFilter, isDeliveryStatus, isBounceTransition, isTerminal, collectionMismatch } from "@/lib/deliveries/deliveries-logic";
+import { emitDeliveryTracking } from "@/lib/integration/delivery-sync";
 
 /**
  * Delivery reads. Every list and lookup here goes through `scopeWhere`, which
@@ -142,7 +143,7 @@ export async function applyStatusChange(
   const mismatch = input.to === "DELIVERED" && collectionMismatch(current.collectPiastres, input.collectedPiastres ?? null);
   const at = new Date();
 
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     const d = await tx.delivery.update({
       where: { id: current.id },
       data: {
@@ -175,6 +176,10 @@ export async function applyStatusChange(
     });
     return d;
   });
+  // Report the change to Veeey (§2.3). After the commit, best-effort, with the
+  // change's own timestamp so a late cron send still reports when it happened.
+  await emitDeliveryTracking(current.id, at);
+  return updated;
 }
 
 /** Active couriers for the assignment picker. */
@@ -188,8 +193,12 @@ export function listCouriersForAssignment() {
 
 /** Raise or clear the Yellow Flag on its own, without a status change. */
 export async function setReviewFlag(id: number, flag: boolean, note: string | null, userId: number) {
-  return prisma.delivery.update({
+  const updated = await prisma.delivery.update({
     where: { id },
     data: { reviewFlag: flag, reviewNote: flag ? note : null, updatedById: userId },
   });
+  // §3: raising the flag is precisely what tells Veeey to send Ops to review the
+  // order, so it must reach Veeey even though the status didn't move.
+  await emitDeliveryTracking(id, new Date());
+  return updated;
 }
