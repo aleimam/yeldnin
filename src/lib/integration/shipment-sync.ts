@@ -2,7 +2,8 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { integrationEnabled } from "@/lib/integration/config";
 import { recordOutbox } from "@/lib/integration/integration-service";
-import { buildShipmentWire, type ShipmentUnit } from "@/lib/integration/shipment-wire";
+import { buildShipmentWire, parseShipmentReview, type ShipmentUnit } from "@/lib/integration/shipment-wire";
+import { moveItems } from "@/lib/items/items-service";
 
 /**
  * Outbound Incoming-Shipments channel (YeldnIN → Veeey), `shipment.received`.
@@ -62,4 +63,58 @@ export async function emitShipmentReceived(shipmentId: number, at: Date): Promis
   } catch {
     // best-effort — reporting the arrival must never block the arrival
   }
+}
+
+export interface ShipmentReviewResult {
+  ok: boolean;
+  uid?: string;
+  status?: string;
+  reopened?: boolean;
+  skipped?: string;
+}
+
+/**
+ * Inbound: Veeey Sales decided on a stock-in.
+ *
+ * REJECTED reopens the shipment at **PHOTOS_SENT** with the reason attached, so
+ * Ops correct the expiry/photos and mark it In Website again — the owner's
+ * "bounce to Ops to correct" loop. APPROVED is recorded for visibility and
+ * leaves the shipment at WEBSITE; it must NOT move anything, because the goods
+ * are already counted as stock here.
+ *
+ * Only a WEBSITE shipment can be reviewed: a verdict on one Ops has since pulled
+ * back would otherwise silently overwrite their state.
+ */
+export async function handleShipmentReview(payload: unknown): Promise<ShipmentReviewResult> {
+  const w = parseShipmentReview(payload);
+  if (!w) return { ok: false, skipped: "validation_failed" };
+
+  const sh = await prisma.shipment.findUnique({
+    where: { uid: w.shipmentUid },
+    select: { id: true, uid: true, status: true, scope: true },
+  });
+  if (!sh) return { ok: false, skipped: "shipment_not_found" };
+  if (sh.scope !== "VEEEY") return { ok: false, skipped: "scope_mismatch" };
+  if (sh.status !== "WEBSITE") return { ok: false, skipped: "not_under_review" };
+
+  const reopened = w.decision === "REJECTED";
+  await prisma.shipment.update({
+    where: { id: sh.id },
+    data: {
+      reviewStatus: w.decision,
+      reviewNote: w.reason,
+      reviewedAt: new Date(w.reviewedAt),
+      ...(reopened ? { status: "PHOTOS_SENT" } : {}),
+    },
+  });
+  // Items follow the shipment back so the two can't disagree about where the
+  // goods are in the workflow.
+  if (reopened) {
+    const items = await prisma.item.findMany({
+      where: { containerType: "SHIPMENT", containerId: sh.id, exceptionFlag: null },
+      select: { id: true },
+    });
+    if (items.length) await moveItems(items.map((i) => i.id), { status: "PHOTOS_SENT", action: "reviewRejected" }, null);
+  }
+  return { ok: true, uid: sh.uid ?? undefined, status: reopened ? "PHOTOS_SENT" : "WEBSITE", reopened };
 }

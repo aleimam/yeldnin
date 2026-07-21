@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildShipmentWire, unitsMissingExpiry, type ShipmentUnit } from "./shipment-wire";
+import { buildShipmentWire, unitsMissingExpiry, parseShipmentReview, type ShipmentUnit } from "./shipment-wire";
 
 const AT = new Date("2026-07-21T12:00:00.000Z");
 const SH = { id: 7, uid: "SHP2607001" };
@@ -70,5 +70,30 @@ describe("buildShipmentWire", () => {
 
   it("counts units still missing an expiry", () => {
     expect(unitsMissingExpiry([unit(), unit({ expiryDate: null }), unit({ expiryDate: null })])).toBe(2);
+  });
+});
+
+describe("parseShipmentReview (Sales' verdict coming back)", () => {
+  const R = { shipmentUid: "SHP2607001", decision: "REJECTED", reason: "Expiry on line 2 doesn't match the photo", reviewedAt: "2026-07-21T13:00:00.000Z" };
+
+  it("accepts a verdict and normalises the decision case", () => {
+    expect(parseShipmentReview({ ...R, decision: "approved" })).toMatchObject({ shipmentUid: "SHP2607001", decision: "APPROVED" });
+    expect(parseShipmentReview(R)).toMatchObject({ decision: "REJECTED", reason: R.reason });
+  });
+
+  it("rejects an unknown decision rather than defaulting to approved", () => {
+    expect(parseShipmentReview({ ...R, decision: "MAYBE" })).toBeNull();
+    expect(parseShipmentReview({ ...R, decision: "" })).toBeNull();
+    expect(parseShipmentReview({ ...R, shipmentUid: " " })).toBeNull();
+    expect(parseShipmentReview(null)).toBeNull();
+  });
+
+  it("treats a blank reason as none and caps a long one", () => {
+    expect(parseShipmentReview({ ...R, reason: "   " })!.reason).toBeNull();
+    expect(parseShipmentReview({ ...R, reason: "x".repeat(900) })!.reason).toHaveLength(500);
+  });
+
+  it("falls back to now when reviewedAt is unusable", () => {
+    expect(Number.isNaN(Date.parse(parseShipmentReview({ ...R, reviewedAt: "nope" })!.reviewedAt))).toBe(false);
   });
 });

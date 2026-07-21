@@ -81,7 +81,10 @@ interface ItemUpdate {
 export async function moveItems(
   itemIds: number[],
   to: { containerType?: string | null; containerId?: number | null; status?: string; action?: string },
-  userId: number,
+  /** null = an integration-driven move with no signed-in actor (e.g. Veeey Sales
+   *  rejecting a stock-in). `ItemEvent.byUserId` is nullable, so the trail records
+   *  it honestly as system rather than blaming a person who didn't do it. */
+  userId: number | null,
 ): Promise<void> {
   if (!itemIds.length) return;
   const items = await prisma.item.findMany({ where: { id: { in: itemIds } } });
@@ -117,7 +120,9 @@ export async function moveItems(
       milestones.push({ requestId: it.requestId, toStatus });
     }
   }
-  if (milestones.length) await notifyUnitMilestones(milestones, userId).catch(() => {});
+  // A system move has no actor to attribute the notification to; the status
+  // change is still recorded, we just don't invent a sender.
+  if (milestones.length && userId != null) await notifyUnitMilestones(milestones, userId).catch(() => {});
 }
 
 /** Flag items as an exception (Lost/Damaged/Errant/Delayed), remembering their source. */

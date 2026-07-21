@@ -116,3 +116,28 @@ export function buildShipmentWire(
 export function unitsMissingExpiry(units: ShipmentUnit[]): number {
   return units.filter((u) => !u.expiryDate).length;
 }
+
+// ─── Inbound: Veeey Sales' verdict on a stock-in (contract v2, review loop) ───
+
+export const REVIEW_DECISIONS = ["APPROVED", "REJECTED"] as const;
+export type ReviewDecision = (typeof REVIEW_DECISIONS)[number];
+
+export interface WireShipmentReview {
+  shipmentUid: string;
+  decision: ReviewDecision;
+  reason: string | null;
+  reviewedAt: string;
+}
+
+/** Validate Sales' verdict. Rejects an unknown decision rather than treating it
+ *  as an approval — the failure mode of guessing here is stock nobody signed off. */
+export function parseShipmentReview(input: unknown): WireShipmentReview | null {
+  if (!input || typeof input !== "object") return null;
+  const p = input as Record<string, unknown>;
+  const uid = typeof p.shipmentUid === "string" && p.shipmentUid.trim() ? p.shipmentUid.trim() : null;
+  const decision = typeof p.decision === "string" ? p.decision.trim().toUpperCase() : "";
+  if (!uid || !(REVIEW_DECISIONS as readonly string[]).includes(decision)) return null;
+  const at = typeof p.reviewedAt === "string" && !Number.isNaN(Date.parse(p.reviewedAt)) ? p.reviewedAt : new Date().toISOString();
+  const reason = typeof p.reason === "string" && p.reason.trim() ? p.reason.trim().slice(0, 500) : null;
+  return { shipmentUid: uid, decision: decision as ReviewDecision, reason, reviewedAt: at };
+}

@@ -853,6 +853,11 @@ model Shipment {
   tripId      Int?
   trip        Trip?     @relation(fields: [tripId], references: [id])
   status      String    @default("OFFICE") // OFFICE | PHOTOS_SENT | WEBSITE
+  /// Veeey Sales' verdict on the stock-in. REJECTED sends the shipment back to
+  /// PHOTOS_SENT so Ops can correct the expiry/photos and mark it In Website again.
+  reviewStatus String?  // APPROVED | REJECTED
+  reviewNote   String?  // why it came back — the thing Ops actually needs
+  reviewedAt   DateTime?
   archivedAt  DateTime?
   createdById Int?
   createdAt   DateTime  @default(now())
