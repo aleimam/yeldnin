@@ -1925,5 +1925,7 @@
   "dlv.login.disabled": "مُعطَّل",
   "dlv.login.locked": "مقفل مؤقتًا بعد محاولات خاطئة كثيرة — سيُفتح تلقائيًا.",
   "dlv.login.resetWarn": "إعادة تعيين الرمز تُخرج المندوب من كل الأجهزة.",
-  "dlv.login.failed": "حدث خطأ ما."
+  "dlv.login.failed": "حدث خطأ ما.",
+  "dlv.push.cancelledTitle": "أُلغيت التوصيلة",
+  "dlv.push.cancelledBody": "أُلغي الطلب {order} من العميل — لا داعي لتوصيله."
 }

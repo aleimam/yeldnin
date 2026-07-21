@@ -1925,5 +1925,7 @@
   "dlv.login.disabled": "Disabled",
   "dlv.login.locked": "Temporarily locked after too many wrong PINs — it clears on its own.",
   "dlv.login.resetWarn": "Resetting the PIN signs the courier out of all devices.",
-  "dlv.login.failed": "Something went wrong."
+  "dlv.login.failed": "Something went wrong.",
+  "dlv.push.cancelledTitle": "Delivery cancelled",
+  "dlv.push.cancelledBody": "Order {order} was cancelled by the customer — no need to deliver it."
 }
