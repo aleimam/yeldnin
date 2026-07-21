@@ -32,6 +32,9 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
     expiryDate: it.expiryDate ? it.expiryDate.toISOString() : null,
     lotCode: it.lotCode,
   }));
+  // Handing over units with no expiry would give Veeey's Sales nothing to
+  // review, so the In-Website step is blocked until they're all entered.
+  const missingExpiry = entryItems.filter((i) => !i.expiryDate).length;
 
   return (
     <AppShell access={access} moduleKey="operations" pageTitle={shipment.uid ?? `#${shipment.id}`} backHref="/shipments">
@@ -42,7 +45,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
             <div><span className="text-muted">{t("shipments.scope")}: </span><span className="text-ink">{t(`scope.${shipment.scope}`)}</span></div>
             <div><span className="text-muted">{t("shipments.status")}: </span><span className="text-ink">{t(`shipmentstatus.${shipment.status}`)}</span></div>
           </div>
-          {canManage && <ShipmentPhotosButton id={shipment.id} status={shipment.status} />}
+          {canManage && <ShipmentPhotosButton id={shipment.id} status={shipment.status} missingExpiry={missingExpiry} />}
         </div>
 
         <ShipmentStockEntry shipmentId={shipment.id} items={entryItems} photos={photos} canManage={canManage} />

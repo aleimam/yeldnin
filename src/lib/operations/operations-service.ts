@@ -51,6 +51,27 @@ export async function markShipmentPhotosSent(shipmentId: number, userId: number)
   await moveItems(items.map((i) => i.id), { status: "PHOTOS_SENT", action: "photosSent" }, userId);
 }
 
+/**
+ * Ops mark the shipment **In Website** → shipment WEBSITE, items WEBSITE (they
+ * are now stock), and Veeey is told what arrived so its Sales can review and
+ * approve it into sellable lots.
+ *
+ * Guarded on PHOTOS_SENT so the step can't be skipped or repeated: the emit
+ * happens exactly once, on the transition, not on every visit to the page.
+ */
+export async function markShipmentOnWebsite(shipmentId: number, userId: number) {
+  const sh = await prisma.shipment.findUnique({ where: { id: shipmentId } });
+  if (!sh || sh.status !== "PHOTOS_SENT") return;
+  await prisma.shipment.update({ where: { id: shipmentId }, data: { status: "WEBSITE", updatedById: userId } });
+  const items = await prisma.item.findMany({
+    where: { containerType: "SHIPMENT", containerId: shipmentId, exceptionFlag: null },
+    select: { id: true },
+  });
+  await moveItems(items.map((i) => i.id), { status: "WEBSITE", action: "onWebsite" }, userId);
+  const { emitShipmentReceived } = await import("@/lib/integration/shipment-sync");
+  await emitShipmentReceived(shipmentId, new Date());
+}
+
 export function listShipments() {
   return prisma.shipment.findMany({ where: { archivedAt: null }, orderBy: { createdAt: "desc" }, take: 200 });
 }

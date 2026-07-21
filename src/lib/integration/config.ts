@@ -37,6 +37,7 @@ export const BACKOFF_MS = [60_000, 5 * 60_000, 30 * 60_000, 2 * 3_600_000, 12 * 
 export const OUTBOX_PATHS: Record<string, string> = {
   "request.upsert": VEEEY_WEBHOOK_PATH,
   "delivery.tracking": VEEEY_WEBHOOK_PATH,
+  "shipment.received": VEEEY_WEBHOOK_PATH,
 };
 
 export interface IntegrationConfig {

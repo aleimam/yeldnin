@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { requireCapability, requireUser, requireAdmin } from "@/lib/auth/access";
 import {
-  pickUpTrip, convertTripToShipments, markShipmentPhotosSent,
+  pickUpTrip, convertTripToShipments, markShipmentPhotosSent, markShipmentOnWebsite,
   setShipmentItemsExpiry, addShipmentPhoto, removeShipmentPhoto,
 } from "@/lib/operations/operations-service";
 import { teamsUserCanMark, validateMark, isReviewTeam, type ReviewTeam } from "@/lib/review/review-logic";
@@ -105,4 +105,14 @@ export async function removeShipmentPhotoAction(shipmentId: number, photoId: num
   await removeShipmentPhoto(shipmentId, photoId);
   await writeAudit(access.user.id, "operations", "shipment.photoRemove", "shipment", shipmentId, { photoId });
   revalidatePath(`/shipments/${shipmentId}`);
+}
+
+/** Ops mark the shipment In Website → items become stock and Veeey is told what
+ *  arrived (its Sales then approve it into sellable lots). */
+export async function markShipmentOnWebsiteAction(id: number): Promise<void> {
+  const access = await requireCapability("operations", "operate");
+  await markShipmentOnWebsite(id, access.user.id);
+  await writeAudit(access.user.id, "operations", "shipment.onWebsite", "shipment", id);
+  revalidatePath(`/shipments/${id}`);
+  revalidatePath("/shipments");
 }

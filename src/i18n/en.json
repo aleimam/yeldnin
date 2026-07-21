@@ -1939,5 +1939,7 @@
   "shipments.missingExpiry": "{n} unit(s) still have no expiry.",
   "shipments.photos": "Shipment photos",
   "shipments.photosHint": "Sales check the entered expiry dates against these before approving the stock in.",
-  "shipments.noPhotos": "No photos yet."
+  "shipments.noPhotos": "No photos yet.",
+  "shipments.markOnWebsite": "Mark In Website",
+  "shipments.blockedMissingExpiry": "Enter expiry for {n} unit(s) first."
 }
