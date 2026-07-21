@@ -1,7 +1,10 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requireCapability, requireUser, requireAdmin } from "@/lib/auth/access";
-import { pickUpTrip, convertTripToShipments, markShipmentPhotosSent } from "@/lib/operations/operations-service";
+import {
+  pickUpTrip, convertTripToShipments, markShipmentPhotosSent,
+  setShipmentItemsExpiry, addShipmentPhoto, removeShipmentPhoto,
+} from "@/lib/operations/operations-service";
 import { teamsUserCanMark, validateMark, isReviewTeam, type ReviewTeam } from "@/lib/review/review-logic";
 import { setTripMark } from "@/lib/review/review-service";
 import { writeAudit } from "@/lib/audit";
@@ -55,4 +58,51 @@ export async function markShipmentPhotosSentAction(id: number): Promise<void> {
   await writeAudit(access.user.id, "operations", "shipment.photosSent", "shipment", id);
   revalidatePath(`/shipments/${id}`);
   revalidatePath("/shipments");
+}
+
+// ─── Incoming Shipments: Ops enter stock-in data before Veeey Sales approve ───
+
+/**
+ * Apply one expiry / lot to the selected units of a shipment. Expiry is per
+ * unit, but Ops usually set one value across a whole product's units, so the
+ * client selects and this writes the batch. An empty date clears it (a device
+ * has no expiry) rather than being rejected.
+ */
+export async function setShipmentItemsExpiryAction(input: {
+  shipmentId: number;
+  itemIds: number[];
+  expiry: string | null;
+  lotCode: string | null;
+}): Promise<{ updated: number }> {
+  const access = await requireCapability("operations", "operate");
+  const raw = input.expiry?.trim();
+  const parsed = raw ? new Date(raw) : null;
+  // Refuse an unparseable date rather than silently storing null — a typo must
+  // not read as "no expiry" on stock that has one.
+  if (raw && (!parsed || Number.isNaN(parsed.getTime()))) throw new Error("invalid_expiry");
+  const updated = await setShipmentItemsExpiry(input.shipmentId, input.itemIds, {
+    expiryDate: parsed,
+    lotCode: input.lotCode?.trim() || null,
+  });
+  await writeAudit(access.user.id, "operations", "shipment.itemsExpiry", "shipment", input.shipmentId, {
+    count: updated,
+    expiry: parsed ? parsed.toISOString().slice(0, 10) : null,
+    lotCode: input.lotCode?.trim() || null,
+  });
+  revalidatePath(`/shipments/${input.shipmentId}`);
+  return { updated };
+}
+
+export async function addShipmentPhotoAction(shipmentId: number, assetId: string): Promise<void> {
+  const access = await requireCapability("operations", "operate");
+  await addShipmentPhoto(shipmentId, assetId);
+  await writeAudit(access.user.id, "operations", "shipment.photoAdd", "shipment", shipmentId);
+  revalidatePath(`/shipments/${shipmentId}`);
+}
+
+export async function removeShipmentPhotoAction(shipmentId: number, photoId: number): Promise<void> {
+  const access = await requireCapability("operations", "operate");
+  await removeShipmentPhoto(shipmentId, photoId);
+  await writeAudit(access.user.id, "operations", "shipment.photoRemove", "shipment", shipmentId, { photoId });
+  revalidatePath(`/shipments/${shipmentId}`);
 }

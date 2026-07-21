@@ -1927,5 +1927,17 @@
   "dlv.login.resetWarn": "Resetting the PIN signs the courier out of all devices.",
   "dlv.login.failed": "Something went wrong.",
   "dlv.push.cancelledTitle": "Delivery cancelled",
-  "dlv.push.cancelledBody": "Order {order} was cancelled by the customer — no need to deliver it."
+  "dlv.push.cancelledBody": "Order {order} was cancelled by the customer — no need to deliver it.",
+  "shipments.stockEntry": "Stock entry (expiry & lot)",
+  "shipments.stockEntryHint": "Expiry is recorded per unit. Tick a product to set one value for all its units, or tick only the units that differ.",
+  "shipments.expiry": "Expiry",
+  "shipments.lotCode": "Lot / batch",
+  "shipments.unit": "Unit",
+  "shipments.applyToSelected": "Apply to {n} selected",
+  "shipments.entryApplied": "Updated {n} unit(s).",
+  "shipments.entryFailed": "Could not save — check the date.",
+  "shipments.missingExpiry": "{n} unit(s) still have no expiry.",
+  "shipments.photos": "Shipment photos",
+  "shipments.photosHint": "Sales check the entered expiry dates against these before approving the stock in.",
+  "shipments.noPhotos": "No photos yet."
 }

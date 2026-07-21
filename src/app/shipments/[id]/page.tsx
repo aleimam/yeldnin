@@ -5,10 +5,11 @@ import { FlagItemsControl } from "@/app/exceptions/FlagItemsControl";
 import { AppShell } from "@/components/shell/AppShell";
 import { InquiryLauncher } from "@/components/inquiry/InquiryLauncher";
 import { getT, getLocale } from "@/i18n/server";
-import { getShipment, getShipmentItems } from "@/lib/operations/operations-service";
+import { getShipment, getShipmentItems, getShipmentPhotos } from "@/lib/operations/operations-service";
 import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { ShipmentPhotosButton } from "../../operations/ShipmentPhotosButton";
+import { ShipmentStockEntry } from "../../operations/ShipmentStockEntry";
 
 export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("operations", "VIEW");
@@ -16,8 +17,21 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
   const shipment = await getShipment(Number(id));
   if (!shipment) notFound();
   const canManage = access.can("operations", "operate");
-  const [t, locale, items, wf] = await Promise.all([getT(), getLocale(), getShipmentItems(shipment.id), getWorkflow()]);
+  const [t, locale, items, wf, photos] = await Promise.all([
+    getT(), getLocale(), getShipmentItems(shipment.id), getWorkflow(), getShipmentPhotos(shipment.id),
+  ]);
   const loc = locale === "ar" ? "ar" : "en";
+  // Serialise for the client component (Dates → ISO, workflow label resolved
+  // here because the workflow config is server-side only).
+  const entryItems = items.map((it) => ({
+    id: it.id,
+    uid: it.uid,
+    productId: it.product.id,
+    productName: it.product.name,
+    statusLabel: wf.label(it.status as ItemStatus, loc),
+    expiryDate: it.expiryDate ? it.expiryDate.toISOString() : null,
+    lotCode: it.lotCode,
+  }));
 
   return (
     <AppShell access={access} moduleKey="operations" pageTitle={shipment.uid ?? `#${shipment.id}`} backHref="/shipments">
@@ -31,25 +45,13 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           {canManage && <ShipmentPhotosButton id={shipment.id} status={shipment.status} />}
         </div>
 
-        <div className="card p-5">
-          <h2 className="mb-3 font-semibold text-ink">{t("shipments.items")} ({items.length})</h2>
-          <table className="w-full text-sm" data-cards>
-            <thead><tr className="border-b border-line"><th className="th">{t("requests.product")}</th><th className="th">{t("requests.status")}</th></tr></thead>
-            <tbody className="divide-y divide-line">
-              {items.map((it) => (
-                <tr key={it.id}>
-                  <td className="td" data-label={t("requests.product")}><Link href={`/products/${it.product.id}`} className="prodname text-brand hover:underline">{it.product.name}</Link></td>
-                  <td className="td" data-label={t("requests.status")}>{wf.label(it.status as ItemStatus, loc)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {(canManage || access.isAdmin) && items.length > 0 && (
-            <div className="mt-3">
-              <FlagItemsControl items={items.map((it) => ({ id: it.id, label: `${it.product.name} ${it.uid ?? `#${it.id}`}` }))} />
-            </div>
-          )}
-        </div>
+        <ShipmentStockEntry shipmentId={shipment.id} items={entryItems} photos={photos} canManage={canManage} />
+
+        {(canManage || access.isAdmin) && items.length > 0 && (
+          <div className="card p-5">
+            <FlagItemsControl items={items.map((it) => ({ id: it.id, label: `${it.product.name} ${it.uid ?? `#${it.id}`}` }))} />
+          </div>
+        )}
       </div>
     </AppShell>
   );

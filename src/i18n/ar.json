@@ -1927,5 +1927,17 @@
   "dlv.login.resetWarn": "إعادة تعيين الرمز تُخرج المندوب من كل الأجهزة.",
   "dlv.login.failed": "حدث خطأ ما.",
   "dlv.push.cancelledTitle": "أُلغيت التوصيلة",
-  "dlv.push.cancelledBody": "أُلغي الطلب {order} من العميل — لا داعي لتوصيله."
+  "dlv.push.cancelledBody": "أُلغي الطلب {order} من العميل — لا داعي لتوصيله.",
+  "shipments.stockEntry": "إدخال المخزون (الصلاحية والتشغيلة)",
+  "shipments.stockEntryHint": "تُسجَّل الصلاحية لكل وحدة. حدِّد منتجًا لتعيين قيمة واحدة لكل وحداته، أو حدِّد الوحدات المختلفة فقط.",
+  "shipments.expiry": "الصلاحية",
+  "shipments.lotCode": "التشغيلة",
+  "shipments.unit": "الوحدة",
+  "shipments.applyToSelected": "تطبيق على {n} محدد",
+  "shipments.entryApplied": "تم تحديث {n} وحدة.",
+  "shipments.entryFailed": "تعذّر الحفظ — تحقق من التاريخ.",
+  "shipments.missingExpiry": "{n} وحدة بدون تاريخ صلاحية.",
+  "shipments.photos": "صور الشحنة",
+  "shipments.photosHint": "يراجع فريق المبيعات تواريخ الصلاحية المُدخلة مقابل هذه الصور قبل اعتماد إضافة المخزون.",
+  "shipments.noPhotos": "لا توجد صور بعد."
 }

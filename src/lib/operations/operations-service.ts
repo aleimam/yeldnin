@@ -69,3 +69,44 @@ export function getShipment(id: number) {
 export function getShipmentItems(shipmentId: number) {
   return itemsInContainerHistory("SHIPMENT", shipmentId);
 }
+
+// ─── Incoming Shipments: stock-in data Ops enter before Veeey Sales approve ───
+
+/**
+ * Set expiry / lot on units of a shipment. Expiry is PER UNIT because items of
+ * the same product in one shipment often differ — but the common case is "all
+ * of these share one expiry", so this takes a LIST of item ids and applies one
+ * value to all of them. The caller selects; this just writes.
+ *
+ * Scoped by container: an id that isn't currently in this shipment is silently
+ * skipped rather than edited, so a stale or forged id can't reach another
+ * shipment's stock. Returns how many actually changed so the UI can say so.
+ */
+export async function setShipmentItemsExpiry(
+  shipmentId: number,
+  itemIds: number[],
+  data: { expiryDate: Date | null; lotCode: string | null },
+): Promise<number> {
+  const ids = itemIds.filter((n) => Number.isInteger(n) && n > 0);
+  if (!ids.length) return 0;
+  const r = await prisma.item.updateMany({
+    where: { id: { in: ids }, containerType: "SHIPMENT", containerId: shipmentId },
+    data: { expiryDate: data.expiryDate, lotCode: data.lotCode },
+  });
+  return r.count;
+}
+
+export function getShipmentPhotos(shipmentId: number) {
+  return prisma.shipmentPhoto.findMany({ where: { shipmentId }, orderBy: { id: "asc" } });
+}
+
+export async function addShipmentPhoto(shipmentId: number, assetId: string) {
+  const id = assetId.trim();
+  if (!id) return null;
+  return prisma.shipmentPhoto.create({ data: { shipmentId, assetId: id } });
+}
+
+/** Delete scoped to the shipment — a bare photo id must not delete another's. */
+export async function removeShipmentPhoto(shipmentId: number, photoId: number) {
+  await prisma.shipmentPhoto.deleteMany({ where: { id: photoId, shipmentId } });
+}
