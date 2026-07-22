@@ -11,16 +11,21 @@
 > re-check actual `git`/prod state before committing or deploying (see the
 > runbook). This file is the shared source of truth across accounts.
 
-## Current state (2026-07-21)
+## Current state (2026-07-22)
 
-- **App version 1.18.0**, ~49k lines (src), **165 routes**, **478 unit tests**,
-  127 Prisma models, typecheck clean. *(These are the live headline counts —
+- **App version 1.18.0**, ~50k lines (src), **168 routes**, **490 unit tests**,
+  **129 Prisma models**, typecheck clean, build clean. *(Live headline counts —
   Codex pass-1 flagged the old 123/398 figures as drift; keep them refreshed
   when the shape changes materially.)*
-- **Production**: live at https://in.yeldn.com, deployed at commit `d8d6707`
-  (Deliveries through the outbound tracking sync). `origin/main` is 1 **doc-only**
-  commit ahead (`d95df9e`, the `APP_BLUEPRINT.md` regeneration) — no undeployed
-  code or migrations. No pending migrations.
+- **Production**: live at https://in.yeldn.com, deployed at commit `9939cf4`
+  (Incoming Shipments stages 0a–0e + HR Department). `origin/main` is **1
+  doc-only commit ahead** (`db1dc07`, a deploy note) — no undeployed code or
+  migrations. Working tree clean.
+- **⚠ This repo is worked by several sessions at once.** `main` moves fast: 13
+  commits landed on top of the Deliveries/audit work within a day. **Always
+  re-read the real git + prod state before committing or deploying**, and check
+  the full `prodHEAD..HEAD` delta so you don't ship someone else's in-flight
+  work. Never commit files you didn't change.
 - **⚠ THE SCOPE FORMERLY KNOWN AS `EGV` IS NOW `VEEEY`** (full internal rename,
   Phase 1 of contract v2 — commit `d77bf1e`, migration
   `rename_egv_scope_to_veeey` applied on prod: 2,556 products / all scoped rows
