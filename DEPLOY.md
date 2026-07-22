@@ -71,6 +71,22 @@ fi
 curl -s -o /dev/null -w '/login %{http_code}\n' http://127.0.0.1:3200/login
 ```
 
+⚠️ **A migration that REDEFINES a table needs the app stopped.** SQLite gives
+`Error: SQLite database error — database is locked` while pm2 holds connections, and
+`migrate deploy` reports it as a Rust stack trace that is easy to mistake for noise — it exits
+having applied nothing. Adding a column with a foreign key counts, because Prisma implements it
+as create-new / copy / drop / rename. Back up first, since a half-run redefine is the one way to
+lose data here:
+
+```bash
+cp prisma/dev.db prisma/dev.db.pre-<change>-$(date +%F)
+pm2 stop yeldnin && sleep 2
+npx prisma migrate deploy          # verify it says "successfully applied"
+pm2 start yeldnin
+# Confirm the new column really exists — a failed deploy leaves the app happily running:
+node -e "const {DatabaseSync}=require('node:sqlite');console.log(new DatabaseSync('prisma/dev.db').prepare('PRAGMA table_info(Employee)').all().map(c=>c.name).join(' '))"
+```
+
 **There is no ESLint config in this repo at all** — `npm run lint` calls the removed `next lint`, and
 plain `npx eslint` fails too ("couldn't find eslint.config.js"). The real gate here is
 `npm run typecheck && npm run test && npm run build`.
