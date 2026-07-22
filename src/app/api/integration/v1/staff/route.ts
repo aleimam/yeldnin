@@ -1,3 +1,5 @@
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import { prisma } from "@/lib/db";
 import { integrationEnabled } from "@/lib/integration/config";
 import { verifyInbound } from "@/lib/integration/integration-service";
@@ -44,6 +46,7 @@ export async function GET(req: Request) {
       email: true,
       username: true,
       primaryPhone: true,
+      avatarUrl: true,
       active: true,
       archivedAt: true,
       teamMembers: { select: { team: { select: { key: true } } } },
@@ -52,7 +55,7 @@ export async function GET(req: Request) {
   });
 
   return Response.json({
-    staff: users.map((u) => ({
+    staff: await Promise.all(users.map(async (u) => ({
       email: u.email,
       name: u.name,
       username: u.username,
@@ -61,6 +64,29 @@ export async function GET(req: Request) {
       // flag to reason about.
       active: u.active && u.archivedAt == null,
       teams: u.teamMembers.map((t) => t.team.key),
-    })),
+      // Owner 2026-07-22: staff carry their YeldnIN avatar into Veeey. Inlined
+      // as base64 because the asset route is auth-gated (Veeey can't hotlink).
+      avatar: await loadAvatar(u.avatarUrl),
+    }))),
   });
+}
+
+/** Roster is hourly and small, so a modest inline cap keeps the payload sane. */
+const AVATAR_MAX_BYTES = 400 * 1024;
+
+/**
+ * Inline a user's avatar as { mime, base64 }, or null when there is none, the
+ * file is missing/oversized, or it isn't an image. Never throws — an avatar
+ * problem must not break the roster (the sync auto-revokes on absence).
+ */
+async function loadAvatar(assetId: string | null): Promise<{ mime: string; base64: string } | null> {
+  if (!assetId || /^https?:\/\//.test(assetId)) return null;
+  try {
+    const asset = await prisma.asset.findUnique({ where: { id: assetId }, select: { filename: true, mimeType: true, size: true } });
+    if (!asset || !asset.mimeType.startsWith("image/") || asset.size > AVATAR_MAX_BYTES) return null;
+    const buf = await fs.readFile(path.join(process.cwd(), "uploads", asset.filename));
+    return { mime: asset.mimeType, base64: buf.toString("base64") };
+  } catch {
+    return null;
+  }
 }
