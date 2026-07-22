@@ -50,15 +50,30 @@ on first login.
 
 ## Updates (subsequent deploys)
 
+> ⚠️ **The live app directory is `/home/yeldn/app`, not `/home/yeldnin/app`** — verified against
+> `pm2 jlist` on 2026-07-22. The paths above are the original install instructions; the box does not
+> match them. The branch is **`main`** (`git push origin main`), not master.
+>
+> Build needs the SQLite flag: `NODE_OPTIONS=--experimental-sqlite npm run build`. Gate the reload on
+> its exit code — never reload onto a failed build.
+
 ```bash
-cd /home/yeldnin/app
+cd /home/yeldn/app
 cp prisma/dev.db prisma/dev.db.bak.$(date +%F)   # back up the DB first
-git pull
-npm ci
+git pull --ff-only
 npx prisma migrate deploy
-npm run build
-pm2 reload yeldnin
+if NODE_OPTIONS=--experimental-sqlite npm run build > /tmp/yeldnin-build.log 2>&1; then
+  pm2 reload yeldnin
+else
+  echo "BUILD FAILED — not reloading"; tail -25 /tmp/yeldnin-build.log; exit 1
+fi
+# Verify: / redirects to /login (307) and /login is 200. Loopback-only by design.
+curl -s -o /dev/null -w '/login %{http_code}\n' http://127.0.0.1:3200/login
 ```
+
+**There is no ESLint config in this repo at all** — `npm run lint` calls the removed `next lint`, and
+plain `npx eslint` fails too ("couldn't find eslint.config.js"). The real gate here is
+`npm run typecheck && npm run test && npm run build`.
 
 ## ⚠ nginx on this multi-vhost box (in.yeldn.com)
 
