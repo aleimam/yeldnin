@@ -1,6 +1,13 @@
 import "dotenv/config";
+import path from "node:path";
 import { copyFileSync, existsSync } from "node:fs";
-import { prisma } from "@/lib/db";
+import { PrismaClient } from "@prisma/client";
+import { PrismaNodeSQLite } from "prisma-adapter-node-sqlite";
+
+// Deliberately NOT `@/lib/db`: that module starts with `import "server-only"`,
+// which throws the moment a CLI loads it. Same client, built here.
+const DB_FILE = path.join(process.cwd(), "prisma", "dev.db");
+const prisma = new PrismaClient({ adapter: new PrismaNodeSQLite({ url: `file:${DB_FILE}` }) });
 
 /**
  * Wipe the supply-chain and Veeey-mirror TRANSACTIONS, before reloading real
@@ -60,7 +67,7 @@ const PROTECTED = [
 
 async function main() {
   const commit = process.argv.includes("--commit");
-  const db = process.env.DATABASE_URL?.replace(/^file:/, "") ?? "prisma/dev.db";
+  const db = DB_FILE;
 
   console.log(`\n=== YeldnIN supply-chain wipe — ${commit ? "COMMIT" : "DRY RUN (no deletes)"} ===\n`);
 
