@@ -10,6 +10,7 @@ import { getWorkflow } from "@/lib/workflow/workflow-config-service";
 import type { ItemStatus } from "@/lib/workflow/workflow-logic";
 import { ShipmentPhotosButton } from "../../operations/ShipmentPhotosButton";
 import { ShipmentStockEntry } from "../../operations/ShipmentStockEntry";
+import { ShipmentReviewControl } from "../../operations/ShipmentReviewControl";
 
 export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const access = await requireModule("operations", "VIEW");
@@ -49,6 +50,18 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
         </div>
 
         <ShipmentStockEntry shipmentId={shipment.id} items={entryItems} photos={photos} canManage={canManage} />
+
+        {/* Sales' sign-off, mirroring the same review in Veeey. Gated on the
+            Sales capability, not the Ops one that got the shipment this far —
+            approving is what puts the goods on sale. */}
+        {access.can("order_requests", "reviewShipment") && (
+          <ShipmentReviewControl
+            id={shipment.id}
+            status={shipment.status}
+            reviewStatus={shipment.reviewStatus}
+            reviewNote={shipment.reviewNote}
+          />
+        )}
 
         {(canManage || access.isAdmin) && items.length > 0 && (
           <div className="card p-5">

@@ -1941,5 +1941,13 @@
   "shipments.photosHint": "Sales check the entered expiry dates against these before approving the stock in.",
   "shipments.noPhotos": "No photos yet.",
   "shipments.markOnWebsite": "Mark In Website",
-  "shipments.blockedMissingExpiry": "Enter expiry for {n} unit(s) first."
+  "shipments.blockedMissingExpiry": "Enter expiry for {n} unit(s) first.",
+  "cap.order_requests.reviewShipment": "Approve / send back incoming shipments",
+  "shipments.review": "Sales review",
+  "shipments.reviewHint": "Check the expiry dates against the photos. Approving puts these units on sale on the website immediately.",
+  "shipments.approve": "Approve",
+  "shipments.sendBack": "Send back",
+  "shipments.sendBackReason": "What must Ops fix?",
+  "shipments.reviewedApproved": "Approved",
+  "shipments.reviewedRejected": "Sent back for correction"
 }

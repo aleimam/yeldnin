@@ -65,6 +65,70 @@ export async function emitShipmentReceived(shipmentId: number, at: Date): Promis
   }
 }
 
+/**
+ * Sales decided HERE rather than in Veeey (owner decision — the review section is
+ * mirrored in both apps). Applies the verdict locally and EMITS it, because
+ * Veeey is where an approval turns into sellable stock and it cannot know
+ * otherwise.
+ *
+ * The mirror of `handleShipmentReview`, which applies a verdict that arrived
+ * from Veeey and deliberately does not emit — only the side where a human
+ * clicked announces the decision, or the two would ping-pong it forever.
+ */
+export async function reviewShipmentLocally(
+  shipmentId: number,
+  decision: "APPROVED" | "REJECTED",
+  reason: string | null,
+  userId: number | null,
+): Promise<ShipmentReviewResult> {
+  const sh = await prisma.shipment.findUnique({
+    where: { id: shipmentId },
+    select: { id: true, uid: true, status: true, scope: true },
+  });
+  if (!sh) return { ok: false, skipped: "shipment_not_found" };
+  if (sh.scope !== "VEEEY") return { ok: false, skipped: "scope_mismatch" };
+  // Only a shipment that has actually been reported to Veeey can be reviewed —
+  // approving one still sitting in the office would stock goods Veeey has never
+  // been told about.
+  if (sh.status !== "WEBSITE") return { ok: false, skipped: "not_under_review" };
+  if (decision === "REJECTED" && !reason?.trim()) return { ok: false, skipped: "reason_required" };
+
+  const at = new Date();
+  const why = reason?.trim().slice(0, 500) ?? null;
+  const reopened = decision === "REJECTED";
+
+  // Predicated on WEBSITE: if Veeey's verdict landed in the meantime, that one
+  // stands and this is a no-op rather than a second, conflicting decision.
+  const claim = await prisma.shipment.updateMany({
+    where: { id: sh.id, status: "WEBSITE" },
+    data: {
+      reviewStatus: decision,
+      reviewNote: why,
+      reviewedAt: at,
+      ...(reopened ? { status: "PHOTOS_SENT" } : {}),
+    },
+  });
+  if (claim.count === 0) return { ok: false, skipped: "not_under_review" };
+
+  if (reopened) {
+    const items = await prisma.item.findMany({
+      where: { containerType: "SHIPMENT", containerId: sh.id, exceptionFlag: null },
+      select: { id: true },
+    });
+    if (items.length) await moveItems(items.map((i) => i.id), { status: "PHOTOS_SENT", action: "reviewRejected" }, userId);
+  }
+
+  if (sh.uid && (await integrationEnabled())) {
+    await recordOutbox("shipment.review", sh.uid, {
+      shipmentUid: sh.uid,
+      decision,
+      reason: why,
+      reviewedAt: at.toISOString(),
+    });
+  }
+  return { ok: true, uid: sh.uid ?? undefined, status: reopened ? "PHOTOS_SENT" : "WEBSITE", reopened };
+}
+
 export interface ShipmentReviewResult {
   ok: boolean;
   uid?: string;
@@ -98,8 +162,11 @@ export async function handleShipmentReview(payload: unknown): Promise<ShipmentRe
   if (sh.status !== "WEBSITE") return { ok: false, skipped: "not_under_review" };
 
   const reopened = w.decision === "REJECTED";
-  await prisma.shipment.update({
-    where: { id: sh.id },
+  // Predicated on WEBSITE, like the local path: now that Sales can decide in
+  // EITHER app, a verdict from Veeey can race one entered here. First one wins;
+  // the loser is a no-op rather than a second, conflicting decision.
+  const claim = await prisma.shipment.updateMany({
+    where: { id: sh.id, status: "WEBSITE" },
     data: {
       reviewStatus: w.decision,
       reviewNote: w.reason,
@@ -107,6 +174,7 @@ export async function handleShipmentReview(payload: unknown): Promise<ShipmentRe
       ...(reopened ? { status: "PHOTOS_SENT" } : {}),
     },
   });
+  if (claim.count === 0) return { ok: false, skipped: "not_under_review" };
   // Items follow the shipment back so the two can't disagree about where the
   // goods are in the workflow.
   if (reopened) {

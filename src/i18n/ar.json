@@ -1941,5 +1941,13 @@
   "shipments.photosHint": "يراجع فريق المبيعات تواريخ الصلاحية المُدخلة مقابل هذه الصور قبل اعتماد إضافة المخزون.",
   "shipments.noPhotos": "لا توجد صور بعد.",
   "shipments.markOnWebsite": "تحديد كمُدرجة على الموقع",
-  "shipments.blockedMissingExpiry": "أدخل تاريخ الصلاحية لـ {n} وحدة أولًا."
+  "shipments.blockedMissingExpiry": "أدخل تاريخ الصلاحية لـ {n} وحدة أولًا.",
+  "cap.order_requests.reviewShipment": "اعتماد / إعادة الشحنات الواردة",
+  "shipments.review": "مراجعة المبيعات",
+  "shipments.reviewHint": "قارن تواريخ الصلاحية بالصور. الاعتماد يطرح هذه الوحدات للبيع على الموقع فورًا.",
+  "shipments.approve": "اعتماد",
+  "shipments.sendBack": "إعادة",
+  "shipments.sendBackReason": "ما الذي يجب أن يصححه فريق العمليات؟",
+  "shipments.reviewedApproved": "معتمدة",
+  "shipments.reviewedRejected": "أُعيدت للتصحيح"
 }

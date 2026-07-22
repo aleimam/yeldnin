@@ -5,6 +5,7 @@ import {
   pickUpTrip, convertTripToShipments, markShipmentPhotosSent, markShipmentOnWebsite,
   setShipmentItemsExpiry, addShipmentPhoto, removeShipmentPhoto,
 } from "@/lib/operations/operations-service";
+import { reviewShipmentLocally } from "@/lib/integration/shipment-sync";
 import { teamsUserCanMark, validateMark, isReviewTeam, type ReviewTeam } from "@/lib/review/review-logic";
 import { setTripMark } from "@/lib/review/review-service";
 import { writeAudit } from "@/lib/audit";
@@ -115,4 +116,27 @@ export async function markShipmentOnWebsiteAction(id: number): Promise<void> {
   await writeAudit(access.user.id, "operations", "shipment.onWebsite", "shipment", id);
   revalidatePath(`/shipments/${id}`);
   revalidatePath("/shipments");
+}
+
+/**
+ * Sales sign off (or send back) an incoming shipment from THIS app — the same
+ * review Veeey offers, mirrored here per the owner's decision.
+ *
+ * Approving is not a bookkeeping note: the emitted verdict is what turns the
+ * goods into sellable stock on the website, which is why it sits behind a Sales
+ * capability rather than the Ops one that got the shipment this far.
+ */
+export async function reviewShipmentAction(
+  id: number,
+  decision: "APPROVED" | "REJECTED",
+  reason: string | null,
+): Promise<{ ok: boolean; skipped?: string }> {
+  const access = await requireCapability("order_requests", "reviewShipment");
+  const r = await reviewShipmentLocally(id, decision, reason, access.user.id);
+  if (r.ok) {
+    await writeAudit(access.user.id, "operations", "shipment.review", "shipment", id, { decision, reason });
+    revalidatePath(`/shipments/${id}`);
+    revalidatePath("/shipments");
+  }
+  return { ok: r.ok, skipped: r.skipped };
 }

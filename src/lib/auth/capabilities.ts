@@ -56,6 +56,10 @@ export const CAPABILITIES: Capability[] = [
   { key: "operate", module: "order_requests", labelKey: "cap.order_requests.operate", defaultLevel: "OPERATE" },
   // Approve/reject VEEEY requests before their items enter the purchasing pool.
   { key: "approve", module: "order_requests", labelKey: "cap.order_requests.approve", defaultLevel: "MANAGE" },
+  // Sign off an incoming shipment's expiry dates against Ops' photos. Approving
+  // is what turns the goods into sellable stock on the Veeey side, so it sits at
+  // MANAGE by default alongside request approval.
+  { key: "reviewShipment", module: "order_requests", labelKey: "cap.order_requests.reviewShipment", defaultLevel: "MANAGE" },
 
   // ── XOONX ────────────────────────────────────────────────────────────────
   { key: "operate", module: "xoonx", labelKey: "cap.xoonx.operate", defaultLevel: "OPERATE" },
