@@ -11,16 +11,15 @@
 > re-check actual `git`/prod state before committing or deploying (see the
 > runbook). This file is the shared source of truth across accounts.
 
-## Current state (2026-07-22)
+## Current state (2026-07-23)
 
-- **App version 1.18.0**, ~50k lines (src), **168 routes**, **490 unit tests**,
-  **129 Prisma models**, typecheck clean, build clean. *(Live headline counts —
-  Codex pass-1 flagged the old 123/398 figures as drift; keep them refreshed
-  when the shape changes materially.)*
-- **Production**: live at https://in.yeldn.com, deployed at commit `9939cf4`
-  (Incoming Shipments stages 0a–0e + HR Department). `origin/main` is **1
-  doc-only commit ahead** (`db1dc07`, a deploy note) — no undeployed code or
-  migrations. Working tree clean.
+- **App version 1.18.0**, ~54k lines (src), **180 routes**, **543 unit tests**,
+  **142 Prisma models**, typecheck clean, build clean. *(Live headline counts —
+  keep them refreshed when the shape changes materially.)*
+- **Production**: live at https://in.yeldn.com, deployed at commit `ca6697a`
+  (the **360 Reviews module**, P0–P5). `origin/main` **== prod HEAD — nothing
+  undeployed, no pending migrations**. Working tree clean apart from the
+  untracked spec `.docx` files.
 - **⚠ This repo is worked by several sessions at once.** `main` moves fast: 13
   commits landed on top of the Deliveries/audit work within a day. **Always
   re-read the real git + prod state before committing or deploying**, and check
@@ -60,8 +59,9 @@
 - All modules from the blueprint are built and deployed: supply chain
   (products/requests/purchasing/patches/transfers/shipments/hubs/trips/
   travelers/couriers/carriers/items), Pricing, Issues & Compensations,
-  CS Quality (incl. the full veto workflow), HR (complete, phases 1–5),
-  Chat + Inquiries, Documents (Tiptap editor + PDF letterhead export),
+  CS Quality (incl. the full veto workflow), 360 Reviews (peer evaluation —
+  cycles, weighted scoring, self-vs-others analytics, AI feedback), HR (complete,
+  phases 1–5), Chat + Inquiries, Documents (Tiptap editor + PDF letterhead export),
   Expenses, History, notifications (in-app inbox + web push), Audit/Error logs,
   Settings (VEEEY integration + **Backup** module).
 - Spec documents live **untracked** in the repo root on the dev machine
@@ -72,7 +72,45 @@
   `Pricing.xlsx` older docs mention no longer exists — its math is implemented
   in the Pricing module.
 
-### Changed since the last handoff (`f36d1a0` → `816cdd2`)
+### Changed this handoff (`9939cf4` → `ca6697a`) — 360 Reviews shipped
+
+- **NEW: 360 Reviews (Evaluation) module** — peer-to-peer reviews, module key
+  `evaluation`, in the People section. Built P0–P5 and **deployed 2026-07-23**
+  (5 additive migrations `eval_p0_hr_prereqs`…`eval_p4_reminders`; **no new npm
+  deps** — Claude via `fetch`). Full design in `EVALUATION.md`.
+  - **Org unit = `Team`** (a "department"). Vote weight = reciprocal
+    `TeamConnection` graph tier (same/direct/indirect) × `Position.gradeLevel`.
+    Pure logic in `src/lib/evaluation/weighting-logic.ts` + `scoring-logic.ts`
+    (unit-tested; 44 of the 543 tests are this module).
+  - **Cycles freeze at open**: each participant's departments+grade, the criteria
+    set, and the connection graph snapshot into the `EvalCycle*` tables, so later
+    config edits only touch future cycles. Scoring
+    (normalize per-rater → weight → aggregate → roll-up) is materialized into
+    `EvalResult` **at close** (`closeCycle` → `materializeCycle`, idempotent).
+  - Self-service `/evaluation/evaluate` (5-star, N/A, autosave) + `/results`
+    (self-vs-others radar, effort-blended overall, PDF). Admin `/cycles`,
+    `/analytics` (+CSV), `/criteria`, `/feedback`. Capability `evaluation.manage`
+    = admin/HR; plain VIEW = self-service.
+  - **AI feedback (optional)**: Claude key in the encrypted `ApiIntegration`
+    vault (provider `ANTHROPIC`; Settings → AI feedback = `/settings/evaluation`).
+    Anonymized inputs + hard guardrails (no gender/rater-identity/weights, no
+    promote-dismiss-pay, themes-not-quotes); draft → edit → approve → release →
+    letterhead PDF. The whole cycle→score→analytics path works with the key
+    **absent** — only the written report needs it.
+  - **Reminder cron**: `/api/cron/evaluation` (daily `0 9 * * *`, `x-cron-key`
+    gated) nudges incomplete raters (every 3d → daily final 3d → deadline) and
+    tells admins once when a cycle is fully complete. Self-dedups per day; inert
+    when no cycle is open.
+  - **Post-deploy done on prod**: `db:seed` registered the module + seeded the
+    12-pillar / 42-criterion bilingual bank; the daily eval cron is in root's
+    crontab.
+  - **⚠ Admin setup still pending** before a first cycle is meaningful:
+    (1) set department **connections** (HR → department detail) + position
+    **gradeLevels** (HR → Positions) — without them, eligibility + weighting are
+    trivial; (2) set the **Claude key** (Settings → AI feedback); (3) open a cycle
+    at `/evaluation/cycles`.
+
+### Changed on the last handoff (`f36d1a0` → `816cdd2`)
 
 - **VEEEY integration is now LIVE** (was "phase 2 pending" in the old handoff).
   Enabled on prod (`baseUrl https://veeey.com`). What syncs — and ONLY this:
@@ -292,9 +330,15 @@ work. The known next pieces:
    nothing until an admin enters FTPS details, tests the connection, picks
    contents + a schedule, and enables it (Settings → System → Backup). No code
    needed — this is an operator action.
-3. **Transfers list polish** — friendly display name + SLA tint on the list
+3. **360 Reviews — admin setup before a first cycle.** Module is deployed +
+   seeded, but until an admin sets department **connections** + position
+   **gradeLevels** (HR) it treats everyone as unconnected/same-grade, so
+   eligibility + weighting are trivial. Also optional: the **Claude key**
+   (Settings → AI feedback) for the AI reports. Then open a cycle at
+   `/evaluation/cycles`. All operator actions — no code needed.
+4. **Transfers list polish** — friendly display name + SLA tint on the list
    (the container itself is complete).
-4. Deferred-by-choice minor: service-layer throws (incl. the mark-delivered flow
+5. Deferred-by-choice minor: service-layer throws (incl. the mark-delivered flow
    and the veto/backup services) are English-only sentences; validator errors use
    `err.*` i18n keys. Bilingual service errors would be a nice-to-have.
 
