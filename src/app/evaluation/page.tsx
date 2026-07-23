@@ -21,7 +21,7 @@ export default async function EvaluationPage() {
     { href: "/evaluation/results", icon: "📈", label: t("eval.myResults"), ready: true },
     { href: "/evaluation/criteria", icon: "📋", label: t("eval.criteria"), ready: true, admin: true },
     { href: "/evaluation/cycles", icon: "🗓️", label: t("eval.cycles"), ready: true, admin: true },
-    { href: "/evaluation", icon: "📊", label: t("eval.analytics"), ready: false, admin: true },
+    { href: "/evaluation/analytics", icon: "📊", label: t("eval.analytics"), ready: true, admin: true },
     { href: "/evaluation", icon: "🤖", label: t("eval.aiFeedback"), ready: false, admin: true },
   ].filter((c) => !c.admin || canManage);
 
