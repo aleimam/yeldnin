@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { assignmentPairs, serializeIds, type Participant } from "./eligibility-logic";
 import { materializeCycle } from "./scoring-service";
+import { notifyCycleOpen, notifyCycleClosed } from "./eval-notify-service";
 
 export interface NewCycleInput {
   name: string;
@@ -98,7 +99,7 @@ export async function createCycle(input: NewCycleInput, createdById: number | nu
   const pairs = assignmentPairs(participants, edges);
   const uid = await nextUid("EVC");
 
-  return prisma.$transaction(
+  const cycleId = await prisma.$transaction(
     async (tx) => {
       const cycle = await tx.evalCycle.create({
         data: { uid, name, deadline, effortWeight, createdById, status: "OPEN" },
@@ -133,6 +134,9 @@ export async function createCycle(input: NewCycleInput, createdById: number | nu
     },
     { timeout: 30000 },
   );
+
+  await notifyCycleOpen(cycleId).catch(() => {});
+  return cycleId;
 }
 
 export async function extendDeadline(cycleId: number, deadline: string): Promise<void> {
@@ -149,6 +153,7 @@ export async function closeCycle(cycleId: number): Promise<void> {
   if (!cycle || cycle.status !== "OPEN") throw new Error("Cycle is not open.");
   await materializeCycle(cycleId);
   await prisma.evalCycle.update({ where: { id: cycleId }, data: { status: "CLOSED", closedAt: new Date() } });
+  await notifyCycleClosed(cycleId).catch(() => {});
 }
 
 /** Re-run scoring for an already-closed cycle (e.g. after data corrections). */

@@ -158,7 +158,11 @@ secrets into chat; enter secrets only in the app UI or the server `.env.local`.
    an `x-cron-key` header (`CRON_SECRET` in server `.env.local`):
    `/api/cron/advance` (item auto-advance + Veeey outbox drain + SLA alerts +
    error-log prune) and `/api/cron/backup` (runs a backup only when the admin's
-   schedule is due — inert while the Backup module is disabled). Web-push VAPID
+   schedule is due — inert while the Backup module is disabled). A third entry,
+   **once daily** (e.g. `0 9 * * *`), calls `/api/cron/evaluation` — the 360
+   Reviews reminder sweep (deadline-cadence nudges to incomplete raters + a
+   one-time "fully complete" note to admins; self-dedups per day, inert when no
+   cycle is open). Web-push VAPID
    keys are also in server `.env.local` (gitignored, survives pulls). Uploads
    live in `./uploads`; the DB is `prisma/dev.db` (gitignored). Both are now also
    covered by the in-app **Backup** module once an admin configures it.

@@ -193,6 +193,8 @@ model EvalCycle {
   aiModel      String?
   createdById  Int?
   closedAt     DateTime?
+  lastReminderAt     DateTime? // dedup: at most one reminder sweep per day
+  completeNotifiedAt DateTime? // dedup: admins told "fully complete" once
   teams        EvalCycleTeam[]
   @@index([status])
 }
