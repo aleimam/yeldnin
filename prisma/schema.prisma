@@ -177,6 +177,97 @@ model EvalCriterion {
   @@index([pillarId])
 }
 
+// ── 360 Reviews — cycles & evaluations ───────────────────────────────────────
+// A cycle runs the review for a set of departments with a deadline. At OPEN the
+// config + participants' departments/grades + the connection graph are FROZEN
+// into the EvalCycle* snapshot tables so later admin edits only affect future
+// cycles (EVALUATION.md §7). One OPEN cycle at a time.
+model EvalCycle {
+  id           Int             @id @default(autoincrement())
+  uid          String          @unique // EVC<YY><MM><seq3>
+  name         String
+  startedAt    DateTime        @default(now())
+  deadline     DateTime
+  status       String          @default("OPEN") // OPEN | CLOSED
+  effortWeight Int             @default(15) // % of overall from the Effort pillar
+  aiModel      String?
+  createdById  Int?
+  closedAt     DateTime?
+  teams        EvalCycleTeam[]
+  @@index([status])
+}
+
+model EvalCycleTeam {
+  cycleId Int
+  teamId  Int
+  cycle   EvalCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  @@id([cycleId, teamId])
+}
+
+// Frozen participant snapshot: grade + department membership at OPEN.
+model EvalCycleParticipant {
+  cycleId Int
+  empId   Int
+  grade   Int? // frozen Position.gradeLevel
+  teamIds String // frozen CSV of Team.id the employee belonged to
+  @@id([cycleId, empId])
+  @@index([cycleId])
+}
+
+// Frozen criteria snapshot (with pillar info + applicability) at OPEN. answers
+// still key off the ORIGINAL criterionId so cross-cycle trends line up.
+model EvalCycleCriterion {
+  id           Int     @id @default(autoincrement())
+  cycleId      Int
+  criterionId  Int // original EvalCriterion.id
+  pillarId     Int // original EvalPillar.id
+  pillarName   String
+  pillarNameAr String?
+  pillarOrder  Int     @default(0)
+  title        String
+  titleAr      String?
+  text         String
+  textAr       String?
+  raterScope   String
+  sortOrder    Int     @default(0)
+  teamIds      String // frozen CSV of applicable Team.id ("" = all departments)
+  @@index([cycleId])
+}
+
+// Frozen connection graph at OPEN (undirected edges, aId < bId).
+model EvalCycleEdge {
+  cycleId Int
+  aId     Int
+  bId     Int
+  @@id([cycleId, aId, bId])
+}
+
+// One row per (cycle, evaluator, subject) including self. Generated at OPEN.
+model Evaluation {
+  id             Int          @id @default(autoincrement())
+  cycleId        Int
+  evaluatorEmpId Int
+  subjectEmpId   Int
+  isSelf         Boolean      @default(false)
+  status         String       @default("PENDING") // PENDING | SUBMITTED | NA
+  overallComment String? // required to submit (not for NA)
+  submittedAt    DateTime?
+  answers        EvalAnswer[]
+  @@unique([cycleId, evaluatorEmpId, subjectEmpId])
+  @@index([cycleId, evaluatorEmpId])
+  @@index([cycleId, subjectEmpId])
+}
+
+model EvalAnswer {
+  id           Int        @id @default(autoincrement())
+  evaluationId Int
+  criterionId  Int // original EvalCriterion.id
+  level        Int // 1..5
+  note         String?
+  evaluation   Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  @@unique([evaluationId, criterionId])
+}
+
 model TeamMember {
   id     Int  @id @default(autoincrement())
   teamId Int

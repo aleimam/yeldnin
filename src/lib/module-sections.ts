@@ -69,6 +69,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
   // & pillars editor is admin/HR only (capability "manage").
   evaluation: [
     { labelKey: "eval.myReviews", icon: "📝", href: "/evaluation" },
+    { labelKey: "eval.cycles", icon: "🗓️", href: "/evaluation/cycles", capability: "manage" },
     { labelKey: "eval.criteria", icon: "📋", href: "/evaluation/criteria", capability: "manage" },
   ],
   human_resources: [
