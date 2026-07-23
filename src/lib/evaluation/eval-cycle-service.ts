@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { nextUid } from "@/lib/uid";
 import { assignmentPairs, serializeIds, type Participant } from "./eligibility-logic";
+import { materializeCycle } from "./scoring-service";
 
 export interface NewCycleInput {
   name: string;
@@ -142,11 +143,19 @@ export async function extendDeadline(cycleId: number, deadline: string): Promise
   await prisma.evalCycle.update({ where: { id: cycleId }, data: { deadline: d } });
 }
 
-/** Close a cycle. (P3 will materialize EvalResult here; for now it flips status.) */
+/** Close a cycle: materialize the frozen scores into EvalResult, then flip status. */
 export async function closeCycle(cycleId: number): Promise<void> {
   const cycle = await prisma.evalCycle.findUnique({ where: { id: cycleId } });
   if (!cycle || cycle.status !== "OPEN") throw new Error("Cycle is not open.");
+  await materializeCycle(cycleId);
   await prisma.evalCycle.update({ where: { id: cycleId }, data: { status: "CLOSED", closedAt: new Date() } });
+}
+
+/** Re-run scoring for an already-closed cycle (e.g. after data corrections). */
+export async function recomputeCycle(cycleId: number): Promise<void> {
+  const cycle = await prisma.evalCycle.findUnique({ where: { id: cycleId } });
+  if (!cycle) throw new Error("Cycle not found.");
+  await materializeCycle(cycleId);
 }
 
 export interface DashboardRow {

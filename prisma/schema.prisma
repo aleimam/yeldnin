@@ -268,6 +268,43 @@ model EvalAnswer {
   @@unique([evaluationId, criterionId])
 }
 
+// Materialized scores, written when a cycle CLOSES. Analytics / CSV / trends /
+// AI all read this frozen snapshot. score = normalized+weighted peer aggregate
+// (1..5); selfScore = the subject's own rating for the self-vs-others compare.
+model EvalResult {
+  id           Int    @id @default(autoincrement())
+  cycleId      Int
+  subjectEmpId Int
+  scope        String // OVERALL | PILLAR | CRITERION
+  pillarId     Int?
+  criterionId  Int?
+  score        Float
+  selfScore    Float?
+  responses    Int    @default(0)
+  @@index([cycleId, subjectEmpId])
+  @@index([cycleId, scope])
+}
+
+// Per-employee AI feedback + effort. Effort coverage is computed at close (P3);
+// depth + the released narrative come from the AI batch (P5).
+model EvalFeedback {
+  id             Int       @id @default(autoincrement())
+  cycleId        Int
+  subjectEmpId   Int
+  status         String    @default("NOT_GENERATED") // NOT_GENERATED|GENERATING|GENERATED|RELEASED|FAILED
+  adminNote      String?
+  draftMd        String?
+  editedMd       String?
+  model          String?
+  effortCoverage Float? // 0..1 mechanical
+  effortDepth    Float? // 0..20 AI rubric
+  effortScore    Float? // 0..100 = coverage * (depth/20) * 100
+  generatedAt    DateTime?
+  releasedAt     DateTime?
+  error          String?
+  @@unique([cycleId, subjectEmpId])
+}
+
 model TeamMember {
   id     Int  @id @default(autoincrement())
   teamId Int
