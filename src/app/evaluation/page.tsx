@@ -18,7 +18,7 @@ export default async function EvaluationPage() {
 
   const cards: { href: string; icon: string; label: string; ready: boolean; admin?: boolean }[] = [
     { href: "/evaluation/evaluate", icon: "📝", label: t("eval.myReviews"), ready: true },
-    { href: "/evaluation", icon: "📈", label: t("eval.myResults"), ready: false },
+    { href: "/evaluation/results", icon: "📈", label: t("eval.myResults"), ready: true },
     { href: "/evaluation/criteria", icon: "📋", label: t("eval.criteria"), ready: true, admin: true },
     { href: "/evaluation/cycles", icon: "🗓️", label: t("eval.cycles"), ready: true, admin: true },
     { href: "/evaluation", icon: "📊", label: t("eval.analytics"), ready: false, admin: true },
