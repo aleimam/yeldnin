@@ -432,6 +432,105 @@ async function main() {
     create: { provider: "VEEEY", name: "Veeey storefront", enabled: false },
   });
 
+  // ── 360 Reviews criteria bank (bootstrap once; never clobber admin edits) ──
+  // Universal pillars (empty teams = applies to every department). Rater scope
+  // per criterion: A=ANY, C=CONNECTED, S=SAME_DEPT. All admin-editable after.
+  if ((await prisma.evalPillar.count()) === 0) {
+    const teamByKey = new Map<string, number>();
+    for (const tm of await prisma.team.findMany({ select: { id: true, key: true } })) teamByKey.set(tm.key, tm.id);
+    const A = "ANY", C = "CONNECTED", S = "SAME_DEPT";
+    type Crit = [title: string, titleAr: string, text: string, textAr: string, scope: string];
+    const BANK: { name: string; nameAr: string; teams: string[]; criteria: Crit[] }[] = [
+      { name: "Attitude & Professionalism", nameAr: "السلوك والاحترافية", teams: [], criteria: [
+        ["Positive attitude", "سلوك إيجابي", "Brings a positive, can-do energy to work.", "يأتي إلى العمل بطاقة إيجابية وروح المبادرة.", A],
+        ["Respect & courtesy", "الاحترام واللباقة", "Treats everyone with respect and courtesy.", "يعامل الجميع باحترام ولباقة.", A],
+        ["Punctuality & presence", "الالتزام والحضور", "Is punctual and reliably present when needed.", "يلتزم بالمواعيد ويحضر بانتظام عند الحاجة.", C],
+        ["Professional conduct", "التصرف المهني", "Conducts themselves professionally in all situations.", "يتصرف باحترافية في جميع المواقف.", A],
+      ]},
+      { name: "Communication", nameAr: "التواصل", teams: [], criteria: [
+        ["Clarity", "الوضوح", "Communicates clearly and is easy to understand.", "يتواصل بوضوح ويسهل فهمه.", A],
+        ["Listening", "الإنصات", "Listens actively and understands others' points.", "يستمع بإنصات ويفهم وجهات نظر الآخرين.", A],
+        ["Responsiveness", "سرعة الاستجابة", "Responds promptly to messages and requests.", "يرد بسرعة على الرسائل والطلبات.", A],
+        ["Constructive tone", "النبرة البنّاءة", "Keeps a constructive, respectful tone even under pressure.", "يحافظ على نبرة بنّاءة ومحترمة حتى تحت الضغط.", A],
+      ]},
+      { name: "Integrity & Accountability", nameAr: "النزاهة والمساءلة", teams: [], criteria: [
+        ["Honesty", "الصدق", "Is honest and truthful in words and actions.", "صادق وأمين في القول والفعل.", A],
+        ["Owns outcomes", "تحمّل المسؤولية", "Takes ownership of results, good or bad.", "يتحمّل مسؤولية النتائج، جيدة كانت أم سيئة.", A],
+        ["Confidentiality", "السرية", "Respects confidentiality and handles sensitive information carefully.", "يحترم السرية ويتعامل مع المعلومات الحساسة بحذر.", A],
+        ["Follows policy", "الالتزام بالسياسات", "Follows company policies and procedures.", "يلتزم بسياسات الشركة وإجراءاتها.", A],
+      ]},
+      { name: "Teamwork & Collaboration", nameAr: "العمل الجماعي والتعاون", teams: [], criteria: [
+        ["Helps others", "مساعدة الآخرين", "Willingly helps colleagues when needed.", "يساعد الزملاء عن طيب خاطر عند الحاجة.", A],
+        ["Shares knowledge", "مشاركة المعرفة", "Shares knowledge and information openly.", "يشارك المعرفة والمعلومات بانفتاح.", A],
+        ["Cross-team cooperation", "التعاون بين الفرق", "Cooperates well across teams and departments.", "يتعاون جيدًا عبر الفرق والأقسام.", A],
+        ["Team over ego", "الفريق قبل الذات", "Puts team goals ahead of personal ego.", "يقدّم أهداف الفريق على المصلحة الشخصية.", A],
+      ]},
+      { name: "Reliability & Follow-through", nameAr: "الاعتمادية والمتابعة", teams: [], criteria: [
+        ["Meets deadlines", "الالتزام بالمواعيد", "Delivers work on time.", "ينجز العمل في الوقت المحدد.", C],
+        ["Consistent quality", "جودة ثابتة", "Maintains consistent quality of work.", "يحافظ على جودة عمل ثابتة.", C],
+        ["Follow-through", "المتابعة حتى النهاية", "Follows through on commitments.", "يفي بالتزاماته حتى النهاية.", C],
+      ]},
+      { name: "Job Knowledge & Competence", nameAr: "المعرفة والكفاءة الوظيفية",
+        teams: ["sales", "xoonx", "purchasing", "logistics", "operations", "development"], criteria: [
+        ["Role mastery", "إتقان الدور", "Has strong command of their role and responsibilities.", "يتقن دوره ومسؤولياته بشكل قوي.", C],
+        ["Applies knowledge", "تطبيق المعرفة", "Applies knowledge effectively to get results.", "يطبّق معرفته بفعالية لتحقيق النتائج.", C],
+        ["Keeps current", "مواكبة التطور", "Keeps skills and knowledge up to date.", "يبقي مهاراته ومعرفته محدّثة.", C],
+      ]},
+      { name: "Initiative & Problem-Solving", nameAr: "المبادرة وحل المشكلات",
+        teams: ["purchasing", "logistics", "operations", "development"], criteria: [
+        ["Proactivity", "المبادرة", "Takes initiative without waiting to be told.", "يبادر دون انتظار التوجيه.", C],
+        ["Problem-solving", "حل المشكلات", "Finds practical solutions to problems.", "يجد حلولًا عملية للمشكلات.", C],
+        ["Improvement mindset", "عقلية التحسين", "Looks for ways to improve how things are done.", "يبحث عن طرق لتحسين أسلوب العمل.", C],
+      ]},
+      { name: "Quality & Accuracy", nameAr: "الجودة والدقة",
+        teams: ["purchasing", "logistics", "operations", "development"], criteria: [
+        ["Accuracy", "الدقة", "Produces accurate, error-free work.", "ينتج عملًا دقيقًا خاليًا من الأخطاء.", C],
+        ["Attention to detail", "الاهتمام بالتفاصيل", "Pays close attention to detail.", "يهتم بالتفاصيل الدقيقة.", C],
+        ["Thoroughness", "الشمول", "Is thorough and complete in their work.", "يتسم عمله بالشمول والاكتمال.", C],
+      ]},
+      { name: "Customer & Patient Care", nameAr: "رعاية العملاء والمرضى",
+        teams: ["sales", "xoonx"], criteria: [
+        ["Customer focus", "التركيز على العميل", "Puts the customer's needs first.", "يضع احتياجات العميل أولًا.", S],
+        ["Empathy", "التعاطف", "Shows empathy and patience with customers.", "يبدي التعاطف والصبر مع العملاء.", S],
+        ["Right advice", "النصيحة الصحيحة", "Gives correct, responsible advice.", "يقدّم نصيحة صحيحة ومسؤولة.", S],
+        ["Handles complaints", "معالجة الشكاوى", "Handles complaints calmly and effectively.", "يتعامل مع الشكاوى بهدوء وفعالية.", S],
+      ]},
+      { name: "Operational Excellence & SLA", nameAr: "التميّز التشغيلي واتفاقيات الخدمة",
+        teams: ["purchasing", "logistics", "operations"], criteria: [
+        ["Process discipline", "الانضباط بالعمليات", "Follows processes and standards consistently.", "يلتزم بالعمليات والمعايير باستمرار.", S],
+        ["Timeliness / SLA", "الالتزام بالمواعيد ومستوى الخدمة", "Meets service-level targets and timelines.", "يحقق مستهدفات مستوى الخدمة والمواعيد.", S],
+        ["Efficiency", "الكفاءة", "Works efficiently and avoids waste.", "يعمل بكفاءة ويتجنّب الهدر.", S],
+      ]},
+      { name: "Leadership & People Development", nameAr: "القيادة وتطوير الأفراد",
+        teams: ["sales", "xoonx", "purchasing", "logistics", "operations", "development"], criteria: [
+        ["Direction", "التوجيه", "Sets clear direction and priorities.", "يحدّد اتجاهًا وأولويات واضحة.", S],
+        ["Develops people", "تطوير الأفراد", "Develops and coaches team members.", "يطوّر أعضاء الفريق ويوجّههم.", S],
+        ["Fair decisions", "القرارات العادلة", "Makes fair, balanced decisions.", "يتخذ قرارات عادلة ومتوازنة.", S],
+        ["Leads by example", "القدوة", "Leads by example and earns trust.", "يقود بالقدوة ويكسب الثقة.", S],
+      ]},
+      { name: "Technical Craft & Delivery", nameAr: "الإتقان التقني والتسليم",
+        teams: ["development"], criteria: [
+        ["Technical quality", "الجودة التقنية", "Produces high-quality technical work.", "ينتج عملًا تقنيًا عالي الجودة.", S],
+        ["Sound judgment", "الحكم السليم", "Shows sound technical judgment.", "يُظهر حكمًا تقنيًا سليمًا.", S],
+        ["Reliable delivery", "التسليم الموثوق", "Delivers reliably and predictably.", "يسلّم بشكل موثوق ومنتظم.", S],
+      ]},
+    ];
+    let pOrder = 0, critCount = 0;
+    for (const p of BANK) {
+      pOrder++;
+      const pillar = await prisma.evalPillar.create({ data: { name: p.name, nameAr: p.nameAr, sortOrder: pOrder } });
+      const teamIds = p.teams.map((k) => teamByKey.get(k)).filter((n): n is number => typeof n === "number");
+      if (teamIds.length) await prisma.evalPillarTeam.createMany({ data: teamIds.map((teamId) => ({ pillarId: pillar.id, teamId })) });
+      let cOrder = 0;
+      for (const [title, titleAr, text, textAr, scope] of p.criteria) {
+        cOrder++;
+        await prisma.evalCriterion.create({ data: { pillarId: pillar.id, title, titleAr, text, textAr, raterScope: scope, sortOrder: cOrder } });
+        critCount++;
+      }
+    }
+    console.log(`  Seeded ${BANK.length} evaluation pillars / ${critCount} criteria.`);
+  }
+
   console.log("Seed complete.");
 }
 
