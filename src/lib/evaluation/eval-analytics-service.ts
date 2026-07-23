@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { parseIds } from "./eligibility-logic";
 import { buildAdjacency, deptTier, deptWeight, levelWeight } from "./weighting-logic";
+import { blendOverall } from "./eval-ai-logic";
 
 const avg = (xs: number[]): number | null => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
@@ -21,7 +22,9 @@ export interface MyResults {
   overall: { score: number | null; self: number | null; responses: number; provisional: boolean; prevScore: number | null; delta: number | null };
   pillars: PillarResult[];
   effortCoveragePct: number | null;
+  overallPct: number | null; // 0.85·peer% + 0.15·effort% (falls back to peer% until effort is scored)
   reportMd: string | null; // released AI report (P5)
+  hasReport: boolean; // a released report exists (drives the PDF download)
   trend: { cycleName: string; overall: number }[];
 }
 
@@ -59,6 +62,7 @@ export async function myResults(cycleId: number, subjectEmpId: number): Promise<
 
   const effortCoveragePct = fb?.effortCoverage != null ? Math.round(fb.effortCoverage * 100) : null;
   const reportMd = fb?.status === "RELEASED" ? fb.editedMd ?? fb.draftMd : null;
+  const overallPct = blendOverall(overallRow?.score ?? null, fb?.effortScore ?? null);
 
   // Cross-cycle overall trend (chronological, closed cycles only).
   const overallAll = await prisma.evalResult.findMany({ where: { subjectEmpId, scope: "OVERALL" }, select: { cycleId: true, score: true } });
@@ -88,7 +92,9 @@ export async function myResults(cycleId: number, subjectEmpId: number): Promise<
     },
     pillars,
     effortCoveragePct,
+    overallPct,
     reportMd,
+    hasReport: !!reportMd,
     trend: chron.map((t) => ({ cycleName: t.name, overall: t.overall })),
   };
 }

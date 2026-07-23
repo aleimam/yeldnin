@@ -72,6 +72,7 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "eval.myResults", icon: "📈", href: "/evaluation/results" },
     { labelKey: "eval.cycles", icon: "🗓️", href: "/evaluation/cycles", capability: "manage" },
     { labelKey: "eval.analytics", icon: "📊", href: "/evaluation/analytics", capability: "manage" },
+    { labelKey: "eval.aiFeedback", icon: "🤖", href: "/evaluation/feedback", capability: "manage" },
     { labelKey: "eval.criteria", icon: "📋", href: "/evaluation/criteria", capability: "manage" },
   ],
   human_resources: [

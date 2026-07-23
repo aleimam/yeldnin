@@ -4,6 +4,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
 import { formatBizDate } from "@/lib/format/dates";
 import { RadarChart } from "@/components/evaluation/RadarChart";
+import { markdownToHtml } from "@/lib/evaluation/eval-ai-logic";
 import { myEmployeeId } from "@/lib/evaluation/eval-evaluate-service";
 import { myResults } from "@/lib/evaluation/eval-analytics-service";
 
@@ -58,7 +59,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ cycle:
                   <p className="text-3xl font-semibold text-ink">
                     {fmt(data.overall.score)}
                     <span className="text-base text-muted"> / 5</span>
-                    <span className="ms-2 text-base text-muted">({pct(data.overall.score)}%)</span>
+                    <span className="ms-2 text-base text-muted">({data.overallPct ?? pct(data.overall.score)}%)</span>
                   </p>
                 </div>
                 {delta != null && (
@@ -143,9 +144,16 @@ export default async function ResultsPage({ params }: { params: Promise<{ cycle:
 
             {/* AI report (P5) */}
             <div className="card p-4">
-              <h2 className="mb-1 text-sm font-semibold text-ink">{t("eval.aiReport")}</h2>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-ink">{t("eval.aiReport")}</h2>
+                {data.hasReport && (
+                  <a href={`/api/evaluation/feedback/${data.cycle.id}/${empId}/pdf`} className="btn-sm border border-line">
+                    ⬇ {t("eval.downloadPdf")}
+                  </a>
+                )}
+              </div>
               {data.reportMd ? (
-                <div className="whitespace-pre-wrap text-sm text-ink">{data.reportMd}</div>
+                <div className="doc-content max-w-none text-sm text-ink" dangerouslySetInnerHTML={{ __html: markdownToHtml(data.reportMd) }} />
               ) : (
                 <p className="text-sm text-muted">{t("eval.reportPending")}</p>
               )}

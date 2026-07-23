@@ -22,7 +22,7 @@ export default async function EvaluationPage() {
     { href: "/evaluation/criteria", icon: "📋", label: t("eval.criteria"), ready: true, admin: true },
     { href: "/evaluation/cycles", icon: "🗓️", label: t("eval.cycles"), ready: true, admin: true },
     { href: "/evaluation/analytics", icon: "📊", label: t("eval.analytics"), ready: true, admin: true },
-    { href: "/evaluation", icon: "🤖", label: t("eval.aiFeedback"), ready: false, admin: true },
+    { href: "/evaluation/feedback", icon: "🤖", label: t("eval.aiFeedback"), ready: true, admin: true },
   ].filter((c) => !c.admin || canManage);
 
   return (
