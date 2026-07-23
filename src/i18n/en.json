@@ -1238,6 +1238,8 @@
   "teams.title": "Departments",
   "teams.name": "Department name",
   "teams.members": "Members",
+  "teams.connections": "Connected departments",
+  "teams.connectionsHint": "Departments that work closely with this one. Used by 360 Reviews to weight who can evaluate whom (connections are mutual).",
   "teams.create": "Create department",
   "teams.add": "Add",
   "teams.addMember": "Add member",

@@ -10,7 +10,18 @@ import {
   removeMember,
   deleteTeam,
 } from "@/lib/teams/teams-service";
+import { setTeamConnections } from "@/lib/evaluation/team-connections-service";
 import { saved, saveError, type SaveState } from "@/lib/forms/action-state";
+
+/** Set a team's connected departments (360 Reviews graph) — reciprocal. */
+export async function setTeamConnectionsAction(fd: FormData): Promise<void> {
+  const access = await requireCapability("user_access", "manageTeams");
+  const teamId = Number(fd.get("teamId"));
+  const ids = fd.getAll("connectedIds").map((v) => Number(v)).filter((n) => Number.isInteger(n));
+  await setTeamConnections(teamId, ids);
+  await writeAudit(access.user.id, "user_access", "team.connections", "team", teamId, { count: ids.length });
+  revalidatePath(`/users/teams/${teamId}`);
+}
 
 export async function createTeamAction(fd: FormData): Promise<void> {
   const access = await requireCapability("user_access", "manageTeams");

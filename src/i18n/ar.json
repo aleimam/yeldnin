@@ -1238,6 +1238,8 @@
   "teams.title": "الأقسام",
   "teams.name": "اسم القسم",
   "teams.members": "الأعضاء",
+  "teams.connections": "الأقسام المرتبطة",
+  "teams.connectionsHint": "الأقسام التي تعمل بشكل وثيق مع هذا القسم. تستخدمها تقييمات 360 لترجيح من يمكنه تقييم من (الروابط متبادلة).",
   "teams.create": "إنشاء قسم",
   "teams.add": "إضافة",
   "teams.addMember": "إضافة عضو",

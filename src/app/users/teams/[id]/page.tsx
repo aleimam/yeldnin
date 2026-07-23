@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { requireCapability } from "@/lib/auth/access";
 import { AppShell } from "@/components/shell/AppShell";
 import { getT, getLocale } from "@/i18n/server";
-import { getTeamDetail, listAllUsers } from "@/lib/teams/teams-service";
+import { getTeamDetail, listAllUsers, listTeamsWithCounts } from "@/lib/teams/teams-service";
+import { connectedTeamIds } from "@/lib/evaluation/team-connections-service";
 import { displayName } from "@/lib/users/users-logic";
 import { TrashIcon } from "@/components/icons/TrashIcon";
 import {
@@ -10,6 +11,7 @@ import {
   addMemberAction,
   removeMemberAction,
   deleteTeamAction,
+  setTeamConnectionsAction,
 } from "../actions";
 import { ActionForm } from "@/components/ActionForm";
 
@@ -22,7 +24,13 @@ export default async function TeamDetailPage({
   const { id } = await params;
   const team = await getTeamDetail(Number(id));
   if (!team) notFound();
-  const [t, locale, allUsers] = await Promise.all([getT(), getLocale(), listAllUsers()]);
+  const [t, locale, allUsers, allTeams, myConns] = await Promise.all([
+    getT(),
+    getLocale(),
+    listAllUsers(),
+    listTeamsWithCounts(),
+    connectedTeamIds(team.id),
+  ]);
 
   const memberIds = new Set(team.members.map((m) => m.userId));
   const candidates = allUsers.filter((u) => !memberIds.has(u.id));
@@ -70,6 +78,25 @@ export default async function TeamDetailPage({
             ))}
             {team.members.length === 0 && <li className="py-2 text-sm text-muted">—</li>}
           </ul>
+        </div>
+
+        {/* Connected departments (360 Reviews relationship graph) */}
+        <div className="card p-6">
+          <h2 className="mb-1 font-semibold text-ink">{t("teams.connections")}</h2>
+          <p className="mb-3 text-xs text-muted">{t("teams.connectionsHint")}</p>
+          <form action={setTeamConnectionsAction} className="space-y-3">
+            <input type="hidden" name="teamId" value={team.id} />
+            <div className="grid gap-2 sm:grid-cols-2">
+              {allTeams.filter((tm) => tm.id !== team.id).map((tm) => (
+                <label key={tm.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="connectedIds" value={tm.id} defaultChecked={myConns.includes(tm.id)} />
+                  <span className="text-ink">{tm.name}</span>
+                </label>
+              ))}
+              {allTeams.length <= 1 && <span className="text-sm text-muted">—</span>}
+            </div>
+            <button className="btn-primary btn-sm">{t("common.save")}</button>
+          </form>
         </div>
 
         {/* Delete */}

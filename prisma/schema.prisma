@@ -132,6 +132,16 @@ model Team {
   roles   TeamRole[]
 }
 
+// Reciprocal, undirected connections between Teams (a Team == a "department" in
+// the 360 Reviews module). Powers the same/direct/indirect relationship weighting.
+// Stored once per pair with aId < bId; query both directions.
+model TeamConnection {
+  aId Int
+  bId Int
+  @@id([aId, bId])
+  @@index([bId])
+}
+
 model TeamMember {
   id     Int  @id @default(autoincrement())
   teamId Int
@@ -1470,6 +1480,7 @@ model Employee {
   gradUniversity   String?
   gradFaculty      String?
   birthDate        DateTime?
+  gender           String? // MALE | FEMALE (plain data field; never sent to the 360 AI)
   hiringDate       DateTime?
   annualAllowance  Int? // per-employee yearly leave override; null = HrConfig default
   urgentAllowance  Int?
@@ -1591,7 +1602,8 @@ model Position {
   id            Int       @id @default(autoincrement())
   title         String
   titleAr       String?
-  grade         String? // grade / level (e.g. Junior, Senior, L3)
+  grade         String? // grade / level LABEL (e.g. Junior, Senior, L3)
+  gradeLevel    Int?    // numeric seniority level for 360 Reviews weighting (higher = more senior)
   description   String?
   descriptionAr String?
   sortOrder     Int       @default(0)
