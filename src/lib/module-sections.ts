@@ -65,6 +65,12 @@ export const MODULE_SECTIONS: Record<string, SectionDef[]> = {
     { labelKey: "products.title", icon: "📦", href: "/products", module: "purchasing", shortcut: true },
   ],
   operations: [{ labelKey: "shipments.title", icon: "🚢", href: "/shipments" }],
+  // 360 Reviews. Everyone reaches the module (VIEW = self-service); the criteria
+  // & pillars editor is admin/HR only (capability "manage").
+  evaluation: [
+    { labelKey: "eval.myReviews", icon: "📝", href: "/evaluation" },
+    { labelKey: "eval.criteria", icon: "📋", href: "/evaluation/criteria", capability: "manage" },
+  ],
   human_resources: [
     { labelKey: "hr.employees", icon: "👥", href: "/hr/employees" },
     { labelKey: "hr.hierarchy", icon: "🪜", href: "/hr/hierarchy" },

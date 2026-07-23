@@ -142,6 +142,41 @@ model TeamConnection {
   @@index([bId])
 }
 
+// ── 360 Reviews (Evaluation module) — admin config ───────────────────────────
+// Pillars group criteria; each pillar applies to one/several/all Teams (the
+// evaluatee's team decides which pillars show). See EVALUATION.md §4.
+model EvalPillar {
+  id         Int              @id @default(autoincrement())
+  name       String
+  nameAr     String?
+  sortOrder  Int              @default(0)
+  archivedAt DateTime?
+  criteria   EvalCriterion[]
+  teams      EvalPillarTeam[]
+}
+
+model EvalPillarTeam {
+  pillarId Int
+  pillar   EvalPillar @relation(fields: [pillarId], references: [id], onDelete: Cascade)
+  teamId   Int // Team.id (a "department")
+  @@id([pillarId, teamId])
+  @@index([teamId])
+}
+
+model EvalCriterion {
+  id         Int        @id @default(autoincrement())
+  pillarId   Int
+  pillar     EvalPillar @relation(fields: [pillarId], references: [id], onDelete: Cascade)
+  title      String
+  titleAr    String?
+  text       String
+  textAr     String?
+  raterScope String     @default("ANY") // ANY | CONNECTED | SAME_DEPT — who is close enough to judge
+  sortOrder  Int        @default(0)
+  archivedAt DateTime?
+  @@index([pillarId])
+}
+
 model TeamMember {
   id     Int  @id @default(autoincrement())
   teamId Int

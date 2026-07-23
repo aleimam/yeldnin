@@ -27,6 +27,7 @@ const MODULES = [
   { key: "audit_log", route: "/audit", section: "admin", sortOrder: 14 },
   { key: "error_log", route: "/error-log", section: "admin", sortOrder: 15 },
   { key: "documents", route: "/documents", section: "admin", sortOrder: 16 },
+  { key: "evaluation", route: "/evaluation", section: "main", sortOrder: 17 },
 ];
 
 // Starter document categories (admin-editable afterwards). Seeded by name (idempotent).

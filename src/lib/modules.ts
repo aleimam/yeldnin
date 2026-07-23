@@ -39,6 +39,7 @@ export const MODULES: ModuleDef[] = [
   { key: "history", route: "/history", section: "main", category: "supply_chain", icon: "🕐" },
   { key: "pricing", route: "/pricing", section: "main", category: "services", icon: "🧮" },
   { key: "cs_quality", route: "/cs-quality", section: "main", category: "people", icon: "🎧" },
+  { key: "evaluation", route: "/evaluation", section: "main", category: "people", icon: "🔄" },
   { key: "human_resources", route: "/hr", section: "main", category: "people", icon: "👤" },
   { key: "expenses", route: "/expenses", section: "main", category: "finance", icon: "💸" },
   { key: "settings", route: "/settings", section: "admin", category: "administration", icon: "⚙️" },
