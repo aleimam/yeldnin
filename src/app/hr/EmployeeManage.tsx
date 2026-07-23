@@ -15,6 +15,7 @@ interface Initial {
   gradUniversity: string;
   gradFaculty: string;
   birthDate: string;
+  gender: string;
   hiringDate: string;
   bank: string;
   accountNo: string;
@@ -127,6 +128,14 @@ export function EmployeeManage({
           <label className="block"><span className="label">{t("hr.university")}</span><input className="input" value={d.gradUniversity} onChange={setField("gradUniversity")} /></label>
           <label className="block"><span className="label">{t("hr.faculty")}</span><input className="input" value={d.gradFaculty} onChange={setField("gradFaculty")} /></label>
           <label className="block"><span className="label">{t("hr.birthDate")}</span><DateField className="input" value={d.birthDate} onChange={setField("birthDate")} /></label>
+          <label className="block">
+            <span className="label">{t("hr.gender")}</span>
+            <select className="input" value={d.gender} onChange={setField("gender")}>
+              <option value="">{t("hr.notSet")}</option>
+              <option value="MALE">{t("hr.male")}</option>
+              <option value="FEMALE">{t("hr.female")}</option>
+            </select>
+          </label>
           <label className="block"><span className="label">{t("hr.hiringDate")}</span><DateField className="input" value={d.hiringDate} onChange={setField("hiringDate")} /></label>
           <label className="block"><span className="label">{t("hr.bank")}</span><input className="input" value={d.bank} onChange={setField("bank")} /></label>
           <label className="block"><span className="label">{t("hr.accountNo")}</span><input className="input" value={d.accountNo} onChange={setField("accountNo")} /></label>
@@ -149,7 +158,7 @@ export function EmployeeManage({
         <button type="button" className="btn-primary px-3 py-1.5 text-sm" disabled={pending} onClick={() => refresh(() => updateEmployeeAction(employeeId, {
           nationalIdNumber: d.nationalIdNumber || null, nationalIdExpiry: d.nationalIdExpiry || null,
           gradDegree: d.gradDegree || null, gradUniversity: d.gradUniversity || null, gradFaculty: d.gradFaculty || null,
-          birthDate: d.birthDate || null, hiringDate: d.hiringDate || null,
+          birthDate: d.birthDate || null, gender: d.gender || null, hiringDate: d.hiringDate || null,
           bank: d.bank || null, accountNo: d.accountNo || null,
           salaryTypeId: d.salaryTypeId ? Number(d.salaryTypeId) : null, employeeTypeId: d.employeeTypeId ? Number(d.employeeTypeId) : null,
           notes: d.notes || null,

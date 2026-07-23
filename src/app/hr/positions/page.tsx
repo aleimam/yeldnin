@@ -19,6 +19,7 @@ export default async function PositionsPage() {
           title: p.title,
           titleAr: p.titleAr,
           grade: p.grade,
+          gradeLevel: p.gradeLevel,
           description: p.description,
           descriptionAr: p.descriptionAr,
         }))}

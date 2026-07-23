@@ -10,10 +10,11 @@ type Pos = {
   title: string;
   titleAr: string | null;
   grade: string | null;
+  gradeLevel: number | null;
   description: string | null;
   descriptionAr: string | null;
 };
-type PosRow = { id: number; title: string; titleAr: string; grade: string; description: string; descriptionAr: string; remove: boolean };
+type PosRow = { id: number; title: string; titleAr: string; grade: string; gradeLevel: string; description: string; descriptionAr: string; remove: boolean };
 
 export function PositionsAdmin({ positions }: { positions: Pos[] }) {
   const t = useT();
@@ -24,10 +25,12 @@ export function PositionsAdmin({ positions }: { positions: Pos[] }) {
   const [pos, setPos] = useState<PosRow[]>(
     positions.map((p) => ({
       id: p.id, title: p.title, titleAr: p.titleAr ?? "",
-      grade: p.grade ?? "", description: p.description ?? "", descriptionAr: p.descriptionAr ?? "", remove: false,
+      grade: p.grade ?? "", gradeLevel: p.gradeLevel != null ? String(p.gradeLevel) : "",
+      description: p.description ?? "", descriptionAr: p.descriptionAr ?? "", remove: false,
     })),
   );
-  const [newPos, setNewPos] = useState({ title: "", titleAr: "", grade: "", description: "", descriptionAr: "" });
+  const [newPos, setNewPos] = useState({ title: "", titleAr: "", grade: "", gradeLevel: "", description: "", descriptionAr: "" });
+  const num = (v: string) => (v.trim() && Number.isFinite(Number(v)) ? Number(v) : null);
 
   const savePos = () => {
     setErr(null);
@@ -35,10 +38,10 @@ export function PositionsAdmin({ positions }: { positions: Pos[] }) {
       const r = await savePositionsAction(
         pos.map((p) => ({
           id: p.id, remove: p.remove,
-          title: p.title, titleAr: p.titleAr || null, grade: p.grade || null, description: p.description || null, descriptionAr: p.descriptionAr || null,
+          title: p.title, titleAr: p.titleAr || null, grade: p.grade || null, gradeLevel: num(p.gradeLevel), description: p.description || null, descriptionAr: p.descriptionAr || null,
         })),
         newPos.title.trim()
-          ? { title: newPos.title, titleAr: newPos.titleAr || null, grade: newPos.grade || null, description: newPos.description || null, descriptionAr: newPos.descriptionAr || null }
+          ? { title: newPos.title, titleAr: newPos.titleAr || null, grade: newPos.grade || null, gradeLevel: num(newPos.gradeLevel), description: newPos.description || null, descriptionAr: newPos.descriptionAr || null }
           : null,
       );
       if (!r.ok) { setErr(r.error || "Could not save."); return; }
@@ -57,6 +60,7 @@ export function PositionsAdmin({ positions }: { positions: Pos[] }) {
             <label className="block"><span className="label">{t("hr.jobTitle")}</span><input className="input" value={p.title} onChange={(e) => setPos((s) => s.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} /></label>
             <label className="block"><span className="label">{t("hr.jobTitleAr")}</span><input className="input" dir="rtl" value={p.titleAr} onChange={(e) => setPos((s) => s.map((x, j) => (j === i ? { ...x, titleAr: e.target.value } : x)))} /></label>
             <label className="block"><span className="label">{t("hr.grade")}</span><input className="input" value={p.grade} onChange={(e) => setPos((s) => s.map((x, j) => (j === i ? { ...x, grade: e.target.value } : x)))} /></label>
+            <label className="block"><span className="label">{t("hr.gradeLevel")}</span><input className="input" inputMode="numeric" placeholder={t("hr.gradeLevelHint")} value={p.gradeLevel} onChange={(e) => setPos((s) => s.map((x, j) => (j === i ? { ...x, gradeLevel: e.target.value } : x)))} /></label>
             <label className="block"><span className="label">{t("hr.description")}</span><input className="input" value={p.description} onChange={(e) => setPos((s) => s.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))} /></label>
             <label className="block"><span className="label">{t("hr.descriptionAr")}</span><input className="input" dir="rtl" value={p.descriptionAr} onChange={(e) => setPos((s) => s.map((x, j) => (j === i ? { ...x, descriptionAr: e.target.value } : x)))} /></label>
             <div className="sm:col-span-2">
@@ -68,6 +72,7 @@ export function PositionsAdmin({ positions }: { positions: Pos[] }) {
           <label className="block"><span className="label">+ {t("hr.jobTitle")}</span><input className="input" value={newPos.title} onChange={(e) => setNewPos((s) => ({ ...s, title: e.target.value }))} /></label>
           <label className="block"><span className="label">{t("hr.jobTitleAr")}</span><input className="input" dir="rtl" value={newPos.titleAr} onChange={(e) => setNewPos((s) => ({ ...s, titleAr: e.target.value }))} /></label>
           <label className="block"><span className="label">{t("hr.grade")}</span><input className="input" value={newPos.grade} onChange={(e) => setNewPos((s) => ({ ...s, grade: e.target.value }))} /></label>
+          <label className="block"><span className="label">{t("hr.gradeLevel")}</span><input className="input" inputMode="numeric" placeholder={t("hr.gradeLevelHint")} value={newPos.gradeLevel} onChange={(e) => setNewPos((s) => ({ ...s, gradeLevel: e.target.value }))} /></label>
           <label className="block"><span className="label">{t("hr.description")}</span><input className="input" value={newPos.description} onChange={(e) => setNewPos((s) => ({ ...s, description: e.target.value }))} /></label>
           <label className="block"><span className="label">{t("hr.descriptionAr")}</span><input className="input" dir="rtl" value={newPos.descriptionAr} onChange={(e) => setNewPos((s) => ({ ...s, descriptionAr: e.target.value }))} /></label>
         </div>

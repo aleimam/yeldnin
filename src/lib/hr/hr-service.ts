@@ -80,6 +80,7 @@ export interface EmployeeProfileInput {
   gradUniversity?: string | null;
   gradFaculty?: string | null;
   birthDate?: string | null;
+  gender?: string | null;
   hiringDate?: string | null;
   bank?: string | null;
   accountNo?: string | null;
@@ -99,6 +100,7 @@ export async function updateEmployee(id: number, input: EmployeeProfileInput, by
       gradUniversity: clean(input.gradUniversity),
       gradFaculty: clean(input.gradFaculty),
       birthDate: input.birthDate ? new Date(input.birthDate) : null,
+      gender: clean(input.gender),
       hiringDate: input.hiringDate ? new Date(input.hiringDate) : null,
       bank: clean(input.bank),
       accountNo: clean(input.accountNo),

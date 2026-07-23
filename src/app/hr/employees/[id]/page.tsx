@@ -79,6 +79,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
             {detail(t("hr.university"), emp.gradUniversity)}
             {detail(t("hr.faculty"), emp.gradFaculty)}
             {detail(t("hr.birthDate"), emp.birthDate ? formatBizDate(emp.birthDate) : null)}
+            {detail(t("hr.gender"), emp.gender === "MALE" ? t("hr.male") : emp.gender === "FEMALE" ? t("hr.female") : null)}
             {detail(t("hr.salaryType"), typeName(emp.salaryType))}
             {detail(t("hr.employeeType"), typeName(emp.employeeType))}
             {detail(t("hr.bank"), emp.bank)}
@@ -120,6 +121,7 @@ export default async function EmployeeProfilePage({ params }: { params: Promise<
           gradUniversity: emp.gradUniversity ?? "",
           gradFaculty: emp.gradFaculty ?? "",
           birthDate: emp.birthDate ? emp.birthDate.toISOString().slice(0, 10) : "",
+          gender: emp.gender ?? "",
           hiringDate: emp.hiringDate ? emp.hiringDate.toISOString().slice(0, 10) : "",
           bank: emp.bank ?? "",
           accountNo: emp.accountNo ?? "",

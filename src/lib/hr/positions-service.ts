@@ -19,6 +19,7 @@ export interface PosRow {
   title: string;
   titleAr: string | null;
   grade: string | null;
+  gradeLevel: number | null; // numeric seniority level for 360 Reviews weighting
   description: string | null;
   descriptionAr: string | null;
 }
@@ -27,6 +28,7 @@ const posData = (r: NewPos) => ({
   title: r.title.trim(),
   titleAr: clean(r.titleAr),
   grade: clean(r.grade),
+  gradeLevel: typeof r.gradeLevel === "number" && Number.isFinite(r.gradeLevel) ? Math.round(r.gradeLevel) : null,
   description: clean(r.description),
   descriptionAr: clean(r.descriptionAr),
 });
