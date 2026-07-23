@@ -168,7 +168,10 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   },
   {
     labelKey: "settings.group.integrations",
-    items: [{ labelKey: "integ.title", icon: "🔌", href: "/settings/integrations", module: "settings", capability: "manageModules", adminOnly: true }],
+    items: [
+      { labelKey: "integ.title", icon: "🔌", href: "/settings/integrations", module: "settings", capability: "manageModules", adminOnly: true },
+      { labelKey: "eval.ai.settings", icon: "🤖", href: "/settings/evaluation", module: "settings", capability: "manageModules", adminOnly: true },
+    ],
   },
   {
     labelKey: "settings.group.system",
